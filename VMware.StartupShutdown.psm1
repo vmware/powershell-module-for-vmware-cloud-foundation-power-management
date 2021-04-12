@@ -152,7 +152,7 @@ Function ShutdownStartup-ComponentOnHost {
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
 		    [Int]$timeout,
-            [String[]]$pattern=""
+            [String[]]$pattern="",
             [String]$task='Shutdown'
     )
 
