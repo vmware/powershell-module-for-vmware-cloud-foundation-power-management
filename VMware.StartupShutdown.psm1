@@ -2,9 +2,9 @@ Function ShutdownStartup-SDDCComponent {
     <#
         .NOTES
         ===========================================================================
-        Created by:		Sowjanya V
-        Date:			03/15/2021
-        Organization:	VMware
+        Created by:  Sowjanya V
+        Date:   03/15/2021
+        Organization: VMware
         ===========================================================================
         
         .SYNOPSIS
@@ -25,85 +25,85 @@ Function ShutdownStartup-SDDCComponent {
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-		    [Int]$timeout,
+      [Int]$timeout,
             [String[]]$nodes,
             [String]$task='Shutdown'           
     )
 
     Try {
-	    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
+     Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
         Write-Output $server, $user, $pass, $nodes, $timeout
-	
+ 
         if($task -eq "Shutdown") { 
-	            if($nodes.Count -ne 0) {
+             if($nodes.Count -ne 0) {
                     foreach ($node in $nodes) {
-			            $count=0
+               $count=0
             
                         $vm_obj = Get-VMGuest -VM $node
                         Write-Output $node, $vm_obj
-			            if($vm_obj.State -eq 'NotRunning'){
-				            Write-Output "The VM $vm_obj is already in powered off state"
+               if($vm_obj.State  -eq  'NotRunning'){
+                Write-Output "The VM $vm_obj is already in powered off state"
 
-				            continue
+                continue
 
-			            }
-			            Stop-VMGuest -VM $node -Confirm:$false
+               }
+               Stop-VMGuest  -VM  $node  -Confirm:$false
                         $vm_obj = Get-VMGuest -VM $node
                         Write-Output $vm_obj.State
-                        Start-Sleep -Seconds 10
+                        Start-Sleep  -Seconds  10
             
                         #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-			            while(( $vm_obj.State -ne 'NotRunning') -AND ($count -ne $timeout) ){
-			                Start-Sleep -Seconds 1
+               while(( $vm_obj.State -ne  'NotRunning') -AND ($count -ne $timeout) ){
+                       Start-Sleep  -Seconds  1
                             Write-Output "Sleeping for 1 second"
-				            $count = $count + 1
+                $count = $count + 1
                             $vm_obj = Get-VMGuest -VM $node
                             Write-Output $vm_obj.State
 
-			            }
-			            if($count -eq $timeout) {
-				            Write-Error "The VM did not get turned off with in stipulated timeout:$timeout value"	
-                            break 			
-			            } else {
-				            Write-Output "The VM is successfully shutdown"
-			            }
-		            }
-	            } 
+               }
+               if($count -eq $timeout) {
+                Write-Error "The VM did not get turned off with in stipulated timeout:$timeout value" 
+                            break    
+               } else {
+                Write-Output "The VM is successfully shutdown"
+               }
+              }
+             } 
         } elseif($task -eq "startup") {
-            	if($nodes.Count -ne 0) {
+             if($nodes.Count -ne 0) {
                     foreach ($node in $nodes) {
-			            $count=0
+               $count=0
             
                         $vm_obj = Get-VMGuest -VM $node
                         Write-Output $node, $vm_obj
-			            if($vm_obj.State -eq 'Running'){
-				            Write-Output "The VM $vm_obj is already in powered on state"
+               if($vm_obj.State  -eq  'Running'){
+                Write-Output "The VM $vm_obj is already in powered on state"
 
-				            continue
+                continue
 
-			            }
-			            Start-VM -VM $node -Confirm:$false
+               }
+               Start-VM  -VM  $node -Confirm:$false
                         $vm_obj = Get-VMGuest -VM $node
                         Write-Output $vm_obj.State
-                        Start-Sleep -Seconds 10
+                        Start-Sleep  -Seconds  10
             
                         #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-			            while(( $vm_obj.State -ne 'Running') -AND ($count -ne $timeout) ){
-			                Start-Sleep -Seconds 1
+               while(( $vm_obj.State -ne  'Running') -AND ($count -ne $timeout) ){
+                       Start-Sleep  -Seconds  1
                             Write-Output "Sleeping for 1 second"
-				            $count = $count + 1
+                $count = $count + 1
                             $vm_obj = Get-VMGuest -VM $node
                             Write-Output $vm_obj.State
 
-			            }
-			            if($count -eq $timeout) {
-				            Write-Error "The VM did not get turned on with in stipulated timeout:$timeout value"	
-                            break 			
-			            } else {
-				            Write-Output "The VM is successfully turned on"
-			            }
-		            }
-	            } 
+               }
+               if($count -eq $timeout) {
+                Write-Error "The VM did not get turned on with in stipulated timeout:$timeout value" 
+                            break    
+               } else {
+                Write-Output "The VM is successfully turned on"
+               }
+              }
+             } 
 
         } else {
             write-error("The task passed is neither Shutdown or Startup")
@@ -127,9 +127,9 @@ Function ShutdownStartup-ComponentOnHost {
     <#
         .NOTES
         ===========================================================================
-        Created by:		Sowjanya V
-        Date:			03/15/2021
-        Organization:	VMware
+        Created by:  Sowjanya V
+        Date:   03/15/2021
+        Organization: VMware
         ===========================================================================
         
         .SYNOPSIS
@@ -151,14 +151,14 @@ Function ShutdownStartup-ComponentOnHost {
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-		    [Int]$timeout,
+      [Int]$timeout,
             [String[]]$pattern="",
             [String]$task='Shutdown'
     )
 
     Try {
 
-	    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
+     Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
         Write-Output $server, $user, $pass, $nodes, $timeout
         #$nodes = Get-VM | select Name, PowerState | where Name -match $pattern
         if ($pattern -eq "") {
@@ -169,82 +169,82 @@ Function ShutdownStartup-ComponentOnHost {
         Write-Output $nodes
 
 
-	
+ 
        if($task -eq 'Shutdown'){
-	    if($nodes.Count -ne 0) {
+     if($nodes.Count -ne 0) {
             foreach ($node in $nodes) {
-			    $count=0
+       $count=0
                 
                 $vm_obj = Get-VMGuest -VM $node.Name | where VmUid -match $server
                 Write-Output $vm_obj
-			    if($vm_obj.State -eq 'NotRunning'){
-				    Write-Output "The VM $vm_obj is already in powered off state"
+       if($vm_obj.State  -eq  'NotRunning'){
+        Write-Output "The VM $vm_obj is already in powered off state"
 
-				    continue
+        continue
 
-			    }
+       }
         
-			    Get-VMGuest -VM $node.Name | where VmUid -match $server | Stop-VMGuest -Confirm:$false
+       Get-VMGuest -VM $node.Name | where VmUid -match $server | Stop-VMGuest  -Confirm:$false
                 $vm_obj = Get-VMGuest -VM $node.Name | where VmUid -match $server
                 Write-Output $vm_obj.State
             
                 #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-			    while(( $vm_obj.State -ne 'NotRunning') -AND ($count -ne $timeout) ){
-			        Start-Sleep -Seconds 1
+       while(( $vm_obj.State -ne  'NotRunning') -AND ($count -ne $timeout) ){
+               Start-Sleep  -Seconds  1
                     Write-Output "Sleeping for 1 second"
-				    $count = $count + 1
+        $count = $count + 1
                     $vm_obj = Get-VMGuest -VM $node.Name | where VmUid -match $server
                     Write-Output $vm_obj.State
 
-			    }
-			    if($count -eq $timeout) {
-				    Write-Error "The VM did not get turned off with in stipulated timeout:$timeout value"	
-                    break 			
-			    } else {
-				    Write-Output "The VM is successfully shutdown"
-			    }
-		    }
-	    } else {
+       }
+       if($count -eq $timeout) {
+        Write-Error "The VM did not get turned off with in stipulated timeout:$timeout value" 
+                    break    
+       } else {
+        Write-Output "The VM is successfully shutdown"
+       }
+      }
+     } else {
             Write-Output "No Node is specified. Hence shutting down the ESXi host"
             Stop-VMHost -VMHost $server -Server $server -confirm:$false -RunAsync
         }
 
       } elseif ($task -eq 'Startup') {
 
-      	    if($nodes.Count -ne 0) {
+           if($nodes.Count -ne 0) {
             foreach ($node in $nodes) {
-			    $count=0
+       $count=0
                 
                 $vm_obj = Get-VMGuest -VM $node.Name | where VmUid -match $server
                 Write-Output $vm_obj
-			    if($vm_obj.State -eq 'Running'){
-				    Write-Output "The VM $vm_obj is already in powered on state"
+       if($vm_obj.State  -eq  'Running'){
+        Write-Output "The VM $vm_obj is already in powered on state"
 
-				    continue
+        continue
 
-			    }
+       }
         
-			    Get-VMGuest -VM $node.Name | where VmUid -match $server | Start-VM -Confirm:$false
+       Get-VMGuest -VM $node.Name | where VmUid -match $server | Start-VM  -Confirm:$false
                 $vm_obj = Get-VMGuest -VM $node.Name | where VmUid -match $server
                 Write-Output $vm_obj.State
             
                 #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-			    while(( $vm_obj.State -ne 'Running') -AND ($count -ne $timeout) ){
-			        Start-Sleep -Seconds 1
+       while(( $vm_obj.State -ne  'Running') -AND ($count -ne $timeout) ){
+               Start-Sleep  -Seconds  1
                     Write-Output "Sleeping for 1 second"
-				    $count = $count + 1
+        $count = $count + 1
                     $vm_obj = Get-VMGuest -VM $node.Name | where VmUid -match $server
                     Write-Output $vm_obj.State
 
-			    }
-			    if($count -eq $timeout) {
-				    Write-Error "The VM did not get turned on with in stipulated timeout:$timeout value"	
-                    break 			
-			    } else {
-				    Write-Output "The VM is successfully started"
-			    }
-		    }
-	    } else {
+       }
+       if($count -eq $timeout) {
+        Write-Error "The VM did not get turned on with in stipulated timeout:$timeout value" 
+                    break    
+       } else {
+        Write-Output "The VM is successfully started"
+       }
+      }
+     } else {
             Write-Output "No Node is specified. Hence Starting the ESXi host"
             Start-VMHost -VMHost $server -Server $server -confirm:$false -RunAsync
         }
@@ -268,9 +268,9 @@ Function Execute-OnEsx {
     <#
         .NOTES
         ===========================================================================
-        Created by:		Sowjanya V
-        Date:			03/15/2021
-        Organization:	VMware
+        Created by:  Sowjanya V
+        Date:   03/15/2021
+        Organization: VMware
         ===========================================================================
         
         .SYNOPSIS
