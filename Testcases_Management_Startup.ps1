@@ -3,11 +3,20 @@
 
 
 #Start the vSphere Cluster Services in the Management Domain
+ShutdownStartup-ComponentOnHost -server sfo01-m01-esx01.sfo.rainpole.io -pattern "^vCLS.*" -user root -pass VMw@re123! -timeout 500 -task "Startup"
+ShutdownStartup-ComponentOnHost -server sfo01-m01-esx02.sfo.rainpole.io -pattern "^vCLS.*" -user root -pass VMw@re123! -timeout 1000 -task "Startup"
+ShutdownStartup-ComponentOnHost -server sfo01-m01-esx03.sfo.rainpole.io -pattern "^vCLS.*" -user root -pass VMw@re123! -timeout 1000 -task "Startup"
+ShutdownStartup-ComponentOnHost -server sfo01-m01-esx04.sfo.rainpole.io -pattern "^vCLS.*" -user root -pass VMw@re123! -timeout 1000 -task "Startup"
 
 #Start the vCenter Server Instance in the Management Domain
+ShutdownStartup-ComponentOnHost -server sfo01-m01-esx01.sfo.rainpole.io -pattern "sfo-m01-vc01" -user root -pass VMw@re123! -timeout 500 -task "Startup"
+Start-sleep -s 100
+Connect-VIserver -server sfo01-m01-esx01.sfo.rainpole.io -Server "sfo-m01-vc01" -user root -pass VMw@re123! -protocol https
+#skyline health and monitoring is pending
+
 
 #Set DRS Automation Level of the Management Domain to Automatic
-
+Set-DrsAutomationLevel  -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re123! -level 'FullyAutomated' -cluster 'sfo-m01-cl01'
 
 #Start the SDDC Manager Virtual Machine in the Management Domain
 ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io  -node sfo-vcf01 -user administrator@vsphere.local -pass VMw@re123!  -timeout 150 -task "Startup"
