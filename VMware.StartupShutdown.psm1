@@ -648,6 +648,56 @@ Function StartStop-VAMIServiceStatus {
     }
 }
 
+Function Set-DrsAutomationLevel {
+    <#
+        .NOTES
+        ===========================================================================
+        Created by:		Sowjanya V
+        Date:			03/16/2021
+        Organization:	VMware
+        ===========================================================================
+        
+        .SYNOPSIS
+        Set the automation level to manual or fully automated 
+    
+        .DESCRIPTION
+        Set the automation level to manual or fully automated 
+    
+        .EXAMPLE
+        PS C:\>Set-DrsAutomationLevel -Server $server -User $user  -Pass $pass -cluster <clustername> -level <Manual/FullyAutomated>
+
+    #>
+	Param (
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
+			[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$cluster,
+			[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$level
+
+    )
+
+    Try {
+        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
+		$out = Get-Cluster -Name $cluster
+		if ($out.DrsAutomationLevel -eq $level) {
+			write-Output "DrsAutomationLevel is already set to $level"
+		} else {
+			$task =  set-cluster -Cluster $cluster -DrsAutomationLevel $level -confirm:$false 
+			if($task.DrsAutomationLevel -eq $level) {
+				write-Output "DrsAutomationLevel is set to $level successfully"
+			} else {
+				write-Output "DrsAutomationLevel could not be set to $level"
+			}
+		}		
+    } 
+    Catch {
+            Write-Error "An error occured. $_"
+    }
+    Finally {
+            Disconnect-VIServer -Server $server -confirm:$false
+    }
+}
+
 
 
 
