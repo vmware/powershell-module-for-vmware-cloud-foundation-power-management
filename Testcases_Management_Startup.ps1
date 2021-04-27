@@ -1,5 +1,32 @@
 
 #Start vSAN and the ESXi Hosts in the Management Domain
+##using ILO ip 10.144.40.44 and powered on manually, need to check what is the powershell module for dell idrac
+Set-MaintainanceMode -server "sfo01-m01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -cmd "esxcli system maintenanceMode set -e false"
+
+##using ILO ip 10.144.40.43 and powered on manually, need to check what is the powershell module for dell idrac
+Set-MaintainanceMode -server "sfo01-m01-esx02.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -cmd "esxcli system maintenanceMode set -e false"
+
+##using ILO ip 10.144.40.42 and powered on manually, need to check what is the powershell module for dell idrac
+Set-MaintainanceMode -server "sfo01-m01-esx03.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -cmd "esxcli system maintenanceMode set -e false"
+
+##using ILO ip 10.144.40.42 and powered on manually, need to check what is the powershell module for dell idrac
+Set-MaintainanceMode -server "sfo01-m01-esx04.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -cmd "esxcli system maintenanceMode set -e false"
+
+
+##################################passed only on  first host
+Execute-OnEsx -server "sfo01-m01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -expected "Cluster reboot/poweron is completed successfully!" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py recover"
+
+######
+Verify-VSANClusterMembers -server "sfo01-m01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-m01-esx01.sfo.rainpole.io"
+Verify-VSANClusterMembers -server "sfo01-m01-esx02.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-m01-esx01.sfo.rainpole.io"
+Verify-VSANClusterMembers -server "sfo01-m01-esx03.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-m01-esx01.sfo.rainpole.io"
+Verify-VSANClusterMembers -server "sfo01-m01-esx04.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-m01-esx01.sfo.rainpole.io"
+
+#####
+Execute-OnEsx -server "sfo01-m01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
+Execute-OnEsx -server "sfo01-m01-esx02.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
+Execute-OnEsx -server "sfo01-m01-esx03.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
+Execute-OnEsx -server "sfo01-m01-esx04.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
 
 
 #Start the vSphere Cluster Services in the Management Domain
@@ -44,10 +71,13 @@ Connect-NSXTLocal -url "https://sfo-m01-nsx01.sfo.rainpole.io/login.jsp?local=tr
 ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes sfo-m01-en01, sfo-m01-en02 -user administrator@vsphere.local -pass VMw@re123!  -task "Startup" -timeout 600
 
 #Start the Region-Specific Workspace ONE Access Virtual Machine in the Management Domain
+ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io  -node sfo-wsa01 -user administrator@vsphere.local -pass VMw@re123!  -timeout 150 -task "Startup"
 
 #Start the vRealize Log Insight Virtual Machines in the Management Domain
+ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io  -node sfo-vrli01a, sfo-vrli01b, sfo-vrli01c -user administrator@vsphere.local -pass VMw@re123!  -timeout 150 -task "Startup"
 
 #Start the vRealize Suite Lifecycle Manager Virtual Machine in the Management Domain
+ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io  -node xreg-vrslcm01 -user administrator@vsphere.local -pass VMw@re123!  -timeout 150 -task "Startup"
 
 #Start the Cross-Region Workspace ONE Access Virtual Machines in the Management Domain
 
