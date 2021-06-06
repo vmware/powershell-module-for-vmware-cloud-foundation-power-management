@@ -2,7 +2,7 @@ Remove-module VMware.StartupShutdown
 Import-Module VMware.StartupShutdown
 
 #Shut Down the vRealize Automation Virtual Machines in the Management Domain
-ShutdownStartupProduct-ViaVRSLCM -host 'xreg-vrslcm01.rainpole.io' -product 'VRA'
+ShutdownStartupProduct-ViaVRSLCM -host 'xreg-vrslcm01.rainpole.io' -product 'VRA' 
 
 
 #Shut Down the vRealize Operations Manager Virtual Machines in the Management Domain
@@ -11,7 +11,7 @@ ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes xreg-v
 ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes sfo-vropsc01a, sfo-vropsc01b -user administrator@vsphere.local -pass VMw@re123! -timeout 600
 
 #Shut Down the Cross-Region Workspace ONE Access Virtual Machines in the Management Domain
-ShutdownStartupXVIDM-ViaVRSLCM -host 'xreg-vrslcm01.rainpole.io' -product 'vidm'
+ShutdownStartupXVIDM-ViaVRSLCM -host 'xreg-vrslcm01.rainpole.io' -product 'vidm' -mode "power-off"
 
 
 #Shut Down the vRealize Suite Lifecycle Manager Virtual Machine in the Management Domain
