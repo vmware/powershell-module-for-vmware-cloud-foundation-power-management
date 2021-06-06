@@ -1,4 +1,4 @@
-﻿Function ShutdownStartup-SDDCComponent {
+Function ShutdownStartup-SDDCComponent {
     <#
         .NOTES
         ===========================================================================
@@ -849,7 +849,7 @@ Function ShutdownStartupProduct-ViaVRSLCM
         [Parameter (Mandatory=$true)]
             [ValidateNotNullOrEmpty()]
             [string]$pass,
-        [string]$task,
+        [string]$on,
         [Parameter (Mandatory=$true)]
             [ValidateNotNullOrEmpty()]
             [string]$product
@@ -860,13 +860,23 @@ Function ShutdownStartupProduct-ViaVRSLCM
         $env_id = Get-EnvironmentId -host $host -Name "Cross-Region"
 		
 		write-output $env_id
+
 		
 		$Global:myHeaders = createHeader $user $pass
 		write-output $myHeaders
-		if($task) {
+		if($on) {
 			$uri = "https://$host/lcm/lcops/api/v2/environments/$env_id/products/$product/power-on"
+            $success_msg = "The $product is successfully started"
+            $failure_msg = "The $product could not be started within the timeout value"
+            $succ_init_msg = "Successfully initiated startup of the product $product"
+            $fail_init_msg = "Unable to starup $product due to response"
+
 		} else {
 			$uri = "https://$host/lcm/lcops/api/v2/environments/$env_id/products/$product/power-off"
+            $success_msg = "The $product is successfully shutdown"
+            $failure_msg = "The $product could not be shutdown within the timeout value"
+            $succ_init_msg = "Successfully initiated shutdown of the product $product"
+            $fail_init_msg = "Unable to shutdown $product due to response"
 		}
 		write-output $uri
         $json = {}
@@ -876,9 +886,9 @@ Function ShutdownStartupProduct-ViaVRSLCM
 		write-output $response
 		write-output "------------------------------------"
         if($response.requestId) {
-            Write-Output "Successfully initiated shutdown of the product $product"
+            Write-Output $succ_init_msg
         } else {
-            Write-Error "Unable to shutdown $product due to response "
+            Write-Error $fail_init_msg
         }
 		$id = $response.requestId
 		$uri2 = "https://$host/lcm/request/api/v2/requests/$id"
@@ -893,9 +903,9 @@ Function ShutdownStartupProduct-ViaVRSLCM
 			}
 		}
 		if($response2.state -eq 'COMPLETED') {
-			write-output "The $product is successfully shutdown"
+			write-output $success_msg
 		} else {
-			write-output "The $product could not be shutdown within the timeout value"
+			write-output $failure_msg
 		}
     }
     Catch {
