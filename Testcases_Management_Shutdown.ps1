@@ -1,6 +1,6 @@
 Remove-module VMware.StartupShutdown
 Import-Module VMware.StartupShutdown
-<#
+
 #Shut Down the vRealize Automation Virtual Machines in the Management Domain
 ShutdownProduct-ViaVRSLCM -host 'xreg-vrslcm01.rainpole.io' -product 'VRA'
 
@@ -57,7 +57,7 @@ Execute-OnEsx -server "sfo01-m01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@
 Execute-OnEsx -server "sfo01-m01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -expected "Cluster preparation is done" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py prepare" -timeout 600
 Set-MaintainanceMode -server "sfo01-m01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -cmd "esxcli system maintenanceMode set -e true -m noAction"
 ShutdownStartup-ComponentOnHost -server sfo01-m01-esx01.sfo.rainpole.io -user root -pass VMw@re123! -timeout 150
-#>
+
 
 ##################################passed
 Execute-OnEsx -server "sfo01-m01-esx02.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
