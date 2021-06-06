@@ -80,7 +80,12 @@ ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io  -node sfo-vr
 ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io  -node xreg-vrslcm01 -user administrator@vsphere.local -pass VMw@re123!  -timeout 150 -task "Startup"
 
 #Start the Cross-Region Workspace ONE Access Virtual Machines in the Management Domain
+ShutdownStartupXVIDM-ViaVRSLCM -host 'xreg-vrslcm01.rainpole.io' -product 'vidm' -on true
 
 #Start the vRealize Operations Manager Virtual Machines in the Management Domain
+ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes xreg-vrops01a, xreg-vrops01b, xreg-vrops01c -user administrator@vsphere.local -pass VMw@re123! -timeout 600 -task "Startup"
+ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes sfo-vropsc01a, sfo-vropsc01b -user administrator@vsphere.local -pass VMw@re123! -timeout 600 -task "Startup"
+SetClusterState-VROPS -host 'xreg-vrops01.rainpole.io' -mode 'ONLINE'
 
 #Start the vRealize Automation Virtual Machines in the Management Domain
+ShutdownStartupProduct-ViaVRSLCM -host 'xreg-vrslcm01.rainpole.io' -product 'VRA' -on true
