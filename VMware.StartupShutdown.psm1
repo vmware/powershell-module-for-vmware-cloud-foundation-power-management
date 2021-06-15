@@ -913,4 +913,183 @@ Function ShutdownStartupProduct-ViaVRSLCM
 	   write-error $_
     }
 }
+Function Test-VsanHealth {
+<#
+    .NOTES
+    ===========================================================================
+     Created by:    Sowjanya V
+     Organization:  VMware
+
+    ===========================================================================
+    .DESCRIPTION
+        This function demonstrates the use of vSAN Management API to retrieve
+        the same information provided by the RVC command "vsan.health.health_summary"
+		I used the same logic as used in the function "Get-VsanHealthSummary" written by william lam
+    .PARAMETER Cluster
+        The name of a vSAN Cluster
+    .EXAMPLE
+        Test-VsanHealth -Cluster sfo-m01-cl01 -Server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re123!
+#>
+    param(
+		[Parameter (Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$server,
+        [Parameter (Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$user,
+        [Parameter (Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$pass,
+        [Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()]
+		[String]$Cluster
+    )
+	Try {
+		Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
+		$vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
+		$cluster_view = (Get-Cluster -Name $Cluster).ExtensionData.MoRef
+		$results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
+		$healthCheckGroups = $results.groups
+		$health_status = 'GREEN'
+
+		$healthCheckResults = @()
+		foreach($healthCheckGroup in $healthCheckGroups) {
+			switch($healthCheckGroup.GroupHealth) {
+				red {$healthStatus = "error"}
+				yellow {$healthStatus = "warning"}
+				green {$healthStatus = "passed"}
+				info {$healthStatus = "passed"}
+			}
+			if($healthStatus -eq "red") {
+				$health_status = 'RED'
+			}
+			$healtCheckGroupResult = [pscustomobject] @{
+				HealthCHeck = $healthCheckGroup.GroupName
+				Result = $healthStatus
+
+			}
+			$healthCheckResults+=$healtCheckGroupResult
+		}
+		Write-Host "`nOverall health:" $results.OverallHealth "("$results.OverallHealthDescription")"
+		$healthCheckResults
+		Write-Output ""
+		if($health_status -eq 'GREEN'){	
+			Write-Output "The VSAN Health is GOOD"
+		} else {
+			Write-Error "The VSAN Health is BAD"
+		}
+	} Catch {
+        Write-Error "An error occured. $_"
+    }
+    Finally {
+            Disconnect-VIServer -Server $server -confirm:$false
+    }
+}
+Function Test-ResyncintObjects {
+<#
+    .NOTES
+    ===========================================================================
+     Created by:    Sowjanya V
+     Organization:  VMware
+
+    ===========================================================================
+    .DESCRIPTION
+        This method is used to check if there are any resyncing objects are present before shutdown.
+    .PARAMETER 
+	Cluster
+        The name of a vSAN Cluster
+	Server	
+		The name of the VC managing the cluster
+	user
+		The username of the server for login
+	pass
+		The password of the server for login
+    .EXAMPLE
+        Test-ResyncintObjects -cluster sfo-m01-cl01 -server "sfo-m01-vc01.sfo.rainpole.io" -user "administrator@vsphere.local" -pass "VMw@re123!"
+#>
+    param(
+		[Parameter (Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$server,
+        [Parameter (Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$user,
+        [Parameter (Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$pass,
+        [Parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()]
+		[String]$Cluster
+    )
+	
+	
+	Try {
+		Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
+		$no_resyncing_objects = Get-VsanResyncingComponent -cluster $Cluster
+		write-output "The number of resyncing objects are"
+		write-output $no_resyncing_objects
+		if($no_resyncing_objects.count -eq 0){
+			Write-Output "No resyncing objects"
+		} else {
+			Write-Error "There are some resyncing happening"
+		}
+	} Catch {
+        Write-Error "An error occured. $_"
+    }
+    Finally {
+            Disconnect-VIServer -Server $server -confirm:$false
+    }
+
+}
+Function PowerOn-EsxiUsingILO {
+<#
+    .NOTES
+    ===========================================================================
+     Created by:    Sowjanya V
+     Organization:  VMware
+
+    ===========================================================================
+    .DESCRIPTION
+        This method is used to poweron the DELL ESxi server using ILO ip address using racadm 
+		This is cli equivalent of admin console for DELL servers
+    .PARAMETER 
+	ilo_ip
+        Out of Band Ipaddress
+	user
+		IDRAC console login user
+	pass
+		IDRAC console login password
+    .EXAMPLE
+        PowerOn-EsxiUsingILO -ilo_ip $ilo_ip  -ilo_user <drac_console_user>  -ilo_pass <drac_console_pass>
+#>
+    param(
+		[Parameter (Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ilo_ip,
+		[Parameter (Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ilo_user,
+		[Parameter (Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ilo_pass
+    )
+	
+	
+	Try {
+
+		$out = cmd /c "C:\Program Files\Dell\SysMgt\rac5\racadm" -r $ilo_ip -u $ilo_user -p $ilo_pass  --nocertwarn serveraction powerup
+		if(  $out.contains("Server power operation successful") ) {
+			Write-Output "Waiting for bootup to complete."
+			Start-Sleep -Seconds 600
+			Write-Output "bootup complete."
+		} else {
+			Write-Error "couldnot start the server"
+		}
+	} Catch {
+        Write-Error "An error occured. $_"
+    }
+
+
+}
+
 
