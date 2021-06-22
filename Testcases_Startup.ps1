@@ -88,6 +88,9 @@ Test-ResyncingObjects -cluster sfo-w01-cl01 -server "sfo-w01-vc01.sfo.rainpole.i
 #Start the NSX-T Manager Virtual Machines in the Virtual Infrastructure Workload Domain
 #ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes sfo-w01-nsx01a, sfo-w01-nsx01b, sfo-w01-nsx01c -user administrator@vsphere.local -pass VMw@re123!  -timeout 600 -task "Startup"
 #login to local ip of nsxt manager to see if it is reachable
+ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes sfo-w01-nsx01a, sfo-w01-nsx01b, sfo-w01-nsx01c -user administrator@vsphere.local -pass VMw@re123!  -timeout 600 -task "Startup"
+Start-Sleep -Seconds 120
+#login to local ip of nsxt manager to see if it is reachable
 add-type @"
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
@@ -101,8 +104,7 @@ add-type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 Connect-NSXTLocal -url "https://sfo-w01-nsx01.sfo.rainpole.io/login.jsp?local=true"
-
-#There is something pending, like NSXT local system->cluster->applicance status ---- need to check same available
+Get-NSXTMgrClusterStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re123!VMw@re123
 
 
 #Testcase5
