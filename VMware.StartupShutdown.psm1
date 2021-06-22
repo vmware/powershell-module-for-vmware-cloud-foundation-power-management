@@ -991,7 +991,7 @@ Function Test-VsanHealth {
             Disconnect-VIServer -Server $server -confirm:$false
     }
 }
-Function Test-ResyncintObjects {
+Function Test-ResyncingObjects {
 <#
     .NOTES
     ===========================================================================
@@ -1097,5 +1097,61 @@ Function PowerOn-EsxiUsingILO {
 
 
 }
+
+Function createHeader
+{
+    Param(
+    [Parameter (Mandatory=$true)]
+    [String] $user,
+    [Parameter (Mandatory=$true)]
+    [String] $pass
+    )
+    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user,$pass))) # Create Basic Authentication Encoded Credentials
+    $headers = @{"Accept" = "application/json"}
+    $headers.Add("Authorization", "Basic $base64AuthInfo")
+    
+    Return $headers
+}
+
+Function Get-NSXTMgrClusterStatus {
+<#
+    .NOTES
+    ===========================================================================
+     Created by:    Sowjanya V
+     Organization:  VMware
+
+    ===========================================================================
+    .DESCRIPTION
+        This method is used to fetch the cluster status of nsx manager after restart
+    .PARAMETER 
+	server
+        The nsxt manager hostname
+	user
+		nsx manager login user
+	pass
+		nsx manager login password
+    .EXAMPLE
+        Get-NSXTMgrClusterStatus -server $server  -user $user  -pass $pass
+		sample url - "https://sfo-m01-nsx01.sfo.rainpole.io/api/v1/cluster/status"
+#>
+	Try {
+		
+		$uri2 = "https://$server/api/v1/cluster/status"
+		$myHeaders = createHeader admin VMw@re123!VMw@re123!
+		write-output $uri2
+		write-output $myHeaders
+
+		$response2 = Invoke-RestMethod -Method GET -URI $uri2 -headers $myHeaders -ContentType application/json 
+		if($response2.mgmt_cluster_status.status -eq 'STABLE') {
+			write-output "The cluster state is stable"
+		} else {
+			write-output "The cluster state is not stable"
+		}
+	} Catch {
+        Write-Error "An error occured. $_"
+    }
+}
+
+
 
 
