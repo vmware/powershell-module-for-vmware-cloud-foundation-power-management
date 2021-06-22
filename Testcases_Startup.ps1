@@ -78,10 +78,9 @@ ShutdownStartup-ComponentOnHost -server sfo01-w01-esx04.sfo.rainpole.io -pattern
 #Testcase3
 #Start vCenter Server in the Virtual Infrastructure Workload Domain    --  Am not able to to VSAN health check
 ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io  -node sfo-w01-vc01 -user administrator@vsphere.local -pass VMw@re123!  -timeout 600 -task "Startup"
-Test-VsanHealth -cluster sfo-w01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re123!
-connect-viserver -server sfo-w01-vc01 -user administrator@vsphere.local -pass VMw@re123!
-Get-VsanResyncingComponent -cluster sfo-w01-cl01 
-disconnect-viserver -server sfo-w01-vc01
+Start-Sleep -Seconds 300
+Test-VsanHealth -cluster sfo-w01-cl01 -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re123!
+Test-ResyncingObjects -cluster sfo-w01-cl01 -server "sfo-w01-vc01.sfo.rainpole.io" -user "administrator@vsphere.local" -pass "VMw@re123!"
 
 
 
