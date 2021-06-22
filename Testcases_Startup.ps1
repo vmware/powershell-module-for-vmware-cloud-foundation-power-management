@@ -35,18 +35,22 @@ $esx4_ilo_pass = 'ca$hc0w'
 
 ##using ILO ip 10.144.40.44 and powered on manually, need to check what is the powershell module for dell idrac
 PowerOn-EsxiUsingILO -ilo_ip $esx1_ilo_ip  -ilo_user $esx1_ilo_user  -ilo_pass $esx1_ilo_pass
+Start-Sleep -Seconds 300
 Set-MaintainanceMode -server "sfo01-w01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -cmd "esxcli system maintenanceMode set -e false"
 
 ##using ILO ip 10.144.40.43 and powered on manually, need to check what is the powershell module for dell idrac
 PowerOn-EsxiUsingILO -ilo_ip $esx2_ilo_ip  -ilo_user $esx2_ilo_user  -ilo_pass $esx2_ilo_pass
+Start-Sleep -Seconds 300
 Set-MaintainanceMode -server "sfo01-w01-esx02.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -cmd "esxcli system maintenanceMode set -e false"
 
 ##using ILO ip 10.144.40.42 and powered on manually, need to check what is the powershell module for dell idrac
 PowerOn-EsxiUsingILO -ilo_ip $esx3_ilo_ip  -ilo_user $esx3_ilo_user  -ilo_pass $esx3_ilo_pass
+Start-Sleep -Seconds 300
 Set-MaintainanceMode -server "sfo01-w01-esx03.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -cmd "esxcli system maintenanceMode set -e false"
 
 ##using ILO ip 10.144.40.42 and powered on manually, need to check what is the powershell module for dell idrac
 PowerOn-EsxiUsingILO -ilo_ip $esx4_ilo_ip  -ilo_user $esx4_ilo_user  -ilo_pass $esx4_ilo_pass
+Start-Sleep -Seconds 300
 Set-MaintainanceMode -server "sfo01-w01-esx04.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -cmd "esxcli system maintenanceMode set -e false"
 
 
@@ -78,7 +82,7 @@ ShutdownStartup-ComponentOnHost -server sfo01-w01-esx04.sfo.rainpole.io -pattern
 #Testcase3
 #Start vCenter Server in the Virtual Infrastructure Workload Domain    --  Am not able to to VSAN health check
 ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io  -node sfo-w01-vc01 -user administrator@vsphere.local -pass VMw@re123!  -timeout 600 -task "Startup"
-Start-Sleep -Seconds 300
+Start-Sleep -Seconds 300
 Test-VsanHealth -cluster sfo-w01-cl01 -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re123!
 Test-ResyncingObjects -cluster sfo-w01-cl01 -server "sfo-w01-vc01.sfo.rainpole.io" -user "administrator@vsphere.local" -pass "VMw@re123!"
 
@@ -89,8 +93,9 @@ Test-ResyncingObjects -cluster sfo-w01-cl01 -server "sfo-w01-vc01.sfo.rainpole.i
 #ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes sfo-w01-nsx01a, sfo-w01-nsx01b, sfo-w01-nsx01c -user administrator@vsphere.local -pass VMw@re123!  -timeout 600 -task "Startup"
 #login to local ip of nsxt manager to see if it is reachable
 ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes sfo-w01-nsx01a, sfo-w01-nsx01b, sfo-w01-nsx01c -user administrator@vsphere.local -pass VMw@re123!  -timeout 600 -task "Startup"
-Start-Sleep -Seconds 120
+Start-Sleep -Seconds 120
 #login to local ip of nsxt manager to see if it is reachable
+<#
 add-type @"
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
@@ -103,8 +108,9 @@ add-type @"
     }
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+#>
 Connect-NSXTLocal -url "https://sfo-w01-nsx01.sfo.rainpole.io/login.jsp?local=true"
-Get-NSXTMgrClusterStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re123!VMw@re123
+Get-NSXTMgrClusterStatus -server sfo-w01-nsx01.sfo.rainpole.io -user admin -pass VMw@re123!VMw@re123
 
 
 #Testcase5
