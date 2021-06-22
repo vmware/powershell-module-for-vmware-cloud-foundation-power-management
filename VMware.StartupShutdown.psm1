@@ -56,7 +56,7 @@ Function ShutdownStartup-SDDCComponent {
             
                         #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
 			            while(( $vm_obj.State -ne 'NotRunning') -AND ($count -ne $timeout) ){
-							Start-Sleep -Seconds 1
+			            Start-Sleep -Seconds 1
                             Write-Output "Sleeping for 1 second"
 				            $count = $count + 1
                             $vm_obj = Get-VMGuest -server $server -VM $node
@@ -65,7 +65,7 @@ Function ShutdownStartup-SDDCComponent {
 			            }
 			            if($count -eq $timeout) {
 				            Write-Error "The VM did not get turned off with in stipulated timeout:$timeout value"	
-                            break 			
+                            exit 			
 			            } else {
 				            Write-Output "The VM is successfully shutdown"
 			            }
@@ -113,7 +113,8 @@ Function ShutdownStartup-SDDCComponent {
 
     }  
         Catch {
-            Write-Error "An error occured. $_"
+			Debug-CatchWriter -object $_
+			exit
     }
     Finally {
             Disconnect-VIServer -Server $server -confirm:$false
@@ -187,7 +188,7 @@ Function ShutdownStartup-ComponentOnHost {
             
                 #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
 			    while(( $vm_obj.State -ne 'NotRunning') -AND ($count -ne $timeout) ){
-					Start-Sleep -Seconds 1
+			        Start-Sleep -Seconds 1
                     Write-Output "Sleeping for 1 second"
 				    $count = $count + 1
                     $vm_obj = Get-VMGuest  -VM $node.Name | where VmUid -match $server
@@ -229,7 +230,7 @@ Function ShutdownStartup-ComponentOnHost {
             
                 #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
 			    while(( $vm_obj.State -ne 'Running') -AND ($count -ne $timeout) ){
-					Start-Sleep Seconds 1
+			        Start-Sleep Seconds 1
                     Write-Output "Sleeping for 1 second"
 				    $count = $count + 1
                     $vm_obj = Get-VMGuest -server $server -VM $node.Name | where VmUid -match $server
@@ -256,7 +257,8 @@ Function ShutdownStartup-ComponentOnHost {
 
     }  
         Catch {
-            Write-Error "An error occured. $_"
+            Debug-CatchWriter -object $_
+			exit
     }
     Finally {
             Disconnect-VIServer -Server $server -confirm:$false
@@ -320,15 +322,18 @@ Function Execute-OnEsx {
 			} 
 			if($time_val -ge $timeout) {
 				Write-Error "Failure. The received output is: $out.output \n The expexted output is $expected"
+				exit
 			}
 		} elseif ($out.ExitStatus -eq 0) {
 			Write-Output "Success. The command got successfully executed"
         } else  {
             Write-Error "Failure. The command could not be executed"
+			exit
         } 
 
     } Catch {
-            Write-Error "An error occured. $_"
+            Debug-CatchWriter -object $_
+			exit
     } Finally {
             Remove-SSHSession -Index $session.SessionId
     }
@@ -381,12 +386,14 @@ Function Verify-VSANClusterMembers {
 				write-output("Host members match") 
 			} else {
 				write-error("Host members name don't match") 
+				exit
 			}
 		}
 		
 
     } Catch {
-            Write-Error "An error occured. $_"
+            Debug-CatchWriter -object $_
+			exit
     } Finally {
             Disconnect-VIServer -server $server -Confirm:$false
     }
@@ -450,6 +457,7 @@ Function Set-MaintainanceMode {
 		
 			if($host1.ConnectionState -eq "Maintenance") {
 				write-error "The host could not be taken out of maintainance mode"
+				exit
 			} else {
 				write-output "The host was taken out of maintainance mode successfully"
 			}
@@ -471,6 +479,7 @@ Function Set-MaintainanceMode {
 		
 			if($host1.ConnectionState -ne "Maintenance") {
 				write-error "The host could not be put into maintainance mode"
+				exit
 			} else {
 				write-output "The host has been set to maintainance mode successfully"
 			}
@@ -480,7 +489,8 @@ Function Set-MaintainanceMode {
 		
 
     } Catch {
-            Write-Error "An error occured. $_"
+            Debug-CatchWriter -object $_
+			exit
     } Finally {
             Disconnect-VIServer -server $server -Confirm:$false
     }
@@ -515,17 +525,20 @@ Function Connect-NSXTLocal {
     Try {
 		#in core we do have -SkipCertificateCheck. No need of below block
 
-		
+		Ignore-CertificateError
 		$response = Invoke-WebRequest -uri $url
 		if($response.StatusCode -eq 200) {
 			write-output "The URL is working"
 		} else {
 			write-error "The URL is not working"
+			exit
 		}
 
     }
     Catch {
         $PSItem.InvocationInfo
+		Debug-CatchWriter -object $_
+		exit
     }
 }
 
@@ -570,13 +583,15 @@ Function Get-VAMIServiceStatus {
 				write-output "The service:$service status:$status is matching"
 			} else {
 				write-error "The service:$service status_expected:$check_status   status_actual:$status is not matching"
+				exit
 			}
 		} else {
 			return  $serviceStatus.state
 		}
     } 
     Catch {
-            Write-Error "An error occured. $_"
+           Debug-CatchWriter -object $_
+		   exit
     }
     Finally {
             Disconnect-CisServer -Server $server -confirm:$false
@@ -634,6 +649,7 @@ Function StartStop-VAMIServiceStatus {
 				write-output "The service:$service status:$status is matching"
 			} else {
 				write-error "The service:$service status_expected:$action   status_actual:$status is not matching"
+				exit
 			}
 		}
 		if ($action -eq 'STOP') {
@@ -646,12 +662,14 @@ Function StartStop-VAMIServiceStatus {
 				write-output "The service:$service status:$status is matching"
 			} else {
 				write-error "The service:$service status_expected:$action   status_actual:$status is not matching"
+				exit
 			}
 		}
 		
     } 
     Catch {
-            Write-Error "An error occured. $_"
+            Debug-CatchWriter -object $_
+			exit
     }
     Finally {
             Disconnect-CisServer -Server $server -confirm:$false
@@ -712,6 +730,8 @@ Function Get-EnvironmentId {
     }
     Catch {
        $PSItem.InvocationInfo
+	   Debug-CatchWriter -object $_
+	   exit
     }
 }
 
@@ -789,6 +809,7 @@ Function ShutdownStartupXVIDM-ViaVRSLCM
             Write-Output "Successfully initiated shutdown of the product $product"
         } else {
             Write-Error "Unable to shutdown $product due to response "
+			exit
         }
 		$id = $response.requestId
 		$uri2 = "https://$host/lcm/request/api/v2/requests/$id"
@@ -810,7 +831,8 @@ Function ShutdownStartupXVIDM-ViaVRSLCM
     }
     Catch {
        $PSItem.InvocationInfo
-	   write-error $_
+	   Debug-CatchWriter -object $_
+	   exit
     }
 }
 
@@ -895,6 +917,7 @@ Function ShutdownStartupProduct-ViaVRSLCM
             Write-Output $succ_init_msg
         } else {
             Write-Error $fail_init_msg
+			exit
         }
 		$id = $response.requestId
 		$uri2 = "https://$host/lcm/request/api/v2/requests/$id"
@@ -916,7 +939,8 @@ Function ShutdownStartupProduct-ViaVRSLCM
     }
     Catch {
        $PSItem.InvocationInfo
-	   write-error $_
+	   Debug-CatchWriter -object $_
+	   exit
     }
 }
 Function Test-VsanHealth {
@@ -979,13 +1003,15 @@ Function Test-VsanHealth {
 		Write-Host "`nOverall health:" $results.OverallHealth "("$results.OverallHealthDescription")"
 		$healthCheckResults
 		Write-Output ""
-		if($health_status -eq 'GREEN'){	
+		if($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
 			Write-Output "The VSAN Health is GOOD"
 		} else {
 			Write-Error "The VSAN Health is BAD"
+			exit
 		}
 	} Catch {
-        Write-Error "An error occured. $_"
+        Debug-CatchWriter -object $_
+		exit
     }
     Finally {
             Disconnect-VIServer -Server $server -confirm:$false
@@ -1031,16 +1057,18 @@ Function Test-ResyncingObjects {
 	
 	Try {
 		Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
-		$no_resyncing_objects = Get-VsanResyncingComponent -cluster $Cluster
+		$no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $Cluster
 		write-output "The number of resyncing objects are"
 		write-output $no_resyncing_objects
 		if($no_resyncing_objects.count -eq 0){
 			Write-Output "No resyncing objects"
 		} else {
 			Write-Error "There are some resyncing happening"
+			exit
 		}
 	} Catch {
-        Write-Error "An error occured. $_"
+        Debug-CatchWriter -object $_
+		exit
     }
     Finally {
             Disconnect-VIServer -Server $server -confirm:$false
@@ -1090,9 +1118,11 @@ Function PowerOn-EsxiUsingILO {
 			Write-Output "bootup complete."
 		} else {
 			Write-Error "couldnot start the server"
+			exit
 		}
 	} Catch {
-        Write-Error "An error occured. $_"
+        Debug-CatchWriter -object $_
+		exit
     }
 
 
@@ -1111,6 +1141,21 @@ Function createHeader
     $headers.Add("Authorization", "Basic $base64AuthInfo")
     
     Return $headers
+}
+
+Function Ignore-CertificateError {
+	add-type @"
+		using System.Net;
+		using System.Security.Cryptography.X509Certificates;
+		public class TrustAllCertsPolicy : ICertificatePolicy {
+			public bool CheckValidationResult(
+				ServicePoint srvPoint, X509Certificate certificate,
+				WebRequest request, int certificateProblem) {
+				return true;
+			}
+		}
+"@
+	[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 }
 
 Function Get-NSXTMgrClusterStatus {
@@ -1133,11 +1178,19 @@ Function Get-NSXTMgrClusterStatus {
     .EXAMPLE
         Get-NSXTMgrClusterStatus -server $server  -user $user  -pass $pass
 		sample url - "https://sfo-m01-nsx01.sfo.rainpole.io/api/v1/cluster/status"
-#>
+#>	
+	Param(
+	[Parameter (Mandatory=$true)]
+    [String] $server,
+    [Parameter (Mandatory=$true)]
+    [String] $user,
+    [Parameter (Mandatory=$true)]
+    [String] $pass
+    )
 	Try {
-		
 		$uri2 = "https://$server/api/v1/cluster/status"
-		$myHeaders = createHeader admin VMw@re123!VMw@re123!
+		#$uri2="https://sfo-w01-nsx01.sfo.rainpole.io/api/v1/cluster/status"
+		$myHeaders = createHeader $user $pass
 		write-output $uri2
 		write-output $myHeaders
 
@@ -1148,9 +1201,25 @@ Function Get-NSXTMgrClusterStatus {
 			write-output "The cluster state is not stable"
 		}
 	} Catch {
-        Write-Error "An error occured. $_"
+        Debug-CatchWriter -object $_
+		exit
     }
 }
+
+Function Debug-CatchWriter {
+    Param (
+        [Parameter(Mandatory = $true)]
+        [PSObject]$object
+    )
+
+    $lineNumber = $object.InvocationInfo.ScriptLineNumber
+    $lineText = $object.InvocationInfo.Line.trim()
+    $errorMessage = $object.Exception.Message
+    Write-Output " Error at Script Line $lineNumber"
+    Write-Output " Relevant Command: $lineText"
+    Write-Output " Error Message: $errorMessage"
+}
+
 
 
 
