@@ -1,4 +1,4 @@
-
+<#
 #Testcse1
 ###Start vSAN and the ESXi Hosts in the Virtual Infrastructure Workload Domain
 ### I have installed racadm module to get CLI equivalent of IDRAC console.
@@ -11,19 +11,25 @@
 #Server power operation successful
 
 #PS C:\users\Administrator\shutdownandstartup> cmd /c "C:\Program Files\Dell\SysMgt\rac5\racadm" -r 10.144.40.39 -u vmware -p 'ca$hc0w'  --nocertwarn serveraction powerdown
-#Server is already powered OFF.
-$esx1_ilo_ip = "10.144.40.39"
+#Server is already powered OFF.\
+#>
+
+Remove-module VMware.StartupShutdown
+Import-Module VMware.StartupShutdown
+
+
+$esx1_ilo_ip = "10.144.40.143"
 $esx1_ilo_user = "vmware" 
-$esx1_ilo_pass = "ca$hc0w"
-$esx2_ilo_ip = "10.144.40.39" #<<change>>
+$esx1_ilo_pass = 'ca$hc0w'
+$esx2_ilo_ip = "10.144.40.144" #<<change>>
 $esx2_ilo_user = "vmware" 
-$esx2_ilo_pass = "ca$hc0w"
-$esx3_ilo_ip = "10.144.40.39" #<<change>>
+$esx2_ilo_pass = 'ca$hc0w'
+$esx3_ilo_ip = "10.144.40.145" #<<change>>
 $esx3_ilo_user = "vmware" 
-$esx3_ilo_pass = "ca$hc0w"
-$esx4_ilo_ip = "10.144.40.39" #<<change>>
+$esx3_ilo_pass = 'ca$hc0w'
+$esx4_ilo_ip = "10.144.40.146" #<<change>>
 $esx4_ilo_user = "vmware" 
-$esx4_ilo_pass = "ca$hc0w"
+$esx4_ilo_pass = 'ca$hc0w'
 
 
 
@@ -48,10 +54,10 @@ Set-MaintainanceMode -server "sfo01-w01-esx04.sfo.rainpole.io" -user "root" -pas
 Execute-OnEsx -server "sfo01-w01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -expected "Cluster reboot/poweron is completed successfully!" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py recover"
 
 ######
-Verify-VSANClusterMembers -server "sfo01-w01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-w01-esx01.sfo.rainpole.io, sfo01-w01-esx02.sfo.rainpole.io, sfo01-w01-esx03.sfo.rainpole.io, sfo01-w01-esx04.sfo.rainpole.io"
-Verify-VSANClusterMembers -server "sfo01-w01-esx02.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-w01-esx01.sfo.rainpole.io, sfo01-w01-esx02.sfo.rainpole.io, sfo01-w01-esx03.sfo.rainpole.io, sfo01-w01-esx04.sfo.rainpole.io"
-Verify-VSANClusterMembers -server "sfo01-w01-esx03.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-w01-esx01.sfo.rainpole.io, sfo01-w01-esx02.sfo.rainpole.io, sfo01-w01-esx03.sfo.rainpole.io, sfo01-w01-esx04.sfo.rainpole.io"
-Verify-VSANClusterMembers -server "sfo01-w01-esx04.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-w01-esx01.sfo.rainpole.io, sfo01-w01-esx02.sfo.rainpole.io, sfo01-w01-esx03.sfo.rainpole.io, sfo01-w01-esx04.sfo.rainpole.io"
+Verify-VSANClusterMembers -server "sfo01-w01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-w01-esx01.sfo.rainpole.io", "sfo01-w01-esx02.sfo.rainpole.io", "sfo01-w01-esx03.sfo.rainpole.io", "sfo01-w01-esx04.sfo.rainpole.io"
+Verify-VSANClusterMembers -server "sfo01-w01-esx02.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-w01-esx01.sfo.rainpole.io", "sfo01-w01-esx02.sfo.rainpole.io", "sfo01-w01-esx03.sfo.rainpole.io", "sfo01-w01-esx04.sfo.rainpole.io"
+Verify-VSANClusterMembers -server "sfo01-w01-esx03.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-w01-esx01.sfo.rainpole.io", "sfo01-w01-esx02.sfo.rainpole.io", "sfo01-w01-esx03.sfo.rainpole.io", "sfo01-w01-esx04.sfo.rainpole.io"
+Verify-VSANClusterMembers -server "sfo01-w01-esx04.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -members "sfo01-w01-esx01.sfo.rainpole.io", "sfo01-w01-esx02.sfo.rainpole.io", "sfo01-w01-esx03.sfo.rainpole.io", "sfo01-w01-esx04.sfo.rainpole.io"
 
 #####
 Execute-OnEsx -server "sfo01-w01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
