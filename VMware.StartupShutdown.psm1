@@ -43,20 +43,20 @@ Function ShutdownStartup-SDDCComponent {
             
                         $vm_obj = Get-VMGuest -server $server -VM $node
                         Write-Output $node, $vm_obj
-			            if($vm_obj.State -eq 'NotRunning'){
+			            if($vm_obj.State -eq 'NotRunning'){
 				            Write-Output "The VM $vm_obj is already in powered off state"
 
 				            continue
 
 			            }
-			            Stop-VMGuest -server $server -VM $node -Confirm:$false
+			            Stop-VMGuest -server $server -VM $node -Confirm:$false
                         $vm_obj = Get-VMGuest -server $server -VM $node
                         Write-Output $vm_obj.State
-                        Start-Sleep -Seconds 10
+                        Start-Sleep -Seconds 10
             
                         #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-			            while(( $vm_obj.State -ne 'NotRunning') -AND ($count -ne $timeout) ){
-			                Start-Sleep -Seconds 1
+			            while(( $vm_obj.State -ne 'NotRunning') -AND ($count -ne $timeout) ){
+							Start-Sleep -Seconds 1
                             Write-Output "Sleeping for 1 second"
 				            $count = $count + 1
                             $vm_obj = Get-VMGuest -server $server -VM $node
@@ -78,20 +78,20 @@ Function ShutdownStartup-SDDCComponent {
             
                         $vm_obj = Get-VMGuest -server $server -VM $node
                         Write-Output $node, $vm_obj
-			            if($vm_obj.State -eq 'Running'){
+			            if($vm_obj.State -eq 'Running'){
 				            Write-Output "The VM $vm_obj is already in powered on state"
 
 				            continue
 
 			            }
-			            Start-VM -VM $node -Confirm:$false
+			            Start-VM -VM $node -Confirm:$false
                         $vm_obj = Get-VMGuest -server $server -VM $node
                         Write-Output $vm_obj.State
-                        Start-Sleep -Seconds 10
+                        Start-Sleep -Seconds 10
             
                         #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-			            while(( $vm_obj.State -ne 'Running') -AND ($count -ne $timeout) ){
-			                Start-Sleep -Seconds 1
+			            while(( $vm_obj.State -ne 'Running') -AND ($count -ne $timeout) ){
+			            Start-Sleep -Seconds 1
                             Write-Output "Sleeping for 1 second"
 				            $count = $count + 1
                             $vm_obj = Get-VMGuest -server $server -VM $node
@@ -174,7 +174,7 @@ Function ShutdownStartup-ComponentOnHost {
                 
                 $vm_obj = Get-VMGuest -server $server -VM $node.Name | where VmUid -match $server
                 Write-Output $vm_obj
-			    if($vm_obj.State -eq 'NotRunning'){
+			    if($vm_obj.State -eq 'NotRunning'){
 				    Write-Output "The VM $vm_obj is already in powered off state"
 
 				    continue
@@ -186,8 +186,8 @@ Function ShutdownStartup-ComponentOnHost {
                 Write-Output $vm_obj.State
             
                 #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-			    while(( $vm_obj.State -ne 'NotRunning') -AND ($count -ne $timeout) ){
-			        Start-Sleep -Seconds 1
+			    while(( $vm_obj.State -ne 'NotRunning') -AND ($count -ne $timeout) ){
+					Start-Sleep -Seconds 1
                     Write-Output "Sleeping for 1 second"
 				    $count = $count + 1
                     $vm_obj = Get-VMGuest  -VM $node.Name | where VmUid -match $server
@@ -216,20 +216,20 @@ Function ShutdownStartup-ComponentOnHost {
 					
 					$vm_obj = Get-VMGuest -server $server -VM $node.Name | where VmUid -match $server
 					Write-Output $vm_obj
-					if($vm_obj.State -eq 'Running'){
+					if($vm_obj.State -eq 'Running'){
 						Write-Output "The VM $vm_obj is already in powered on state"
 
 						continue
 
 			    }
         
-			    Start-VM -VM $nodes.Name
+			    Start-VM -VM $nodes.Name
                 $vm_obj = Get-VMGuest -server $server -VM $node.Name | where VmUid -match $server
                 Write-Output $vm_obj.State
             
                 #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-			    while(( $vm_obj.State -ne 'Running') -AND ($count -ne $timeout) ){
-			        Start-Sleep -Seconds 1
+			    while(( $vm_obj.State -ne 'Running') -AND ($count -ne $timeout) ){
+					Start-Sleep Seconds 1
                     Write-Output "Sleeping for 1 second"
 				    $count = $count + 1
                     $vm_obj = Get-VMGuest -server $server -VM $node.Name | where VmUid -match $server
@@ -364,18 +364,24 @@ Function Verify-VSANClusterMembers {
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
             [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-            [String]$members
+            [String[]]$members
     )
 
 
-    Try {
+     Try {
 		Connect-VIServer -server $server -user $user -pass $pass -protocol https
 		$esxcli = Get-EsxCli -Server $server -VMHost (Get-VMHost $server) -V2
 		$out =  $esxcli.vsan.cluster.get.Invoke()
-		if($out.SubClusterMemberHostNames -match $members) {
-			write-output("Host members match") 
-		} else {
-			write-error("Host members name don't match") 
+		write-output($out.SubClusterMemberHostNames)
+		write-output($members.gettype())
+		write-output($out.SubClusterMemberHostNames.gettype())
+		foreach($member in $members) {
+			write-output($member)
+			if($out.SubClusterMemberHostNames -match $member) {
+				write-output("Host members match") 
+			} else {
+				write-error("Host members name don't match") 
+			}
 		}
 		
 
