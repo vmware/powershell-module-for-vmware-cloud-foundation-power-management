@@ -1,17 +1,20 @@
 Remove-module VMware.StartupShutdown
 Import-Module VMware.StartupShutdown
 
+
+$ErrorActionPreference = 'STOP'
+
+
 #Shut Down the vRealize Automation Virtual Machines in the Management Domain
-ShutdownStartupProduct-ViaVRSLCM -host 'xreg-vrslcm01.rainpole.io' -product 'VRA' 
+ShutdownStartupProduct-ViaVRSLCM -server 'xreg-vrslcm01.rainpole.io' -product 'VRA' -user 'vcfadmin@local' -pass 'VMw@re123!' -mode "power-off" -env 'Cross' -timeout 1800
 
 
 #Shut Down the vRealize Operations Manager Virtual Machines in the Management Domain
-SetClusterState-VROPS -host 'xreg-vrops01.rainpole.io' -mode 'OFFLINE'
+SetClusterState-VROPS -server 'xreg-vrops01a.rainpole.io' -mode 'OFFLINE' -user 'admin' -pass 'VMw@re123!' 
 ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes xreg-vrops01a, xreg-vrops01b, xreg-vrops01c -user administrator@vsphere.local -pass VMw@re123! -timeout 600
 ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes sfo-vropsc01a, sfo-vropsc01b -user administrator@vsphere.local -pass VMw@re123! -timeout 600
 
-#Shut Down the Cross-Region Workspace ONE Access Virtual Machines in the Management Domain
-ShutdownStartupXVIDM-ViaVRSLCM -host 'xreg-vrslcm01.rainpole.io' -product 'vidm' -mode "power-off"
+ShutdownStartupProduct-ViaVRSLCM -server 'xreg-vrslcm01.rainpole.io' -product 'vidm' -mode "power-off" -user 'vcfadmin@local' -pass 'VMw@re123!' -env  'global' -timeout 1800
 
 
 #Shut Down the vRealize Suite Lifecycle Manager Virtual Machine in the Management Domain
@@ -43,8 +46,12 @@ Set-DrsAutomationLevel -server sfo-m01-vc01.sfo.rainpole.io -user administrator@
 
 
 #Shut Down the vCenter Server Instance in the Management Domain
+Test-VsanHealth -Cluster sfo-m01-cl01 -Server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re123!
+Test-ResyncingObjects -cluster sfo-m01-cl01 -server "sfo-m01-vc01.sfo.rainpole.io" -user "administrator@vsphere.local" -pass "VMw@re123!"
 ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -nodes sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re123! -timeout 600
-##I shall not be able to verify if VC VM is shutdown, because mgmt vd itself is down. I might need to do ping check
+Start-Sleep -Seconds 100
+if (Test-Connection -ComputerName sfo-m01-vc01.sfo.rainpole.io) {write-error "Unable to shutdown VC"} else {write-output "Successfully shutdown VC"}
+
 
 #Shut Down the vSphere Cluster Services Virtual Machines in the Management Domain
 ShutdownStartup-ComponentOnHost -server sfo01-m01-esx01.sfo.rainpole.io -pattern "^vCLS.*" -user root -pass VMw@re123! -timeout 1000
