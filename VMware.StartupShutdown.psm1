@@ -56,7 +56,7 @@ Function ShutdownStartup-SDDCComponent {
             
                         #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
 			            while(( $vm_obj.State -ne 'NotRunning') -AND ($count -ne $timeout) ){
-			            Start-Sleep -Seconds 1
+			                Start-Sleep -Seconds 1
                             Write-Output "Sleeping for 1 second"
 				            $count = $count + 1
                             $vm_obj = Get-VMGuest -server $server -VM $node
@@ -65,7 +65,7 @@ Function ShutdownStartup-SDDCComponent {
 			            }
 			            if($count -eq $timeout) {
 				            Write-Error "The VM did not get turned off with in stipulated timeout:$timeout value"	
-                            exit 			
+                            #exit 			
 			            } else {
 				            Write-Output "The VM is successfully shutdown"
 			            }
@@ -91,7 +91,7 @@ Function ShutdownStartup-SDDCComponent {
             
                         #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
 			            while(( $vm_obj.State -ne 'Running') -AND ($count -ne $timeout) ){
-			            Start-Sleep -Seconds 1
+							Start-Sleep -Seconds 1
                             Write-Output "Sleeping for 1 second"
 				            $count = $count + 1
                             $vm_obj = Get-VMGuest -server $server -VM $node
@@ -114,7 +114,6 @@ Function ShutdownStartup-SDDCComponent {
     }  
         Catch {
 			Debug-CatchWriter -object $_
-			exit
     }
     Finally {
             Disconnect-VIServer -Server $server -confirm:$false
@@ -188,7 +187,7 @@ Function ShutdownStartup-ComponentOnHost {
             
                 #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
 			    while(( $vm_obj.State -ne 'NotRunning') -AND ($count -ne $timeout) ){
-			        Start-Sleep -Seconds 1
+					Start-Sleep -Seconds 1
                     Write-Output "Sleeping for 1 second"
 				    $count = $count + 1
                     $vm_obj = Get-VMGuest  -VM $node.Name | where VmUid -match $server
@@ -230,7 +229,7 @@ Function ShutdownStartup-ComponentOnHost {
             
                 #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
 			    while(( $vm_obj.State -ne 'Running') -AND ($count -ne $timeout) ){
-			        Start-Sleep Seconds 1
+			`	    Start-Sleep -Seconds 1
                     Write-Output "Sleeping for 1 second"
 				    $count = $count + 1
                     $vm_obj = Get-VMGuest -server $server -VM $node.Name | where VmUid -match $server
@@ -258,7 +257,148 @@ Function ShutdownStartup-ComponentOnHost {
     }  
         Catch {
             Debug-CatchWriter -object $_
-			exit
+    }
+    Finally {
+            Disconnect-VIServer -Server $server -confirm:$false
+    }
+}
+
+
+Function SetClusterState-VROPS {
+    <#
+        .NOTES
+        ===========================================================================
+        Created by:  Sowjanya V
+        Date:   03/15/2021
+        Organization: VMware
+        ===========================================================================
+        
+        .SYNOPSIS
+        Get status of all the VM's matching the pattern on a given host
+    
+        .DESCRIPTION
+        Get status of the given component matching the pattern on the host. If no pattern is 
+        specified 
+    
+        .EXAMPLE
+        PS C:\> Verify-VMStatus -server sfo-w01-esx01.sfo.rainpole.io 
+        -user root -pass VMw@re1! -pattern "^vCLS*"
+        This example connects to the esxi host and searches for all vm's matching the pattern 
+        and its status
+    #>
+
+    Param (
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$mode
+    )
+	
+	
+	
+
+    Try {
+	
+		$params = @{"online_state" = $mode;
+			"online_state_reason" = "Maintenance";}
+			
+		$Global:myHeaders = createHeader $user $pass
+		write-output $myHeaders
+		
+		$uri = "https://$server/casa/deployment/cluster/info"
+		#https://xreg-vrops01.rainpole.io/casa/deployment/cluster/info
+
+        #$response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body $json
+		$response = Invoke-RestMethod -URI $uri -headers $myHeaders -ContentType application/json 
+		write-output "------------------------------------"
+		write-output $response
+		write-output "------------------------------------"
+        if($response.online_state -eq $mode) {
+            Write-Output "The cluster is already in the $mode state"
+        } else {
+		
+			$uri = "https://$server/casa/public/cluster/online_state"
+			$response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body ($params | ConvertTo-Json)
+			write-output "------------------------------------"
+			write-output $response
+			write-output "------------------------------------"
+			if($response.StatusCode -lt 300) {
+				Write-Output "The cluster is set to $mode mode"
+			} else {
+				Write-Error "The cluster state could not be set"
+			}
+			#exit
+        }
+		
+
+    }  
+        Catch {
+            Debug-CatchWriter -object $_
+    }
+
+}
+
+Function Verify-VMStatus {
+    <#
+        .NOTES
+        ===========================================================================
+        Created by:  Sowjanya V
+        Date:   03/15/2021
+        Organization: VMware
+        ===========================================================================
+        
+        .SYNOPSIS
+        Get status of all the VM's matching the pattern on a given host
+    
+        .DESCRIPTION
+        Get status of the given component matching the pattern on the host. If no pattern is 
+        specified 
+    
+        .EXAMPLE
+        PS C:\> Verify-VMStatus -server sfo-w01-esx01.sfo.rainpole.io 
+        -user root -pass VMw@re1! -pattern "^vCLS*"
+        This example connects to the esxi host and searches for all vm's matching the pattern 
+        and its status
+    #>
+
+    Param (
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
+		    [Int]$timeout,
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pattern,
+            [String]$status='Running'
+    )
+
+    Try {
+
+	    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
+        Write-Output $server, $user, $pass, $nodes, $timeout
+        #$nodes = Get-VM | select Name, PowerState | where Name -match $pattern
+        
+        $nodes = Get-VM | where Name -match $pattern | select Name, PowerState, VMHost
+		if ($nodes.Name.Count -eq 0) {
+            Write-output "No vm matching the pattern"
+			#exit
+        }
+        Write-Output $nodes.Name.Count
+
+	    #if($nodes.Name.Count -ne 0) {
+
+		foreach ($node in $nodes) {	
+			$vm_obj = Get-VMGuest -server $server -VM $node.Name | where VmUid -match $server
+			Write-Output $vm_obj
+			if($vm_obj.State -eq $status){
+				Write-Output "The VM $vm_obj is is in the right power state"
+				continue
+			} else {
+				Write-error "The VM $vm_obj is not in the right power state"
+				#exit
+			}
+        }
+    }  
+        Catch {
+            Debug-CatchWriter -object $_
     }
     Finally {
             Disconnect-VIServer -Server $server -confirm:$false
@@ -282,7 +422,7 @@ Function Execute-OnEsx {
         .DESCRIPTION
         Execute the command on the given ESXi host. There are no direct 
         cmdlets to do the same. Hence written this function. If expected is
-        not passed, then exitstatus of 0 is considered as success 
+        not passed, then #exitstatus of 0 is considered as success 
     
         .EXAMPLE
         PS C:\> Execute-OnEsx -server "sfo01-w01-esx02.sfo.rainpole.io" -user "root" -pass "VMw@re123!" 
@@ -322,18 +462,17 @@ Function Execute-OnEsx {
 			} 
 			if($time_val -ge $timeout) {
 				Write-Error "Failure. The received output is: $out.output \n The expexted output is $expected"
-				exit
+				#exit
 			}
-		} elseif ($out.ExitStatus -eq 0) {
+		} elseif ($out.exitStatus -eq 0) {
 			Write-Output "Success. The command got successfully executed"
         } else  {
             Write-Error "Failure. The command could not be executed"
-			exit
+			#exit
         } 
 
     } Catch {
             Debug-CatchWriter -object $_
-			exit
     } Finally {
             Remove-SSHSession -Index $session.SessionId
     }
@@ -386,14 +525,13 @@ Function Verify-VSANClusterMembers {
 				write-output("Host members match") 
 			} else {
 				write-error("Host members name don't match") 
-				exit
+				#exit
 			}
 		}
 		
 
     } Catch {
             Debug-CatchWriter -object $_
-			exit
     } Finally {
             Disconnect-VIServer -server $server -Confirm:$false
     }
@@ -457,7 +595,7 @@ Function Set-MaintainanceMode {
 		
 			if($host1.ConnectionState -eq "Maintenance") {
 				write-error "The host could not be taken out of maintainance mode"
-				exit
+				#exit
 			} else {
 				write-output "The host was taken out of maintainance mode successfully"
 			}
@@ -479,7 +617,7 @@ Function Set-MaintainanceMode {
 		
 			if($host1.ConnectionState -ne "Maintenance") {
 				write-error "The host could not be put into maintainance mode"
-				exit
+				#exit
 			} else {
 				write-output "The host has been set to maintainance mode successfully"
 			}
@@ -490,7 +628,6 @@ Function Set-MaintainanceMode {
 
     } Catch {
             Debug-CatchWriter -object $_
-			exit
     } Finally {
             Disconnect-VIServer -server $server -Confirm:$false
     }
@@ -531,14 +668,13 @@ Function Connect-NSXTLocal {
 			write-output "The URL is working"
 		} else {
 			write-error "The URL is not working"
-			exit
+			#exit
 		}
 
     }
     Catch {
         $PSItem.InvocationInfo
 		Debug-CatchWriter -object $_
-		exit
     }
 }
 
@@ -583,7 +719,7 @@ Function Get-VAMIServiceStatus {
 				write-output "The service:$service status:$status is matching"
 			} else {
 				write-error "The service:$service status_expected:$check_status   status_actual:$status is not matching"
-				exit
+				#exit
 			}
 		} else {
 			return  $serviceStatus.state
@@ -591,7 +727,6 @@ Function Get-VAMIServiceStatus {
     } 
     Catch {
            Debug-CatchWriter -object $_
-		   exit
     }
     Finally {
             Disconnect-CisServer -Server $server -confirm:$false
@@ -649,7 +784,7 @@ Function StartStop-VAMIServiceStatus {
 				write-output "The service:$service status:$status is matching"
 			} else {
 				write-error "The service:$service status_expected:$action   status_actual:$status is not matching"
-				exit
+				#exit
 			}
 		}
 		if ($action -eq 'STOP') {
@@ -662,14 +797,13 @@ Function StartStop-VAMIServiceStatus {
 				write-output "The service:$service status:$status is matching"
 			} else {
 				write-error "The service:$service status_expected:$action   status_actual:$status is not matching"
-				exit
+				#exit
 			}
 		}
 		
     } 
     Catch {
             Debug-CatchWriter -object $_
-			exit
     }
     Finally {
             Disconnect-CisServer -Server $server -confirm:$false
@@ -705,7 +839,7 @@ Function Get-EnvironmentId {
     Param (
         [Parameter (Mandatory=$true)]
             [ValidateNotNullOrEmpty()]
-            [string]$host,
+            [string]$server,
         [Parameter (Mandatory=$true)]
             [ValidateNotNullOrEmpty()]
             [string]$user,
@@ -718,9 +852,10 @@ Function Get-EnvironmentId {
     )
     
     Try {
+		#write-output "11. $server, $user, $pass, $Name  "
 		$Global:myHeaders = createHeader $user $pass
 		#write-output $Global:myHeaders
-        $uri = "https://$host/lcm/lcops/api/v2/environments"
+        $uri = "https://$server/lcm/lcops/api/v2/environments"
 		#write-output "1. $uri"
         $response = Invoke-RestMethod -Method GET -URI $uri -headers $myHeaders -ContentType application/json 
 		#write-output "2." $response
@@ -731,13 +866,12 @@ Function Get-EnvironmentId {
     Catch {
        $PSItem.InvocationInfo
 	   Debug-CatchWriter -object $_
-	   exit
     }
 }
 
 
 
-Function ShutdownStartupXVIDM-ViaVRSLCM
+Function ShutdownStartupProduct-ViaVRSLCM
 {
     <#
         .NOTES
@@ -754,7 +888,7 @@ Function ShutdownStartupXVIDM-ViaVRSLCM
         There are no POWER CLI or POWER SHELL cmdlet to power off the products via VRSLCM. Hence writing my own
     
         .EXAMPLE
-        PS C:\> ShutdownProduct_ViaVRSLCM -host <VRSLCM> -user <username> -pass <password> -product <VRA/VROPS/VRLI/VIDM> -mode <power-on/power-off>
+        PS C:\> ShutdownProduct_ViaVRSLCM -server <VRSLCM> -user <username> -pass <password> -product <VRA/VROPS/VRLI/VIDM> -mode <power-on/power-off>
         This example shutsdown a product via VRSLCM
         Sample URL formed on TB04 is as shown below
         Do Get on https://xreg-vrslcm01.rainpole.io/lcm/lcops/api/v2/environments
@@ -769,7 +903,7 @@ Function ShutdownStartupXVIDM-ViaVRSLCM
     Param (
         [Parameter (Mandatory=$true)]
             [ValidateNotNullOrEmpty()]
-            [string]$host,
+            [string]$server,
 		[Parameter (Mandatory=$true)]
             [ValidateNotNullOrEmpty()]
             [string]$user,
@@ -781,22 +915,29 @@ Function ShutdownStartupXVIDM-ViaVRSLCM
             [string]$mode,
         [Parameter (Mandatory=$true)]
             [ValidateNotNullOrEmpty()]
-            [string]$product
+            [string]$product,
+		[Parameter (Mandatory=$true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$env,
+		[Parameter (Mandatory=$true)]
+            [ValidateNotNullOrEmpty()]
+            [int]$timeout
+			
 
     )
     
     Try {
-        $env_id = Get-EnvironmentId -host $host -user $user -pass $pass -Name 'globalenvironment'
+	
+		write-output $server
+		
+        $env_id = Get-EnvironmentId -server $server -user $user -pass $pass -Name $env
 		
 		write-output $env_id
 		
-		$Global:myHeaders = createHeader vcfadmin@local VMw@re123!
+		$Global:myHeaders = createHeader $user $pass
 		write-output $myHeaders
-		if($product -match 'health') {
-			$uri = "https://$host/lcm/lcops/api/v2/environments/$env_id/health-check"
-		} else {
-			$uri = "https://$host/lcm/lcops/api/v2/environments/$env_id/products/$product/$mode"
-		}
+		$uri = "https://$server/lcm/lcops/api/v2/environments/$env_id/products/$product/$mode"
+
 		
 		write-output $uri
         $json = {}
@@ -806,41 +947,97 @@ Function ShutdownStartupXVIDM-ViaVRSLCM
 		write-output $response
 		write-output "------------------------------------"
         if($response.requestId) {
-            Write-Output "Successfully initiated shutdown of the product $product"
+            Write-Output "Successfully initiated $mode on $product"
         } else {
-            Write-Error "Unable to shutdown $product due to response "
-			exit
+            Write-Error "Unable to $mode on $product due to response "
+			#exit
         }
 		$id = $response.requestId
-		$uri2 = "https://$host/lcm/request/api/v2/requests/$id"
+		#a893afc1-2035-4a9c-af91-0c55549e4e07
+		$uri2 = "https://$server/lcm/request/api/v2/requests/$id"
+		
+
+		
 		$count = 0
-		$timeout = 900
 		while($count -le $timeout) {
 			$count = $count + 60
 			start-sleep -s 60
 			$response2 = Invoke-RestMethod -Method GET -URI $uri2 -headers $myHeaders -ContentType application/json 
-			if($response2.state -eq 'COMPLETED') {
+			if(($response2.state -eq 'COMPLETED') -or ($response2.state -eq 'FAILED')) {
+				write-output $response2.state
 				break
 			}
 		}
-		if($response2.state -eq 'COMPLETED') {
-			write-output "The $product is successfully shutdown"
-		} else {
-			write-output "The $product could not be shutdown within the timeout value"
+		if(($response2.state -eq 'COMPLETED') -and ($response2.errorCause -eq $null)) {
+			write-output "The $mode on $product is successfull "
+		} elseif (($response2.state -eq 'FAILED')) {
+			write-output " could not $mode on $product because of "
+			write-error $response2.errorCause.message
+	    } else {
+			write-error "could not $mode on $product within the timeout value"
 		}
     }
     Catch {
-       $PSItem.InvocationInfo
+       #$PSItem.InvocationInfo
 	   Debug-CatchWriter -object $_
-	   exit
+    }
+}
+
+Function Set-DrsAutomationLevel {
+    <#
+        .NOTES
+        ===========================================================================
+        Created by:		Sowjanya V
+        Date:			03/16/2021
+        Organization:	VMware
+        ===========================================================================
+        
+        .SYNOPSIS
+        Set the automation level to manual or fully automated 
+    
+        .DESCRIPTION
+        Set the automation level to manual or fully automated 
+    
+        .EXAMPLE
+        PS C:\>Set-DrsAutomationLevel -Server $server -User $user  -Pass $pass -cluster <clustername> -level <Manual/FullyAutomated>
+
+    #>
+	Param (
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
+            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
+			[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$cluster,
+			[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$level
+
+    )
+
+    Try {
+        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
+		$out = Get-Cluster -Name $cluster
+		if ($out.DrsAutomationLevel -eq $level) {
+			write-Output "DrsAutomationLevel is already set to $level"
+		} else {
+			$task =  set-cluster -Cluster $cluster -DrsAutomationLevel $level -confirm:$false 
+			if($task.DrsAutomationLevel -eq $level) {
+				write-Output "DrsAutomationLevel is set to $level successfully"
+			} else {
+				write-Output "DrsAutomationLevel could not be set to $level"
+			}
+		}		
+    } 
+    Catch {
+            Write-Error "An error occured. $_"
+    }
+    Finally {
+            Disconnect-VIServer -Server $server -confirm:$false
     }
 }
 
 
-
+<#
 Function ShutdownStartupProduct-ViaVRSLCM
 {
-    <#
+    
         .NOTES
         ===========================================================================
         Created by:		Sowjanya V
@@ -865,7 +1062,7 @@ Function ShutdownStartupProduct-ViaVRSLCM
 
        
 
-    #>
+  
           
     Param (
         [Parameter (Mandatory=$true)]
@@ -885,7 +1082,7 @@ Function ShutdownStartupProduct-ViaVRSLCM
     )
     
     Try {
-        $env_id = Get-EnvironmentId -host $host -Name "Cross-Region"
+        $env_id = Get-EnvironmentId -user $user -pass $pass -host $host -Name "Cross"
 		
 		write-output $env_id
 
@@ -917,21 +1114,21 @@ Function ShutdownStartupProduct-ViaVRSLCM
             Write-Output $succ_init_msg
         } else {
             Write-Error $fail_init_msg
-			exit
+			#exit
         }
 		$id = $response.requestId
 		$uri2 = "https://$host/lcm/request/api/v2/requests/$id"
 		$count = 0
-		$timeout = 900
+		$timeout = 1800
 		while($count -le $timeout) {
 			$count = $count + 60
 			start-sleep -s 60
 			$response2 = Invoke-RestMethod -Method GET -URI $uri2 -headers $myHeaders -ContentType application/json 
-			if($response2.state -eq 'COMPLETED') {
+			if(($response2.state -eq 'COMPLETED') ) {
 				break
 			}
 		}
-		if($response2.state -eq 'COMPLETED') {
+		if(($response2.state -eq 'COMPLETED') -and ($response2.errorCause -eq $null) ) {
 			write-output $success_msg
 		} else {
 			write-output $failure_msg
@@ -940,9 +1137,10 @@ Function ShutdownStartupProduct-ViaVRSLCM
     Catch {
        $PSItem.InvocationInfo
 	   Debug-CatchWriter -object $_
-	   exit
     }
 }
+#>
+
 Function Test-VsanHealth {
 <#
     .NOTES
@@ -1007,11 +1205,10 @@ Function Test-VsanHealth {
 			Write-Output "The VSAN Health is GOOD"
 		} else {
 			Write-Error "The VSAN Health is BAD"
-			exit
+			#exit
 		}
 	} Catch {
         Debug-CatchWriter -object $_
-		exit
     }
     Finally {
             Disconnect-VIServer -Server $server -confirm:$false
@@ -1064,11 +1261,10 @@ Function Test-ResyncingObjects {
 			Write-Output "No resyncing objects"
 		} else {
 			Write-Error "There are some resyncing happening"
-			exit
+			#exit
 		}
 	} Catch {
         Debug-CatchWriter -object $_
-		exit
     }
     Finally {
             Disconnect-VIServer -Server $server -confirm:$false
@@ -1118,11 +1314,10 @@ Function PowerOn-EsxiUsingILO {
 			Write-Output "bootup complete."
 		} else {
 			Write-Error "couldnot start the server"
-			exit
+			#exit
 		}
 	} Catch {
         Debug-CatchWriter -object $_
-		exit
     }
 
 
@@ -1202,7 +1397,6 @@ Function Get-NSXTMgrClusterStatus {
 		}
 	} Catch {
         Debug-CatchWriter -object $_
-		exit
     }
 }
 
@@ -1211,13 +1405,13 @@ Function Debug-CatchWriter {
         [Parameter(Mandatory = $true)]
         [PSObject]$object
     )
-
+	write-output "hi"
     $lineNumber = $object.InvocationInfo.ScriptLineNumber
     $lineText = $object.InvocationInfo.Line.trim()
     $errorMessage = $object.Exception.Message
-    Write-Output " Error at Script Line $lineNumber"
-    Write-Output " Relevant Command: $lineText"
-    Write-Output " Error Message: $errorMessage"
+    Write-ERROR " Error at Script Line $lineNumber"
+    Write-ERROR " Relevant Command: $lineText"
+    Write-ERROR " Error Message: $errorMessage"
 }
 
 
