@@ -14,13 +14,9 @@ Function ShutdownStartup-SDDCComponent {
         Shutdown/Startup the given component on the server ensuring all nodes of it are shutdown 
     
         .EXAMPLE
-        PS C:\> ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -user 
-        adminstrator@vsphere.local -pass VMw@re1! -component NSXT-NODE 
-        -nodeList "sfo-w01-en01", "sfo-w01-en02"
-        This example connects to management VC and shutdown the component NSX-T by 
-        shutting down all the dependent components
+        PS C:\> ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02" -task Shutdown
+        This example connects to management vCenter Server and shuts down the nodes sfo-m01-en01 and sfo-m01-en02
     #>
-
 
     Param (
             [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
