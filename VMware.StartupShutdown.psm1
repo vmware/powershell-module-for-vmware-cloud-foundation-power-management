@@ -16,6 +16,10 @@ Function ShutdownStartup-SDDCComponent {
         .EXAMPLE
         PS C:\> ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02" -task Shutdown
         This example connects to management vCenter Server and shuts down the nodes sfo-m01-en01 and sfo-m01-en02
+
+        .EXAMPLE
+        PS C:\> ShutdownStartup-SDDCComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02" -task Startup
+        This example connects to management vCenter Server and powers on the nodes sfo-m01-en01 and sfo-m01-en02
     #>
 
     Param (
