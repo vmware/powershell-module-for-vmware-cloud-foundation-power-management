@@ -23,12 +23,12 @@ Function ShutdownStartup-SDDCComponent {
 
 
     Param (
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-		    [Int]$timeout,
-            [String[]]$nodes,
-            [String]$task='Shutdown'
+            [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+            [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+            [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		    [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
+            [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes,
+            [Parameter(Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$task='Shutdown'
     )
 
     Try {
