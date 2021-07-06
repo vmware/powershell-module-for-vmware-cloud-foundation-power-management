@@ -119,6 +119,7 @@ Function ShutdownStartup-SDDCComponent {
             Disconnect-VIServer -Server $server -confirm:$false
     }
 }
+Export-ModuleMember -Function ShutdownStartup-SDDCComponent
 
 Function ShutdownStartup-ComponentOnHost {
     <#
@@ -262,7 +263,7 @@ Function ShutdownStartup-ComponentOnHost {
             Disconnect-VIServer -Server $server -confirm:$false
     }
 }
-
+Export-ModuleMember -Function ShutdownStartup-ComponentOnHost
 
 Function SetClusterState-VROPS {
     <#
@@ -337,6 +338,7 @@ Function SetClusterState-VROPS {
     }
 
 }
+Export-ModuleMember -Function SetClusterState-VROPS
 
 Function Verify-VMStatus {
     <#
@@ -404,7 +406,7 @@ Function Verify-VMStatus {
             Disconnect-VIServer -Server $server -confirm:$false
     }
 }
-
+Export-ModuleMember -Function Verify-VMStatus
 
 Function Execute-OnEsx {
 
@@ -477,8 +479,7 @@ Function Execute-OnEsx {
             Remove-SSHSession -Index $session.SessionId
     }
 }
-
-
+Export-ModuleMember -Function Execute-OnEsx
 
 Function Verify-VSANClusterMembers {
 
@@ -536,9 +537,7 @@ Function Verify-VSANClusterMembers {
             Disconnect-VIServer -server $server -Confirm:$false
     }
 }
-
-
-
+Export-ModuleMember -Function Verify-VSANClusterMembers
 
 Function Set-MaintainanceMode {
 
@@ -632,6 +631,7 @@ Function Set-MaintainanceMode {
             Disconnect-VIServer -server $server -Confirm:$false
     }
 }
+Export-ModuleMember -Function Set-MaintainanceMode
 
 Function Connect-NSXTLocal {
     <#
@@ -677,8 +677,7 @@ Function Connect-NSXTLocal {
 		Debug-CatchWriter -object $_
     }
 }
-
-
+Export-ModuleMember -Function Connect-NSXTLocal
 
 Function Get-VAMIServiceStatus {
     <#
@@ -732,9 +731,7 @@ Function Get-VAMIServiceStatus {
             Disconnect-CisServer -Server $server -confirm:$false
     }
 }
-
-
-
+Export-ModuleMember -Function Get-VAMIServiceStatus
 
 Function StartStop-VAMIServiceStatus {
     <#
@@ -809,7 +806,7 @@ Function StartStop-VAMIServiceStatus {
             Disconnect-CisServer -Server $server -confirm:$false
     }
 }
-
+Export-ModuleMember -Function StartStop-VAMIServiceStatus
 
 Function Get-EnvironmentId {
  <#
@@ -868,8 +865,7 @@ Function Get-EnvironmentId {
 	   Debug-CatchWriter -object $_
     }
 }
-
-
+Export-ModuleMember -Function Get-EnvironmentId
 
 Function ShutdownStartupProduct-ViaVRSLCM
 {
@@ -982,6 +978,7 @@ Function ShutdownStartupProduct-ViaVRSLCM
 	   Debug-CatchWriter -object $_
     }
 }
+Export-ModuleMember -Function ShutdownStartupProduct-ViaVRSLCM
 
 Function Set-DrsAutomationLevel {
     <#
@@ -1032,10 +1029,9 @@ Function Set-DrsAutomationLevel {
             Disconnect-VIServer -Server $server -confirm:$false
     }
 }
+Export-ModuleMember -Function Set-DrsAutomationLevel
 
-
-<#
-Function ShutdownStartupProduct-ViaVRSLCM
+<#Function ShutdownStartupProduct-ViaVRSLCM
 {
     
         .NOTES
@@ -1214,6 +1210,8 @@ Function Test-VsanHealth {
             Disconnect-VIServer -Server $server -confirm:$false
     }
 }
+Export-ModuleMember -Function Test-VsanHealth
+
 Function Test-ResyncingObjects {
 <#
     .NOTES
@@ -1271,6 +1269,8 @@ Function Test-ResyncingObjects {
     }
 
 }
+Export-ModuleMember -Function Test-ResyncingObjects
+
 Function PowerOn-EsxiUsingILO {
 <#
     .NOTES
@@ -1322,9 +1322,9 @@ Function PowerOn-EsxiUsingILO {
 
 
 }
+Export-ModuleMember -Function PowerOn-EsxiUsingILO
 
-Function createHeader
-{
+Function createHeader {
     Param(
     [Parameter (Mandatory=$true)]
     [String] $user,
@@ -1337,6 +1337,7 @@ Function createHeader
     
     Return $headers
 }
+Export-ModuleMember -Function createHeader
 
 Function Ignore-CertificateError {
 	add-type @"
@@ -1352,6 +1353,7 @@ Function Ignore-CertificateError {
 "@
 	[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 }
+Export-ModuleMember -Function Ignore-CertificateError
 
 Function Get-NSXTMgrClusterStatus {
 <#
@@ -1399,20 +1401,7 @@ Function Get-NSXTMgrClusterStatus {
         Debug-CatchWriter -object $_
     }
 }
-
-Function Old-Debug-CatchWriter {
-    Param (
-        [Parameter(Mandatory = $true)]
-        [PSObject]$object
-    )
-	write-output "hi"
-    $lineNumber = $object.InvocationInfo.ScriptLineNumber
-    $lineText = $object.InvocationInfo.Line.trim()
-    $errorMessage = $object.Exception.Message
-    Write-ERROR " Error at Script Line $lineNumber"
-    Write-ERROR " Relevant Command: $lineText"
-    Write-ERROR " Error Message: $errorMessage"
-}
+Export-ModuleMember -Function Get-NSXTMgrClusterStatus
 
 ######### Start Useful Script Functions ##########
 
