@@ -1,5 +1,5 @@
-Remove-module VMware.StartupShutdown
-Import-Module VMware.StartupShutdown
+Remove-module VMware.PowerManagement
+Import-Module VMware.PowerManagement
 
 ###Variables section####
 $regional_mgmt_vc = "sfo-m01-vc01"

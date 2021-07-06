@@ -14,8 +14,8 @@
 #Server is already powered OFF.\
 #>
 
-Remove-module VMware.StartupShutdown
-Import-Module VMware.StartupShutdown
+Remove-module VMware.PowerManagement
+Import-Module VMware.PowerManagement
 
 
 $esx1_ilo_ip = "10.144.40.143"

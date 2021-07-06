@@ -1,5 +1,5 @@
-Remove-module VMware.StartupShutdown
-Import-Module VMware.StartupShutdown
+Remove-module VMware.PowerManagement
+Import-Module VMware.PowerManagement
 
 
 $ErrorActionPreference = 'STOP'
