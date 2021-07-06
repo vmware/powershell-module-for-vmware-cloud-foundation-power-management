@@ -23,12 +23,12 @@ Function ShutdownStartup-SDDCComponent {
     #>
 
     Param (
-            [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
-            [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-            [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		    [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
-            [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes,
-            [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$task='Shutdown'
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes,
+        [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$task='Shutdown'
     )
 
     Try {
@@ -138,12 +138,12 @@ Function ShutdownStartup-ComponentOnHost {
     #>
 
     Param (
-            [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
-            [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-            [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		    [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
-            [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pattern,
-            [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$task='Shutdown'
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pattern,
+        [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$task='Shutdown'
     )
 
     Try {
@@ -275,54 +275,48 @@ Function SetClusterState-VROPS {
     #>
 
     Param (
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$mode
+        [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$mode
     )
 	
-	
-	
-
     Try {
-	
 		$params = @{"online_state" = $mode;
 			"online_state_reason" = "Maintenance";}
 			
 		$Global:myHeaders = createHeader $user $pass
-		write-output $myHeaders
+		Write-Output $myHeaders
 		
 		$uri = "https://$server/casa/deployment/cluster/info"
 		#https://xreg-vrops01.rainpole.io/casa/deployment/cluster/info
 
         #$response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body $json
-		$response = Invoke-RestMethod -URI $uri -headers $myHeaders -ContentType application/json 
-		write-output "------------------------------------"
-		write-output $response
-		write-output "------------------------------------"
-        if($response.online_state -eq $mode) {
+		$response = Invoke-RestMethod -URI $uri -Headers $myHeaders -ContentType application/json 
+		Write-Output "------------------------------------"
+		Write-Output $response
+		Write-Output "------------------------------------"
+        if ($response.online_state -eq $mode) {
             Write-Output "The cluster is already in the $mode state"
-        } else {
-		
+        }
+        else {
 			$uri = "https://$server/casa/public/cluster/online_state"
 			$response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body ($params | ConvertTo-Json)
-			write-output "------------------------------------"
-			write-output $response
-			write-output "------------------------------------"
-			if($response.StatusCode -lt 300) {
+			Write-Output "------------------------------------"
+			Write-Output $response
+			Write-Output "------------------------------------"
+			if ($response.StatusCode -lt 300) {
 				Write-Output "The cluster is set to $mode mode"
-			} else {
+			}
+            else {
 				Write-Error "The cluster state could not be set"
 			}
 			#exit
         }
-		
-
-    }  
-        Catch {
-            Debug-CatchWriter -object $_
     }
-
+    Catch {
+        Debug-CatchWriter -object $_
+    }
 }
 Export-ModuleMember -Function SetClusterState-VROPS
 
