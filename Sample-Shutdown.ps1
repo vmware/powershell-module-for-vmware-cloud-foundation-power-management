@@ -22,5 +22,4 @@ $edgeNodes = "ldn-w01-en01", "ldn-w01-en02"
 #Shut Down the NSX-T Edge Nodes in the Virtual Infrastructure Workload Domain
 
 Stop-CloudComponent -server $vcServer -user $vcUser -pass $vcPass -nodes $edgeNodes -timeout 600
-#ShutdownStartup-SDDCComponent -server $vcServer -user $vcUser -pass $vcPass -nodes $edgeNodes -task Shutdown -timeout 600
-#ShutdownStartup-SDDCComponent -server $vcServer -user $vcUser -pass $vcPass -nodes $edgeNodes -task Startup -timeout 600 
+Start-CloudComponent -server $vcServer -user $vcUser -pass $vcPass -nodes $edgeNodes -timeout 600
