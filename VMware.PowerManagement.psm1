@@ -275,10 +275,10 @@ Function SetClusterState-VROPS {
     #>
 
     Param (
-        [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$mode
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$mode
     )
 	
     Try {
@@ -344,46 +344,43 @@ Function Verify-VMStatus {
     #>
 
     Param (
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-		    [Int]$timeout,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pattern,
-            [String]$status='Running'
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pattern,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$status='Running'
     )
 
     Try {
-
 	    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
         Write-Output $server, $user, $pass, $nodes, $timeout
         #$nodes = Get-VM | select Name, PowerState | where Name -match $pattern
-        
-        $nodes = Get-VM | where Name -match $pattern | select Name, PowerState, VMHost
+        $nodes = Get-VM | Where-Object Name -match $pattern | Select-Object Name, PowerState, VMHost
 		if ($nodes.Name.Count -eq 0) {
-            Write-output "No vm matching the pattern"
+            Write-Output "No vm matching the pattern"
 			#exit
         }
         Write-Output $nodes.Name.Count
-
 	    #if($nodes.Name.Count -ne 0) {
-
 		foreach ($node in $nodes) {	
-			$vm_obj = Get-VMGuest -server $server -VM $node.Name | where VmUid -match $server
+			$vm_obj = Get-VMGuest -server $server -VM $node.Name | Where-Object VmUid -match $server
 			Write-Output $vm_obj
-			if($vm_obj.State -eq $status){
+			if ($vm_obj.State -eq $status){
 				Write-Output "The VM $vm_obj is is in the right power state"
-				continue
-			} else {
+				Continue
+			}
+            else {
 				Write-error "The VM $vm_obj is not in the right power state"
 				#exit
 			}
         }
     }  
-        Catch {
-            Debug-CatchWriter -object $_
+    Catch {
+        Debug-CatchWriter -object $_
     }
     Finally {
-            Disconnect-VIServer -Server $server -confirm:$false
+        Disconnect-VIServer -Server $server -Confirm:$false
     }
 }
 Export-ModuleMember -Function Verify-VMStatus
