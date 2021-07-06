@@ -161,8 +161,8 @@ Function ShutdownStartup-ComponentOnHost {
     )
 
     Try {
-	    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
-        Write-Output $server, $user, $pass, $nodes, $timeout
+	    Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
         #$nodes = Get-VM | select Name, PowerState | where Name -match $pattern
         if ($pattern) {
              $nodes = Get-VM -Server $server | Where-Object Name -match $pattern | Select-Object Name, PowerState, VMHost | Where-Object VMHost -match $server
@@ -367,8 +367,8 @@ Function Verify-VMStatus {
     )
 
     Try {
-	    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
-        Write-Output $server, $user, $pass, $nodes, $timeout
+	    Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
         #$nodes = Get-VM | select Name, PowerState | where Name -match $pattern
         $nodes = Get-VM | Where-Object Name -match $pattern | Select-Object Name, PowerState, VMHost
 		if ($nodes.Name.Count -eq 0) {
@@ -424,12 +424,12 @@ Function Execute-OnEsx {
     #>
 
     Param (
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$cmd,
-            [String]$expected,
-			[String]$timeout = 60
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cmd,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$expected,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$timeout = 60
     )
 
 
@@ -444,30 +444,34 @@ Function Execute-OnEsx {
         $out = Invoke-SSHCommand -index $session.SessionId -Command $cmd
         Write-Output $out.Output
 		
-		if($expected) {
-			while($time_val -lt $timeout) {
-				if($out.Output -match $expected) {
+		if ($expected) {
+			While ($time_val -lt $timeout) {
+				if ($out.Output -match $expected) {
 					Write-Output "Success. The recived and expected outputs are matching"
-					break
-				} else {
+					Break
+				}
+                else {
 					$time_val = $time_val + 5
 				}
 			} 
-			if($time_val -ge $timeout) {
+			if ($time_val -ge $timeout) {
 				Write-Error "Failure. The received output is: $out.output \n The expexted output is $expected"
 				#exit
 			}
-		} elseif ($out.exitStatus -eq 0) {
+		}
+        elseif ($out.exitStatus -eq 0) {
 			Write-Output "Success. The command got successfully executed"
-        } else  {
+        }
+        else  {
             Write-Error "Failure. The command could not be executed"
 			#exit
         } 
 
     } Catch {
-            Debug-CatchWriter -object $_
-    } Finally {
-            Remove-SSHSession -Index $session.SessionId
+        Debug-CatchWriter -object $_
+    }
+    Finally {
+        Remove-SSHSession -Index $session.SessionId
     }
 }
 Export-ModuleMember -Function Execute-OnEsx
@@ -497,35 +501,37 @@ Function Verify-VSANClusterMembers {
     #>
 
     Param (
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-            [String[]]$members
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$members
     )
 
 
      Try {
-		Connect-VIServer -server $server -user $user -pass $pass -protocol https
+		Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
 		$esxcli = Get-EsxCli -Server $server -VMHost (Get-VMHost $server) -V2
 		$out =  $esxcli.vsan.cluster.get.Invoke()
-		write-output($out.SubClusterMemberHostNames)
-		write-output($members.gettype())
-		write-output($out.SubClusterMemberHostNames.gettype())
-		foreach($member in $members) {
-			write-output($member)
-			if($out.SubClusterMemberHostNames -match $member) {
-				write-output("Host members match") 
-			} else {
-				write-error("Host members name don't match") 
+		Write-Output ($out.SubClusterMemberHostNames)
+		Write-Output ($members.gettype())
+		Write-Output ($out.SubClusterMemberHostNames.gettype())
+		foreach ($member in $members) {
+			Write-Output($member)
+			if ($out.SubClusterMemberHostNames -match $member) {
+				Write-Output "Host members match" 
+			}
+            else {
+				Write-Error "Host members name don't match"
 				#exit
 			}
 		}
-		
-
-    } Catch {
-            Debug-CatchWriter -object $_
-    } Finally {
-            Disconnect-VIServer -server $server -Confirm:$false
+    }
+    Catch {
+        Debug-CatchWriter -object $_
+    }
+    Finally{
+        Disconnect-VIServer -server $server -Confirm:$false
     }
 }
 Export-ModuleMember -Function Verify-VSANClusterMembers
@@ -556,70 +562,63 @@ Function Set-MaintainanceMode {
     #>
 
     Param (
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-			[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$cmd
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cmd
     )
 
-
     Try {
-		Connect-VIServer -server $server -user $user -pass $pass -protocol https
+		Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
 		$host1 = Get-VMHost $server
-		
-		if($cmd -match "false") {
-			
-			if($host1.ConnectionState -eq "Maintenance") {
-
+		if ($cmd -match "false") {
+			if ($host1.ConnectionState -eq "Maintenance") {
 				Execute-OnEsx -server $server -user $user -pass $pass  -cmd $cmd
 				Start-Sleep -s 10
 				$count=1
 				$host1 = Get-VMHost $server
-				while($host1.ConnectionState -eq "Maintenance" -OR $count -le 5) {
+				While ($host1.ConnectionState -eq "Maintenance" -OR $count -le 5) {
 					Start-Sleep -s 10
 					$count = $count + 1
 					$host1 = Get-VMHost $server
 				}
-
 			}
-		
-			if($host1.ConnectionState -eq "Maintenance") {
+			if ($host1.ConnectionState -eq "Maintenance") {
 				write-error "The host could not be taken out of maintainance mode"
 				#exit
-			} else {
+			}
+            else {
 				write-output "The host was taken out of maintainance mode successfully"
 			}
-		} else {
-			
-			if($host1.ConnectionState -ne "Maintenance") {
-
-				Execute-OnEsx -server $server -user $user -pass $pass  -cmd $cmd
+		}
+        else {
+			if ($host1.ConnectionState -ne "Maintenance") {
+                Execute-OnEsx -server $server -user $user -pass $pass  -cmd $cmd
 				Start-Sleep -s 10
 				$count=1
 				$host1 = Get-VMHost $server
-				while($host1.ConnectionState -ne "Maintenance" -OR $count -le 5) {
+				While ($host1.ConnectionState -ne "Maintenance" -OR $count -le 5) {
 					Start-Sleep -s 10
 					$count = $count + 1
 					$host1 = Get-VMHost $server
 				}
-
 			}
 		
-			if($host1.ConnectionState -ne "Maintenance") {
+			if ($host1.ConnectionState -ne "Maintenance") {
 				write-error "The host could not be put into maintainance mode"
 				#exit
-			} else {
+			}
+            else {
 				write-output "The host has been set to maintainance mode successfully"
 			}
-			
-			
 		}
-		
-
-    } Catch {
-            Debug-CatchWriter -object $_
-    } Finally {
-            Disconnect-VIServer -server $server -Confirm:$false
+    } 
+    Catch {
+        Debug-CatchWriter -object $_
+    } 
+    Finally {
+        Disconnect-VIServer -server $server -Confirm:$false
     }
 }
 Export-ModuleMember -Function Set-MaintainanceMode
@@ -645,9 +644,7 @@ Function Connect-NSXTLocal {
     #>
           
     Param (
-        [Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$url
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$url
     )
     
     Try {
@@ -661,7 +658,6 @@ Function Connect-NSXTLocal {
 			write-error "The URL is not working"
 			#exit
 		}
-
     }
     Catch {
         $PSItem.InvocationInfo
@@ -690,11 +686,11 @@ Function Get-VAMIServiceStatus {
 
     #>
 	Param (
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-			[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$service,
-			[string]$check_status
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [string]$service,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$check_status
     )
 
     Try {
@@ -707,19 +703,21 @@ Function Get-VAMIServiceStatus {
 		if ($check_status) {
 			if ($serviceStatus.state -eq $check_status) {
 				write-output "The service:$service status:$status is matching"
-			} else {
+			}
+            else {
 				write-error "The service:$service status_expected:$check_status   status_actual:$status is not matching"
 				#exit
 			}
-		} else {
-			return  $serviceStatus.state
+		}
+        else {
+			Return $serviceStatus.state
 		}
     } 
     Catch {
-           Debug-CatchWriter -object $_
+        Debug-CatchWriter -object $_
     }
     Finally {
-            Disconnect-CisServer -Server $server -confirm:$false
+        Disconnect-CisServer -Server $server -confirm:$false
     }
 }
 Export-ModuleMember -Function Get-VAMIServiceStatus
@@ -744,23 +742,21 @@ Function StartStop-VAMIServiceStatus {
 
     #>
 	Param (
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-			[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$service,
-			[string]$action
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [string]$service,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$action
     )
 
     Try {
-
-
 		Connect-CisServer -server $server -user $user -pass $pass
 		$vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
 		$serviceStatus = $vMonAPI.get($service,0)
 		$status = $serviceStatus.state
 		if ($status -match $action) {
 			Write-output "The servic $service is $action successfully"
-			return 0
+			Return 0
 		}
 		if ($action -eq 'START') {
 			Write-Output "Starting $service service ..."
@@ -770,7 +766,8 @@ Function StartStop-VAMIServiceStatus {
 			$status = $serviceStatus.state
 			if ($status -match $action) {
 				write-output "The service:$service status:$status is matching"
-			} else {
+			}
+            else {
 				write-error "The service:$service status_expected:$action   status_actual:$status is not matching"
 				#exit
 			}
@@ -783,18 +780,18 @@ Function StartStop-VAMIServiceStatus {
 			$status = $serviceStatus.state			
 			if ($status -match $action) {
 				write-output "The service:$service status:$status is matching"
-			} else {
+			}
+            else {
 				write-error "The service:$service status_expected:$action   status_actual:$status is not matching"
 				#exit
 			}
 		}
-		
     } 
     Catch {
-            Debug-CatchWriter -object $_
+        Debug-CatchWriter -object $_
     }
     Finally {
-            Disconnect-CisServer -Server $server -confirm:$false
+        Disconnect-CisServer -Server $server -confirm:$false
     }
 }
 Export-ModuleMember -Function StartStop-VAMIServiceStatus
@@ -825,18 +822,10 @@ Function Get-EnvironmentId {
     #>
           
     Param (
-        [Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$server,
-        [Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$user,
-        [Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$pass,
-		[Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$Name
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$Name
     )
     
     Try {
@@ -882,60 +871,40 @@ Function ShutdownStartupProduct-ViaVRSLCM
            and findout what is the id assosiated with Cross-Region Environment 
 
         $uri = "https://xreg-vrslcm01.rainpole.io/lcm/lcops/api/v2/environments/Cross-Region-Env1612043838679/products/vra/deployed-vms"
-
-       
-
     #>
           
     Param (
-        [Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$server,
-		[Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$user,
-		[Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$pass,
-		[Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$mode,
-        [Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$product,
-		[Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$env,
-		[Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [int]$timeout
-			
-
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$mode,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$product,
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$env,
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [Int]$timeout
     )
     
     Try {
 	
-		write-output $server
-		
+		Write-Output $server
         $env_id = Get-EnvironmentId -server $server -user $user -pass $pass -Name $env
-		
-		write-output $env_id
+		Write-Output $env_id
 		
 		$Global:myHeaders = createHeader $user $pass
-		write-output $myHeaders
+		Write-Output $myHeaders
 		$uri = "https://$server/lcm/lcops/api/v2/environments/$env_id/products/$product/$mode"
 
 		
-		write-output $uri
+		Write-Output $uri
         $json = {}
         $response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body $json
 		
-		write-output "------------------------------------"
-		write-output $response
-		write-output "------------------------------------"
-        if($response.requestId) {
+		Write-Output "------------------------------------"
+		Write-Output $response
+		Write-Output "------------------------------------"
+        if ($response.requestId) {
             Write-Output "Successfully initiated $mode on $product"
-        } else {
+        }
+        else {
             Write-Error "Unable to $mode on $product due to response "
 			#exit
         }
@@ -943,25 +912,25 @@ Function ShutdownStartupProduct-ViaVRSLCM
 		#a893afc1-2035-4a9c-af91-0c55549e4e07
 		$uri2 = "https://$server/lcm/request/api/v2/requests/$id"
 		
-
-		
 		$count = 0
-		while($count -le $timeout) {
+		While ($count -le $timeout) {
 			$count = $count + 60
-			start-sleep -s 60
+			Start-Sleep -s 60
 			$response2 = Invoke-RestMethod -Method GET -URI $uri2 -headers $myHeaders -ContentType application/json 
-			if(($response2.state -eq 'COMPLETED') -or ($response2.state -eq 'FAILED')) {
-				write-output $response2.state
-				break
+			if (($response2.state -eq 'COMPLETED') -or ($response2.state -eq 'FAILED')) {
+				Write-Output $response2.state
+				Break
 			}
 		}
-		if(($response2.state -eq 'COMPLETED') -and ($response2.errorCause -eq $null)) {
-			write-output "The $mode on $product is successfull "
-		} elseif (($response2.state -eq 'FAILED')) {
-			write-output " could not $mode on $product because of "
-			write-error $response2.errorCause.message
-	    } else {
-			write-error "could not $mode on $product within the timeout value"
+		if (($response2.state -eq 'COMPLETED') -and ($response2.errorCause -eq $null)) {
+			Write-Output "The $mode on $product is successfull "
+		}
+        elseif (($response2.state -eq 'FAILED')) {
+			Write-Output " could not $mode on $product because of "
+			Write-Error $response2.errorCause.message
+	    }
+        else {
+			Write-Error "could not $mode on $product within the timeout value"
 		}
     }
     Catch {
@@ -991,33 +960,35 @@ Function Set-DrsAutomationLevel {
 
     #>
 	Param (
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
-            [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-			[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$cluster,
-			[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$level
-
+        [Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
+        [Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
+        [Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
+		[Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][string]$cluster,
+		[Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][string]$level
     )
 
     Try {
-        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
+        Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
 		$out = Get-Cluster -Name $cluster
 		if ($out.DrsAutomationLevel -eq $level) {
-			write-Output "DrsAutomationLevel is already set to $level"
-		} else {
-			$task =  set-cluster -Cluster $cluster -DrsAutomationLevel $level -confirm:$false 
-			if($task.DrsAutomationLevel -eq $level) {
-				write-Output "DrsAutomationLevel is set to $level successfully"
-			} else {
-				write-Output "DrsAutomationLevel could not be set to $level"
+			Write-Output "DrsAutomationLevel is already set to $level"
+		}
+        else {
+			$task =  Set-Cluster -Cluster $cluster -DrsAutomationLevel $level -Confirm:$false 
+			if ($task.DrsAutomationLevel -eq $level) {
+				Write-Output "DrsAutomationLevel is set to $level successfully"
+			}
+            else {
+				Write-Output "DrsAutomationLevel could not be set to $level"
 			}
 		}		
     } 
     Catch {
-            Write-Error "An error occured. $_"
+        Write-Error "An error occured. $_"
     }
     Finally {
-            Disconnect-VIServer -Server $server -confirm:$false
+        Disconnect-VIServer -Server $server -confirm:$false
     }
 }
 Export-ModuleMember -Function Set-DrsAutomationLevel
@@ -1047,10 +1018,7 @@ Export-ModuleMember -Function Set-DrsAutomationLevel
 
         $uri = "https://xreg-vrslcm01.rainpole.io/lcm/lcops/api/v2/environments/Cross-Region-Env1612043838679/products/vra/deployed-vms"
 
-       
-
-  
-          
+    
     Param (
         [Parameter (Mandatory=$true)]
             [ValidateNotNullOrEmpty()]
@@ -1072,7 +1040,6 @@ Export-ModuleMember -Function Set-DrsAutomationLevel
         $env_id = Get-EnvironmentId -user $user -pass $pass -host $host -Name "Cross"
 		
 		write-output $env_id
-
 		
 		$Global:myHeaders = createHeader $user $pass
 		write-output $myHeaders
@@ -1145,22 +1112,15 @@ Function Test-VsanHealth {
     .EXAMPLE
         Test-VsanHealth -Cluster sfo-m01-cl01 -Server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re123!
 #>
-    param(
-		[Parameter (Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$server,
-        [Parameter (Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$user,
-        [Parameter (Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$pass,
-        [Parameter(Mandatory=$true)]
-		[ValidateNotNullOrEmpty()]
-		[String]$Cluster
+    Param (
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$Cluster
     )
 	Try {
-		Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
+		Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
 		$vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
 		$cluster_view = (Get-Cluster -Name $Cluster).ExtensionData.MoRef
 		$results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
@@ -1168,14 +1128,14 @@ Function Test-VsanHealth {
 		$health_status = 'GREEN'
 
 		$healthCheckResults = @()
-		foreach($healthCheckGroup in $healthCheckGroups) {
-			switch($healthCheckGroup.GroupHealth) {
+		foreach ($healthCheckGroup in $healthCheckGroups) {
+			Switch ($healthCheckGroup.GroupHealth) {
 				red {$healthStatus = "error"}
 				yellow {$healthStatus = "warning"}
 				green {$healthStatus = "passed"}
 				info {$healthStatus = "passed"}
 			}
-			if($healthStatus -eq "red") {
+			if ($healthStatus -eq "red") {
 				$health_status = 'RED'
 			}
 			$healtCheckGroupResult = [pscustomobject] @{
@@ -1188,9 +1148,10 @@ Function Test-VsanHealth {
 		Write-Host "`nOverall health:" $results.OverallHealth "("$results.OverallHealthDescription")"
 		$healthCheckResults
 		Write-Output ""
-		if($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
+		if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
 			Write-Output "The VSAN Health is GOOD"
-		} else {
+		}
+        else {
 			Write-Error "The VSAN Health is BAD"
 			#exit
 		}
@@ -1198,7 +1159,7 @@ Function Test-VsanHealth {
         Debug-CatchWriter -object $_
     }
     Finally {
-            Disconnect-VIServer -Server $server -confirm:$false
+        Disconnect-VIServer -Server $server -confirm:$false
     }
 }
 Export-ModuleMember -Function Test-VsanHealth
@@ -1225,38 +1186,32 @@ Function Test-ResyncingObjects {
     .EXAMPLE
         Test-ResyncintObjects -cluster sfo-m01-cl01 -server "sfo-m01-vc01.sfo.rainpole.io" -user "administrator@vsphere.local" -pass "VMw@re123!"
 #>
-    param(
-		[Parameter (Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$server,
-        [Parameter (Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$user,
-        [Parameter (Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$pass,
-        [Parameter(Mandatory=$true)]
-		[ValidateNotNullOrEmpty()]
-		[String]$Cluster
+    Param(
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$Cluster
     )
 	
-	
 	Try {
-		Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
+		Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
 		$no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $Cluster
-		write-output "The number of resyncing objects are"
-		write-output $no_resyncing_objects
-		if($no_resyncing_objects.count -eq 0){
+		Write-Output "The number of resyncing objects are"
+		Write-Output $no_resyncing_objects
+		if ($no_resyncing_objects.count -eq 0){
 			Write-Output "No resyncing objects"
-		} else {
+		}
+        else {
 			Write-Error "There are some resyncing happening"
 			#exit
 		}
-	} Catch {
+	}
+    Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
-            Disconnect-VIServer -Server $server -confirm:$false
+        Disconnect-VIServer -Server $server -confirm:$false
     }
 
 }
@@ -1283,45 +1238,37 @@ Function PowerOn-EsxiUsingILO {
     .EXAMPLE
         PowerOn-EsxiUsingILO -ilo_ip $ilo_ip  -ilo_user <drac_console_user>  -ilo_pass <drac_console_pass>
 #>
-    param(
-		[Parameter (Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$ilo_ip,
-		[Parameter (Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$ilo_user,
-		[Parameter (Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$ilo_pass
+    Param (
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_ip,
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_user,
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_pass
     )
-	
 	
 	Try {
 
 		$out = cmd /c "C:\Program Files\Dell\SysMgt\rac5\racadm" -r $ilo_ip -u $ilo_user -p $ilo_pass  --nocertwarn serveraction powerup
-		if(  $out.contains("Server power operation successful") ) {
+		if ( $out.contains("Server power operation successful")) {
 			Write-Output "Waiting for bootup to complete."
 			Start-Sleep -Seconds 600
 			Write-Output "bootup complete."
-		} else {
+		}
+        else {
 			Write-Error "couldnot start the server"
 			#exit
 		}
-	} Catch {
+	}
+    Catch {
         Debug-CatchWriter -object $_
     }
-
-
 }
 Export-ModuleMember -Function PowerOn-EsxiUsingILO
 
 Function createHeader  {
-    Param(
-    [Parameter (Mandatory=$true)]
-    [String] $user,
-    [Parameter (Mandatory=$true)]
-    [String] $pass
+    Param (
+        [Parameter (Mandatory=$true)] [String] $user,
+        [Parameter (Mandatory=$true)] [String] $pass
     )
+
     $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user,$pass))) # Create Basic Authentication Encoded Credentials
     $headers = @{"Accept" = "application/json"}
     $headers.Add("Authorization", "Basic $base64AuthInfo")
@@ -1368,13 +1315,11 @@ Function Get-NSXTMgrClusterStatus {
 		sample url - "https://sfo-m01-nsx01.sfo.rainpole.io/api/v1/cluster/status"
 #>	
 	Param(
-	[Parameter (Mandatory=$true)]
-    [String] $server,
-    [Parameter (Mandatory=$true)]
-    [String] $user,
-    [Parameter (Mandatory=$true)]
-    [String] $pass
+	    [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass
     )
+    
 	Try {
 		$uri2 = "https://$server/api/v1/cluster/status"
 		#$uri2="https://sfo-w01-nsx01.sfo.rainpole.io/api/v1/cluster/status"
@@ -1383,12 +1328,14 @@ Function Get-NSXTMgrClusterStatus {
 		write-output $myHeaders
 
 		$response2 = Invoke-RestMethod -Method GET -URI $uri2 -headers $myHeaders -ContentType application/json 
-		if($response2.mgmt_cluster_status.status -eq 'STABLE') {
-			write-output "The cluster state is stable"
-		} else {
-			write-output "The cluster state is not stable"
+		if ($response2.mgmt_cluster_status.status -eq 'STABLE') {
+			Write-Output "The cluster state is stable"
 		}
-	} Catch {
+        else {
+			Write-Output "The cluster state is not stable"
+		}
+	} 
+    Catch {
         Debug-CatchWriter -object $_
     }
 }
@@ -1438,8 +1385,7 @@ Export-ModuleMember -Function Write-LogMessage
 
 Function Debug-CatchWriter {
     Param (
-        [Parameter(Mandatory = $true)]
-        [PSObject]$object
+        [Parameter (Mandatory = $true)] [PSObject]$object
     )
 
     $lineNumber = $object.InvocationInfo.ScriptLineNumber
