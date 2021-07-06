@@ -30,4 +30,4 @@ $nsxt_mgr_nodec = "sfo-w01-nsx01c"
 
 #Shut Down the NSX-T Edge Nodes in the Virtual Infrastructure Workload Domain
 #passing
-ShutdownStartup-SDDCComponent -server sfo-w01-vc01.sfo.rainpole.io -nodes sfo-w01-en01, sfo-w01-en02 -user administrator@vsphere.local -pass VMw@re1!  -timeout 600
+ShutdownStartup-SDDCComponent -server sfo-w01-vc01.sfo.rainpole.io -nodes sfo-w01-en01, sfo-w01-en02 -user administrator@vsphere.local -pass VMw@re1! -task Shutdown -timeout 600
