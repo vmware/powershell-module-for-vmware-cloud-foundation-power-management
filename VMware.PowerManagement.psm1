@@ -1,3 +1,84 @@
+Function Stop-CloudComponent {
+    <#
+        .NOTES
+        ===========================================================================
+        Created by:  Sowjanya V / Gary Blake
+        Date:   07/06/2021
+        Organization: VMware
+        ===========================================================================
+        
+        .SYNOPSIS
+        Shutdown the component on a given server
+    
+        .DESCRIPTION
+        Shutdown the given component on the server ensuring all nodes of it are shutdown 
+    
+        .EXAMPLE
+        PS C:\> Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
+        This example connects to management vCenter Server and shuts down the nodes sfo-m01-en01 and sfo-m01-en02
+    #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes
+    )
+
+    Try {
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to shutdown nodes '$nodes'"
+                if ($nodes.Count -ne 0) {
+                    foreach ($node in $nodes) {
+                        $count=0
+                        if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
+                            $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                            if ($vm_obj.State -eq 'NotRunning') {
+                                Write-LogMessage -Type INFO -Message "The node '$node' is already in Powered Off state"
+                                Continue
+                            }
+                            Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$node'"
+                            Stop-VMGuest -Server $server -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+                            Write-LogMessage -Type INFO -Message "Waiting for node '$node' to shut down"
+                            While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
+                                Start-Sleep -Seconds 5
+                                $count = $count + 1
+                                $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                            }
+                            if ($count -eq $timeout) {
+                                Write-LogMessage -Type ERROR -Message "The node '$node' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red			
+                            }
+                            else {
+                                Write-LogMessage -Type INFO -Message "The node '$node' has successfully shutdown"
+                            }
+                        }
+                        else {
+                            Write-LogMessage -Type ERROR -Message "Unable to find $node in inventory of server $server" -Colour Red
+                        }
+                    }
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message   "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
+        else {
+            Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        }
+    }
+    Catch {
+		Debug-CatchWriter -object $_
+    }
+}
+Export-ModuleMember -Function Stop-CloudComponent
+
 Function ShutdownStartup-SDDCComponent {
     <#
         .NOTES
