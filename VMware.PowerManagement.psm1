@@ -32,83 +32,97 @@ Function ShutdownStartup-SDDCComponent {
     )
 
     Try {
-	    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass
-        Write-Output $server, $user, $pass, $nodes, $timeout
-        if ($task -eq "Shutdown") { 
-	        if ($nodes.Count -ne 0) {
-                foreach ($node in $nodes) {
-			        $count=0
-                    $vm_obj = Get-VMGuest -server $server -VM $node
-                    Write-Output $node, $vm_obj
-			        if ($vm_obj.State -eq 'NotRunning') {
-				        Write-Output "The VM $vm_obj is already in powered off state"
-				        Continue
-			        }
-			        Stop-VMGuest -Server $server -VM $node -Confirm:$false
-                    $vm_obj = Get-VMGuest -Server $server -VM $node
-                    Write-Output $vm_obj.State
-                    Start-Sleep -Seconds 10
-            
-                    #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-			        While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
-			            Start-Sleep -Seconds 1
-                        Write-Output "Sleeping for 1 second"
-				        $count = $count + 1
-                        $vm_obj = Get-VMGuest -Server $server -VM $node
-                        Write-Output $vm_obj.State
-			        }
-			        if ($count -eq $timeout) {
-				        Write-Error "The VM did not get turned off with in stipulated timeout:$timeout value"	
-                        #exit 			
-			        }
-                    else {
-				        Write-Output "The VM is successfully shutdown"
-			        }
-		        }
-	        } 
-        }
-        elseif ($task -eq "Startup") {
-            if ($nodes.Count -ne 0) {
-                foreach ($node in $nodes) {
-			        $count=0
-                    $vm_obj = Get-VMGuest -Server $server -VM $node
-                    Write-Output $node, $vm_obj
-			        if($vm_obj.State -eq 'Running'){
-				        Write-Output "The VM $vm_obj is already in powered on state"
-				        Continue
-			        }
-			        Start-VM -VM $node -Confirm:$false
-                    $vm_obj = Get-VMGuest -Server $server -VM $node
-                    Write-Output $vm_obj.State
-                    Start-Sleep -Seconds 10
-            
-                    #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-			        While (($vm_obj.State -ne 'Running') -and ($count -ne $timeout)) {
-						Start-Sleep -Seconds 1
-                        Write-Output "Sleeping for 1 second"
-				        $count = $count + 1
-                        $vm_obj = Get-VMGuest -Server $server -VM $node
-                        Write-Output $vm_obj.State
-			        }
-			        if ($count -eq $timeout) {
-				        Write-Error "The VM did not get turned on with in stipulated timeout:$timeout value"	
-                        Break 			
-			        } 
-                    else {
-				        Write-Output "The VM is successfully turned on"
-			        }
-		        }
-	        }
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to '$task' nodes '$nodes'"
+                if ($task -eq "Shutdown") { 
+                    if ($nodes.Count -ne 0) {
+                        foreach ($node in $nodes) {
+                            $count=0
+                            if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
+                                $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                if ($vm_obj.State -eq 'NotRunning') {
+                                    Write-LogMessage -Type INFO -Message "The node '$node' is already in Powered Off state"
+                                    Continue
+                                }
+                                Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$node'"
+                                Stop-VMGuest -Server $server -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+                                $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                Start-Sleep -Seconds 10
+                        
+                                While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
+                                    Start-Sleep -Seconds 5
+                                    Write-LogMessage -Type INFO -Message "The node '$node' is still shutting down, waiting for 10 seconds and will check again"
+                                    $count = $count + 1
+                                    $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                }
+                                if ($count -eq $timeout) {
+                                    Write-LogMessage -Type ERROR -Message "The node '$node' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red			
+                                }
+                                else {
+                                    Write-LogMessage -Type INFO -Message "The node '$node' has successfully shutdown"
+                                }
+                            }
+                            else {
+                                Write-LogMessage -Type ERROR -Message "Unable to find $node in inventory of server $server" -Colour Red
+                            }
+                        }
+                    } 
+                }
+                elseif ($task -eq "Startup") {
+                    if ($nodes.Count -ne 0) {
+                        foreach ($node in $nodes) {
+                            $count=0
+                            if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
+                                $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                if($vm_obj.State -eq 'Running'){
+                                    Write-LogMessage -Type INFO -Message "The node '$node' is already in Powered On state"
+                                    Continue
+                                }
+                                Write-LogMessage -Type INFO -Message "Attempting to startup node '$node'"
+                                Start-VM -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+                                $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                Start-Sleep -Seconds 5
+                        
+                                While (($vm_obj.State -ne 'Running') -and ($count -ne $timeout)) {
+                                    Start-Sleep -Seconds 10
+                                    Write-LogMessage -Type INFO -Message "The node '$node' is still starting up, waiting for 10 seconds and will check again"
+                                    $count = $count + 1
+                                    $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                }
+                                if ($count -eq $timeout) {
+                                    Write-LogMessage -Type ERROR -Message "The node '$node' did not get turned on within the stipulated timeout: $timeout value"	
+                                    Break 			
+                                } 
+                                else {
+                                    Write-LogMessage -Type INFO -Message "The node '$node' has successfully turned on"
+                                }
+                            }
+                            else {
+                                Write-LogMessage -Type ERROR -Message "Unable to find $node in inventory of server $server" -Colour Red
+                            }
+                        }
+                    }
+                }
+                else {
+                    Write-LogMessage -Type ERROR -Message  "The task passed is neither Shutdown or Startup" -Colour Red
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message   "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
         }
         else {
-            Write-Error("The task passed is neither Shutdown or Startup")
+            Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
     }
     Catch {
 		Debug-CatchWriter -object $_
-    }
-    Finally {
-            Disconnect-VIServer -Server $server -Confirm:$false
     }
 }
 Export-ModuleMember -Function ShutdownStartup-SDDCComponent
@@ -1399,7 +1413,7 @@ Export-ModuleMember -Function Start-SetupLogFile
 Function Write-LogMessage {
     Param (
         [Parameter (Mandatory = $true)] [AllowEmptyString()] [String]$Message,
-        [Parameter (Mandatory = $false)] [ValidateSet("INFO", "ERROR", "WARNING", "EXCEPTION")] [String]$type = "INFO",
+        [Parameter (Mandatory = $false)] [ValidateSet("INFO", "ERROR", "WARNING", "EXCEPTION")] [String]$type = "INFO   ",
         [Parameter (Mandatory = $false)] [String]$Colour,
         [Parameter (Mandatory = $false)] [string]$Skipnewline
     )
