@@ -2,7 +2,7 @@ Function Stop-CloudComponent {
     <#
         .NOTES
         ===========================================================================
-        Created by:  Sowjanya V / Gary Blake
+        Created by:  Sowjanya V / Gary Blake (Enhancements)
         Date:   07/06/2021
         Organization: VMware
         ===========================================================================
@@ -67,11 +67,11 @@ Function Stop-CloudComponent {
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message   "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
         }
         else {
-            Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
     }
     Catch {
@@ -87,7 +87,7 @@ Function Start-CloudComponent {
     <#
         .NOTES
         ===========================================================================
-        Created by:  Sowjanya V / Gary Blake
+        Created by:  Sowjanya V / Gary Blake (Enhancements)
         Date:   07/06/2021
         Organization: VMware
         ===========================================================================
@@ -154,11 +154,11 @@ Function Start-CloudComponent {
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message   "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
         }
         else {
-            Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
     }
     Catch {
@@ -510,7 +510,7 @@ Function Get-VMRunningStatus {
     <#
         .NOTES
         ===========================================================================
-        Created by:  Sowjanya V / Updated
+        Created by:  Sowjanya V / Gary Blake (Enhancements)
         Date:   07/07/2021
         Organization: VMware
         ===========================================================================
@@ -561,11 +561,11 @@ Function Get-VMRunningStatus {
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message   "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
         }
         else {
-            Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
     }  
     Catch {
@@ -576,6 +576,8 @@ Function Get-VMRunningStatus {
     }
 }
 Export-ModuleMember -Function Get-VMRunningStatus
+New-Alias -Name Verify-VMStatus -Value Get-VMRunningStatus
+Export-ModuleMember -Alias Verify-VMStatus  -Function Get-VMRunningStatus
 
 Function Execute-OnEsx {
 
@@ -654,8 +656,7 @@ Function Execute-OnEsx {
 }
 Export-ModuleMember -Function Execute-OnEsx
 
-Function Verify-VSANClusterMembers {
-
+Function Get-VSANClusterMember {
     <#
         .NOTES
         ===========================================================================
@@ -665,17 +666,15 @@ Function Verify-VSANClusterMembers {
         ===========================================================================
         
         .SYNOPSIS
-        This is to verify if a given ESXi host has all VSAN Cluster members listed
+        Get list of VSAN Cluster members listed from a given ESXi host 
     
         .DESCRIPTION
-		The command is  "esxcli vsan cluster get", the output has a field SubClusterMemberHostNames
+		The Get-VSANClusterMember cmdlet uses the command "esxcli vsan cluster get", the output has a field SubClusterMemberHostNames
 		see if this has all the members listed
-        
     
         .EXAMPLE
-        PS C:\> Verify-VSANClusterMembers -server "sfo01-w01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" 
-        -members "sfo01-w01-esx01.sfo.rainpole.io" 
-
+        PS C:\> Get-VSANClusterMember -server "sfo01-w01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re1!" -members "sfo01-w01-esx01.sfo.rainpole.io" 
+        This example connects to sfo01-w01-esx01.sfo.rainpole.io and checkahs that -members are listed
     #>
 
     Param (
@@ -685,34 +684,43 @@ Function Verify-VSANClusterMembers {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$members
     )
 
-
      Try {
-		Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-		$esxcli = Get-EsxCli -Server $server -VMHost (Get-VMHost $server) -V2
-		$out =  $esxcli.vsan.cluster.get.Invoke()
-		Write-Output ($out.SubClusterMemberHostNames)
-		Write-Output ($members.gettype())
-		Write-Output ($out.SubClusterMemberHostNames.gettype())
-		foreach ($member in $members) {
-			Write-Output($member)
-			if ($out.SubClusterMemberHostNames -match $member) {
-				Write-Output "Host members match" 
-			}
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Get-VSANClusterMember cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and checking VSAN Cluster members are present"
+                $esxcli = Get-EsxCli -Server $server -VMHost (Get-VMHost $server) -V2
+                $out =  $esxcli.vsan.cluster.get.Invoke()
+                foreach ($member in $members) {
+                    if ($out.SubClusterMemberHostNames -eq $member) {
+                        Write-LogMessage -Type INFO -Message "VSAN Cluster Host member '$member' matches" -Colour Green
+                    }
+                    else {
+                        Write-LogMessage -Type INFO -Message "VSAN Cluster Host member '$member' does not match" -Colour Red
+                    }
+                }
+            }
             else {
-				Write-Error "Host members name don't match"
-				#exit
-			}
-		}
+                Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
+        else {
+            Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        }
     }
     Catch {
         Debug-CatchWriter -object $_
     }
-    Finally{
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VSANClusterMember cmdlet" -Colour Yellow
         Disconnect-VIServer -server $server -Confirm:$false
     }
 }
-Export-ModuleMember -Function Verify-VSANClusterMembers
+New-Alias -Name Verify-VSANClusterMembers -Value Get-VSANClusterMember
+Export-ModuleMember -Alias Verify-VSANClusterMembers -Function Get-VSANClusterMember
 
 Function Set-MaintainanceMode {
 
