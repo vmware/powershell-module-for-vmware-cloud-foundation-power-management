@@ -8,10 +8,10 @@ Function Stop-CloudComponent {
         ===========================================================================
         
         .SYNOPSIS
-        Shutdown the component on a given server
+        Shutdown the nodes on a given server
     
         .DESCRIPTION
-        Shutdown the given component on the server ensuring all nodes of it are shutdown 
+        The Stop-CloudComponent cmdlet shutdowns the given nodes on the server provided 
     
         .EXAMPLE
         PS C:\> Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
@@ -27,6 +27,7 @@ Function Stop-CloudComponent {
     )
 
     Try {
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Stop-CloudComponent cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -39,7 +40,7 @@ Function Stop-CloudComponent {
                         if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
                             $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                             if ($vm_obj.State -eq 'NotRunning') {
-                                Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered Off state"
+                                Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered Off state" -Colour Green
                                 Continue
                             }
                             Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$node'"
@@ -54,7 +55,7 @@ Function Stop-CloudComponent {
                                 Write-LogMessage -Type ERROR -Message "Node '$node' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red			
                             }
                             else {
-                                Write-LogMessage -Type INFO -Message "Node '$node' has successfully shutdown"
+                                Write-LogMessage -Type INFO -Message "Node '$node' has successfully shutdown" -Colour Green
                             }
                         }
                         else {
@@ -76,6 +77,9 @@ Function Stop-CloudComponent {
     Catch {
 		Debug-CatchWriter -object $_
     }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Stop-CloudComponent cmdlet" -Colour Yellow
+    }
 }
 Export-ModuleMember -Function Stop-CloudComponent
 
@@ -89,14 +93,14 @@ Function Start-CloudComponent {
         ===========================================================================
         
         .SYNOPSIS
-        Startup the component on a given server
+        Startup the nodes on a given server
     
         .DESCRIPTION
-        Startup the given component on the server ensuring all nodes of it are shutdown 
+        The Start-CloudComponent cmdlet starts up the given nodes on the server provided 
     
         .EXAMPLE
         PS C:\> Start-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
-        This example connects to management vCenter Server and shuts down the nodes sfo-m01-en01 and sfo-m01-en02
+        This example connects to management vCenter Server and starts up the nodes sfo-m01-en01 and sfo-m01-en02
     #>
 
     Param (
@@ -108,6 +112,7 @@ Function Start-CloudComponent {
     )
 
     Try {
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Start-CloudComponent cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -120,12 +125,11 @@ Function Start-CloudComponent {
                         if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
                             $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 if($vm_obj.State -eq 'Running'){
-                                Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered On state"
+                                Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered On state" -Colour Green
                                 Continue
                             }
                             Write-LogMessage -Type INFO -Message "Attempting to startup node '$node'"
                             Start-VM -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
-                            #$vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                             Start-Sleep -Seconds 5
                             Write-LogMessage -Type INFO -Message "Waiting for node '$node' to start up"
                             While (($vm_obj.State -ne 'Running') -and ($count -ne $timeout)) {
@@ -134,11 +138,11 @@ Function Start-CloudComponent {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                             }
                             if ($count -eq $timeout) {
-                                Write-LogMessage -Type ERROR -Message "Node '$node' did not get turned on within the stipulated timeout: $timeout value"	
+                                Write-LogMessage -Type ERROR -Message "Node '$node' did not get turned on within the stipulated timeout: $timeout value" -Colour Red
                                 Break 			
                             } 
                             else {
-                                Write-LogMessage -Type INFO -Message "Node '$node' has successfully turned on"
+                                Write-LogMessage -Type INFO -Message "Node '$node' has successfully turned on" -Colour Green
                             }
                         }
                         else {
@@ -159,6 +163,9 @@ Function Start-CloudComponent {
     }
     Catch {
 		Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Start-CloudComponent cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Start-CloudComponent
@@ -499,70 +506,76 @@ Function SetClusterState-VROPS {
 }
 Export-ModuleMember -Function SetClusterState-VROPS
 
-Function Verify-VMStatus {
+Function Get-VMRunningStatus {
     <#
         .NOTES
         ===========================================================================
-        Created by:  Sowjanya V
-        Date:   03/15/2021
+        Created by:  Sowjanya V / Updated
+        Date:   07/07/2021
         Organization: VMware
         ===========================================================================
         
         .SYNOPSIS
-        Get status of all the VM's matching the pattern on a given host
+        Get running status of all the VM's matching the pattern on a given host
     
         .DESCRIPTION
-        Get status of the given component matching the pattern on the host. If no pattern is 
-        specified 
+        The Get-VMRunningStatus cmdlet gets the runnnig status of the given nodes matching the pattern on the host
     
         .EXAMPLE
-        PS C:\> Verify-VMStatus -server sfo-w01-esx01.sfo.rainpole.io 
-        -user root -pass VMw@re1! -pattern "^vCLS*"
-        This example connects to the esxi host and searches for all vm's matching the pattern 
-        and its status
+        PS C:\> Get-VMRunningStatus -server sfo-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -pattern "^vCLS*"
+        This example connects to the esxi host and searches for all vm's matching the pattern and their running status
     #>
 
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pattern,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$status='Running'
+        [Parameter (Mandatory = $false)] [ValidateSet("Running","NotRunning")] [String]$status="Running"
     )
 
     Try {
-	    Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-        #$nodes = Get-VM | select Name, PowerState | where Name -match $pattern
-        $nodes = Get-VM | Where-Object Name -match $pattern | Select-Object Name, PowerState, VMHost
-		if ($nodes.Name.Count -eq 0) {
-            Write-Output "No vm matching the pattern"
-			#exit
-        }
-        Write-Output $nodes.Name.Count
-	    #if($nodes.Name.Count -ne 0) {
-		foreach ($node in $nodes) {	
-			$vm_obj = Get-VMGuest -server $server -VM $node.Name | Where-Object VmUid -match $server
-			Write-Output $vm_obj
-			if ($vm_obj.State -eq $status){
-				Write-Output "The VM $vm_obj is is in the right power state"
-				Continue
-			}
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Get-VMRunningStatus cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and checking nodes named '$pattern' are in a '$($status.ToUpper())' state"
+                $nodes = Get-VM | Where-Object Name -match $pattern | Select-Object Name, PowerState, VMHost
+                if ($nodes.Name.Count -eq 0) {
+                    Write-LogMessage -Type ERROR -Message "Unable to find nodes matching the pattern '$pattern' in inventory of server $server" -Colour Red
+                }
+                else {
+                    foreach ($node in $nodes) {	
+                        $vm_obj = Get-VMGuest -server $server -VM $node.Name -ErrorAction SilentlyContinue | Where-Object VmUid -match $server
+                        if ($vm_obj.State -eq $status){
+                            Write-LogMessage -Type INFO -Message "Node $($node.Name) in correct running state '$($status.ToUpper())'" -Colour Green
+                        }
+                        else {
+                            Write-LogMessage -Type ERROR -Message "Node $($node.Name) in incorrect running state '$($status.ToUpper())'" -Colour Red
+                        }
+                    }
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             else {
-				Write-error "The VM $vm_obj is not in the right power state"
-				#exit
-			}
+                Write-LogMessage -Type ERROR -Message   "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
+        else {
+            Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
     }  
     Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Disconnect-VIServer -Server $server -Confirm:$false
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VMRunningStatus cmdlet" -Colour Yellow
     }
 }
-Export-ModuleMember -Function Verify-VMStatus
+Export-ModuleMember -Function Get-VMRunningStatus
 
 Function Execute-OnEsx {
 
@@ -1531,7 +1544,7 @@ Function Write-LogMessage {
     )
 
     if (!$Colour) {
-        $Colour = "Green"
+        $Colour = "White"
     }
 
     $timeStamp = Get-Date -Format "MM-dd-yyyy_HH:mm:ss"

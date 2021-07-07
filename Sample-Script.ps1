@@ -14,6 +14,11 @@ $vcPass = "VMw@re1!"
 
 $edgeNodes = "ldn-w01-en01", "ldn-w01-en02"
 
+$esxHost = "ldn01-w01-esx04.ldn.cloudy.io"
+$esxiUser = "root"
+$esxiPass = "VMw@re1!"
+$clusterPattern = "ldn*"
+
 #### Edge
 
 #Get Virtual Machine to Host Mapping in the Virtual Infrastructure Workload Domain
@@ -23,3 +28,7 @@ $edgeNodes = "ldn-w01-en01", "ldn-w01-en02"
 
 Stop-CloudComponent -server $vcServer -user $vcUser -pass $vcPass -nodes $edgeNodes -timeout 600
 Start-CloudComponent -server $vcServer -user $vcUser -pass $vcPass -nodes $edgeNodes -timeout 600
+
+Get-VMRunningStatus -server $esxHost -user $esxiUser -pass $esxiPass -pattern $clusterPattern
+Get-VMRunningStatus -server $esxHost -user $esxiUser -pass $esxiPass -pattern $clusterPattern -status NotRunning
+Get-VMRunningStatus -server $vcServer -user $vcUser -pass $vcPass -pattern $clusterPattern
