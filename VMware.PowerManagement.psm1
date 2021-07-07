@@ -39,7 +39,7 @@ Function Stop-CloudComponent {
                         if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
                             $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                             if ($vm_obj.State -eq 'NotRunning') {
-                                Write-LogMessage -Type INFO -Message "The node '$node' is already in Powered Off state"
+                                Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered Off state"
                                 Continue
                             }
                             Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$node'"
@@ -51,14 +51,14 @@ Function Stop-CloudComponent {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                             }
                             if ($count -eq $timeout) {
-                                Write-LogMessage -Type ERROR -Message "The node '$node' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red			
+                                Write-LogMessage -Type ERROR -Message "Node '$node' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red			
                             }
                             else {
-                                Write-LogMessage -Type INFO -Message "The node '$node' has successfully shutdown"
+                                Write-LogMessage -Type INFO -Message "Node '$node' has successfully shutdown"
                             }
                         }
                         else {
-                            Write-LogMessage -Type ERROR -Message "Unable to find $node in inventory of server $server" -Colour Red
+                            Write-LogMessage -Type ERROR -Message "Unable to find node $node in inventory of server $server" -Colour Red
                         }
                     }
                 }
@@ -120,7 +120,7 @@ Function Start-CloudComponent {
                         if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
                             $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 if($vm_obj.State -eq 'Running'){
-                                Write-LogMessage -Type INFO -Message "The node '$node' is already in Powered On state"
+                                Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered On state"
                                 Continue
                             }
                             Write-LogMessage -Type INFO -Message "Attempting to startup node '$node'"
@@ -134,11 +134,11 @@ Function Start-CloudComponent {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                             }
                             if ($count -eq $timeout) {
-                                Write-LogMessage -Type ERROR -Message "The node '$node' did not get turned on within the stipulated timeout: $timeout value"	
+                                Write-LogMessage -Type ERROR -Message "Node '$node' did not get turned on within the stipulated timeout: $timeout value"	
                                 Break 			
                             } 
                             else {
-                                Write-LogMessage -Type INFO -Message "The node '$node' has successfully turned on"
+                                Write-LogMessage -Type INFO -Message "Node '$node' has successfully turned on"
                             }
                         }
                         else {
