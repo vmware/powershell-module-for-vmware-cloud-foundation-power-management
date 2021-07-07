@@ -21,14 +21,12 @@ $clusterPattern = "ldn*"
 
 #### Edge
 
-#Get Virtual Machine to Host Mapping in the Virtual Infrastructure Workload Domain
-#It is already in powershell
-
-#Shut Down the NSX-T Edge Nodes in the Virtual Infrastructure Workload Domain
-
+# Shutdown the NSX-T Edge Nodes in the Virtual Infrastructure Workload Domain
 Stop-CloudComponent -server $vcServer -user $vcUser -pass $vcPass -nodes $edgeNodes -timeout 600
+# Startup the NSX-T Edge Nodes in the Virtual Infrastructure Workload Domain
 Start-CloudComponent -server $vcServer -user $vcUser -pass $vcPass -nodes $edgeNodes -timeout 600
 
+# Testing Get-VMRunningStatus for different scenarios
 Get-VMRunningStatus -server $esxHost -user $esxiUser -pass $esxiPass -pattern $clusterPattern
 Get-VMRunningStatus -server $esxHost -user $esxiUser -pass $esxiPass -pattern $clusterPattern -status NotRunning
 Get-VMRunningStatus -server $vcServer -user $vcUser -pass $vcPass -pattern $clusterPattern
