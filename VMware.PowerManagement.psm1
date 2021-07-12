@@ -1285,72 +1285,87 @@ Function Test-VsanHealth {
 <#
     .NOTES
     ===========================================================================
-     Created by:    Sowjanya V
-     Organization:  VMware
-
+    Created by:  Sowjanya V / Gary Blake (Enhancements)
+    Date:   07/12/2021
+    Organization: VMware
     ===========================================================================
+
+    .SYNOPSIS
+    Check the health of the VSAN cluster
+    
     .DESCRIPTION
-        This function demonstrates the use of vSAN Management API to retrieve
-        the same information provided by the RVC command "vsan.health.health_summary"
-		I used the same logic as used in the function "Get-VsanHealthSummary" written by william lam
-    .PARAMETER Cluster
-        The name of a vSAN Cluster
+    The Test-VsanHealth cmdlet checks the healh of the VSAN cluster
+    
     .EXAMPLE
-        Test-VsanHealth -Cluster sfo-m01-cl01 -Server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re123!
+    PS C:\> Test-VsanHealth -sluster sfo-w01-cl01 -server sfo-w01-vc01 -user administrator@vsphere.local -pass VMw@re1!
+    This example connects to Management Domain vCenter Server and checks the health of the VSAN cluster
 #>
     Param (
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$Cluster
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$cluster
     )
 	Try {
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-VsanHealth cmdlet" -Colour Yellow
 		Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
         Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-		$vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
-		$cluster_view = (Get-Cluster -Name $Cluster).ExtensionData.MoRef
-		$results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
-		$healthCheckGroups = $results.groups
-		$health_status = 'GREEN'
+        if ($DefaultVIServer.Name -eq $server) {
+            Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting check the VSAN cluster health"
+            $vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
+            $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
+            $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
+            $healthCheckGroups = $results.groups
+            $health_status = 'GREEN'
 
-		$healthCheckResults = @()
-		foreach ($healthCheckGroup in $healthCheckGroups) {
-			Switch ($healthCheckGroup.GroupHealth) {
-				red {$healthStatus = "error"}
-				yellow {$healthStatus = "warning"}
-				green {$healthStatus = "passed"}
-				info {$healthStatus = "passed"}
-			}
-			if ($healthStatus -eq "red") {
-				$health_status = 'RED'
-			}
-			$healtCheckGroupResult = [pscustomobject] @{
-				HealthCHeck = $healthCheckGroup.GroupName
-				Result = $healthStatus
+            $healthCheckResults = @()
+            foreach ($healthCheckGroup in $healthCheckGroups) {
+                Switch ($healthCheckGroup.GroupHealth) {
+                    red {$healthStatus = "error"}
+                    yellow {$healthStatus = "warning"}
+                    green {$healthStatus = "passed"}
+                    info {$healthStatus = "passed"}
+                }
+                if ($healthStatus -eq "red") {
+                    $health_status = 'RED'
+                }
+                $healtCheckGroupResult = [pscustomobject] @{
+                    HealthCHeck = $healthCheckGroup.GroupName
+                    Result = $healthStatus
 
-			}
-			$healthCheckResults+=$healtCheckGroupResult
-		}
-		Write-Host "`nOverall health:" $results.OverallHealth "("$results.OverallHealthDescription")"
-		$healthCheckResults
-		Write-Output ""
-		if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
-			Write-Output "The VSAN Health is GOOD"
-		}
+                }
+                $healthCheckResults+=$healtCheckGroupResult
+            }
+            #Write-LogMessage -Type INFO -Message "Overall health:" $results.OverallHealth "("$results.OverallHealthDescription")"
+            #Write-Host "`nOverall health:" $results.OverallHealth "("$results.OverallHealthDescription")"
+            #$healthCheckResults
+            #Write-Output ""
+            if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
+                Write-LogMessage -Type INFO -Message "The VSAN Health Status for $cluster is GOOD" -Colour Green
+                #Write-Output "The VSAN Health is GOOD"
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message "The VSAN Health Status for $cluster is BAD" -Colour Red
+                #Write-Error "The VSAN Health is BAD"
+                #exit
+            }
+            Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+            Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+        }
         else {
-			Write-Error "The VSAN Health is BAD"
-			#exit
-		}
-	} Catch {
+            Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+        }
+	}
+    Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Disconnect-VIServer -Server $server -confirm:$false
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-VsanHealth cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Test-VsanHealth
 
-Function Test-ResyncingObjects {
+Function Test-ResyncingObject {
 <#
     .NOTES
     ===========================================================================
@@ -1376,32 +1391,37 @@ Function Test-ResyncingObjects {
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$Cluster
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$cluster
     )
 	
 	Try {
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-ResyncingObject cmdlet" -Colour Yellow
 		Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
         Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-		$no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $Cluster
-		Write-Output "The number of resyncing objects are"
-		Write-Output $no_resyncing_objects
+		$no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster
+        Write-LogMessage -Type INFO -Message "The number of resyncing objects are no_resyncing_objects"
+		#Write-Output "The number of resyncing objects are"
+		#Write-Output $no_resyncing_objects
 		if ($no_resyncing_objects.count -eq 0){
-			Write-Output "No resyncing objects"
+            Write-LogMessage -Type INFO -Message "No resyncing objects" -Colour Green
+			#Write-Output "No resyncing objects"
 		}
         else {
-			Write-Error "There are some resyncing happening"
-			#exit
+            Write-LogMessage -Type ERROR -Message "There are some resyncing happening" -Colour Red
+			#Write-Error "There are some resyncing happening"
 		}
+        Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+        Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
 	}
     Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Disconnect-VIServer -Server $server -confirm:$false
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-ResyncingObject cmdlet" -Colour Yellow
     }
 
 }
-Export-ModuleMember -Function Test-ResyncingObjects
+Export-ModuleMember -Function Test-ResyncingObject
 
 Function PowerOn-EsxiUsingILO {
 <#
