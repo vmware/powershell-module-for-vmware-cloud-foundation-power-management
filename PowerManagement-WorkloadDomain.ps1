@@ -94,7 +94,6 @@ if ($powerState -eq "Shutdown") {
     # Shutdown the NSX Manager Nodes in the Management Domain
     Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-
     # Check the health and sync status of the VSAN cluster
     $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
     if ($checkServer -eq "True") {
@@ -151,11 +150,13 @@ if ($powerState -eq "Shutdown") {
 if ($powerState -eq "Startup") {
     # Startup the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
     foreach ($esxiNode in $esxiWorkloadDomain) {
-        ShutdownStartup-ComponentOnHost -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000 -task Startup
+        Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000 
     }
 
     # Startup the Virtual Infrastructure Workload Domain vCenter Server
     Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
+    Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
+    Do {}Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
 
     # Startup the NSX Manager Nodes in the Management Domain
     Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
@@ -164,7 +165,6 @@ if ($powerState -eq "Startup") {
     $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
     if ($checkServer -eq "True") {
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
-        Start-Sleep 300
     }
     else {
         Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping startup of $nsxtEdgeNodes" -Colour Cyan

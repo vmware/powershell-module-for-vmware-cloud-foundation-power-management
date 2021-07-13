@@ -38,7 +38,6 @@ Function Stop-CloudComponent {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                
                 if ($PSCmdlet.ParameterSetName -eq "Node") {
                     Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to shutdown nodes '$nodes'"
                     if ($nodes.Count -ne 0) {
@@ -133,7 +132,7 @@ Function Start-CloudComponent {
         .NOTES
         ===========================================================================
         Created by:  Sowjanya V / Gary Blake (Enhancements)
-        Date:   07/06/2021
+        Date:   07/13/2021
         Organization: VMware
         ===========================================================================
         
@@ -146,6 +145,10 @@ Function Start-CloudComponent {
         .EXAMPLE
         PS C:\> Start-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
         This example connects to management vCenter Server and starts up the nodes sfo-m01-en01 and sfo-m01-en02
+
+        .EXAMPLE
+        PS C:\> Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
+        This example connects to the ESXi Host and starts up the nodes that match the pattern vCLS.*
     #>
 
     Param (
@@ -153,7 +156,8 @@ Function Start-CloudComponent {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
 		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes
+        [Parameter (ParameterSetName = 'Node', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes,
+        [Parameter (ParameterSetName = 'Pattern', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$pattern
     )
 
     Try {
@@ -163,36 +167,76 @@ Function Start-CloudComponent {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to '$task' nodes '$nodes'"
-                if ($nodes.Count -ne 0) {
-                    foreach ($node in $nodes) {
+                if ($PSCmdlet.ParameterSetName -eq "Node") {
+                    Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to '$task' nodes '$nodes'"
+                    if ($nodes.Count -ne 0) {
+                        foreach ($node in $nodes) {
+                                $count=0
+                            if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
+                                $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                    if($vm_obj.State -eq 'Running'){
+                                    Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered On state" -Colour Green
+                                    Continue
+                                }
+                                Write-LogMessage -Type INFO -Message "Attempting to startup node '$node'"
+                                Start-VM -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+                                Start-Sleep -Seconds 5
+                                Write-LogMessage -Type INFO -Message "Waiting for node '$node' to start up"
+                                While (($vm_obj.State -ne 'Running') -and ($count -ne $timeout)) {
+                                    Start-Sleep -Seconds 10
+                                    $count = $count + 1
+                                    $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                }
+                                if ($count -eq $timeout) {
+                                    Write-LogMessage -Type ERROR -Message "Node '$node' did not get turned on within the stipulated timeout: $timeout value" -Colour Red
+                                    Break 			
+                                } 
+                                else {
+                                    Write-LogMessage -Type INFO -Message "Node '$node' has successfully turned on" -Colour Green
+                                }
+                            }
+                            else {
+                                Write-LogMessage -Type ERROR -Message "Unable to find $node in inventory of server $server" -Colour Red
+                            }
+                        }
+                    }
+                }
+
+                if ($PSCmdlet.ParameterSetName -eq "Pattern") {
+                    Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to startup nodes with pattern '$pattern'"
+                    if ($pattern) {
+                        $patternNodes = Get-VM -Server $server | Where-Object Name -match $pattern | Select-Object Name, PowerState, VMHost | Where-Object VMHost -match $server
+                    }
+                    else {
+                        $patternNodes = @()
+                    }
+                    if ($patternNodes.Name.Count -ne 0) {
+                        foreach ($node in $patternNodes) {
                             $count=0
-                        if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
-                            $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
-                                if($vm_obj.State -eq 'Running'){
-                                Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered On state" -Colour Green
+                            $vm_obj = Get-VMGuest -server $server -VM $node.Name | Where-Object VmUid -match $server
+                            if ($vm_obj.State -eq 'Running') {
+                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered On state" -Colour Green
                                 Continue
                             }
-                            Write-LogMessage -Type INFO -Message "Attempting to startup node '$node'"
-                            Start-VM -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
-                            Start-Sleep -Seconds 5
-                            Write-LogMessage -Type INFO -Message "Waiting for node '$node' to start up"
-                            While (($vm_obj.State -ne 'Running') -and ($count -ne $timeout)) {
-                                Start-Sleep -Seconds 10
+                
+                            Start-VM -VM $node.Name | Out-Null
+                            $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
+                            Write-LogMessage -Type INFO -Message "Attempting to startup node '$($node.name)'"
+                            While (($vm_obj.State -ne 'Running') -AND ($count -ne $timeout)) {
+                    	        Start-Sleep -Seconds 1
                                 $count = $count + 1
-                                $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             }
                             if ($count -eq $timeout) {
-                                Write-LogMessage -Type ERROR -Message "Node '$node' did not get turned on within the stipulated timeout: $timeout value" -Colour Red
-                                Break 			
-                            } 
+                                Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not start up within the stipulated timeout: $timeout value"	-Colour Red
+                            }
                             else {
-                                Write-LogMessage -Type INFO -Message "Node '$node' has successfully turned on" -Colour Green
+                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has successfully started" -Colour Green
                             }
                         }
-                        else {
-                            Write-LogMessage -Type ERROR -Message "Unable to find $node in inventory of server $server" -Colour Red
-                        }
+                    }
+                    elseif ($pattern) {
+                        Write-LogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Yellow
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
@@ -214,169 +258,6 @@ Function Start-CloudComponent {
     }
 }
 Export-ModuleMember -Function Start-CloudComponent
-
-
-Function ShutdownStartup-ComponentOnHost {
-    <#
-        .NOTES
-        ===========================================================================
-        Created by:  Sowjanya V / Gary Blake (Enhancements)
-        Date:   07/13/2021
-        Organization: VMware
-        ===========================================================================
-        
-        .SYNOPSIS
-        Shutdown/Startup the component on a given host
-    
-        .DESCRIPTION
-        Shutdown/Startup the given component matching the pattern on the host. If no pattern is 
-        specified, the host in itself will be shutdown 
-    
-        .EXAMPLE
-        PS C:\> ShutdownStartup-ComponentOnHost -server sfo-w01-esx01.sfo.rainpole.io 
-        -user root -pass VMw@re1! -component NSXT-NODE 
-        -nodeList "sfo-w01-en01", "sfo-w01-en02"
-        This example connects to the esxi host and searches for all vm's matching the pattern 
-        and shutdown the components
-    #>
-
-    Param (
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pattern,
-        [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$task='Shutdown'
-    )
-
-    Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of ShutdownStartup-ComponentOnHost cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-            if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to $task nodes with pattern '$pattern'"
-
-                #$nodes = Get-VM | select Name, PowerState | where Name -match $pattern
-                if ($pattern) {
-                    $nodes = Get-VM -Server $server | Where-Object Name -match $pattern | Select-Object Name, PowerState, VMHost | Where-Object VMHost -match $server
-                }
-                else {
-                    $nodes = @()
-                }
-                #Write-Output $nodes.Name.Count
-
-                if ($task -eq 'Shutdown') {
-                    if ($nodes.Name.Count -ne 0) {
-                        foreach ($node in $nodes) {
-                            $count=0
-                            $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
-                            #Write-Output $vm_obj
-                            if ($vm_obj.State -eq 'NotRunning') {
-                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered Off state" -Colour Green
-                                #Write-Output "The VM $vm_obj is already in powered off state"
-                                Continue
-                            }
-                
-                            Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server | Stop-VMGuest -Confirm:$false | Out-Null
-                            $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
-                            #Write-Output $vm_obj.State
-                    
-                            #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-                            While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
-                                Start-Sleep -Seconds 1
-                                #Write-Output "Sleeping for 1 second"
-                                $count = $count + 1
-                                $vm_obj = Get-VMGuest -VM $node.Name | Where-Object VmUid -match $server
-                                #Write-Output $vm_obj.State
-                            }
-                            if ($count -eq $timeout) {
-                                Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red
-                                #Write-Error "The VM did not get turned off with in stipulated timeout:$timeout value"	
-                                #Break 			
-                            }
-                            else {
-                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has successfully shutdown" -Colour Green
-                                #Write-Output "The VM is successfully shutdown"
-                            }
-                        }
-                    }
-                    elseif ($pattern) {
-                        Write-LogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Yellow
-                        #Write-Output "There are no VM's matching the pattern"
-                    }
-                    else {
-                        Write-Output "No Node is specified. Hence shutting down the ESXi host"
-                        Stop-VMHost -VMHost $server -Server $server -Confirm:$false -RunAsync
-                    }
-                }
-                elseif ($task -eq 'Startup') {
-                    if ($nodes.Name.Count -ne 0) {
-                        foreach ($node in $nodes) {
-                            $count=0
-                            $vm_obj = Get-VMGuest -server $server -VM $node.Name | Where-Object VmUid -match $server
-                            #Write-Output $vm_obj
-                            if ($vm_obj.State -eq 'Running') {
-                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered On state" -Colour Green
-                                #Write-Output "The VM $vm_obj is already in powered on state"
-                                Continue
-                            }
-                
-                            Start-VM -VM $node.Name | Out-Null
-                            $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
-                            #Write-Output $vm_obj.State
-                    
-                            #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
-                            While (($vm_obj.State -ne 'Running') -AND ($count -ne $timeout)) {
-                    `	        Start-Sleep -Seconds 1
-                                #Write-Output "Sleeping for 1 second"
-                                $count = $count + 1
-                                $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
-                                #Write-Output $vm_obj.State
-                            }
-                            if ($count -eq $timeout) {
-                                Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not start up within the stipulated timeout: $timeout value"	-Colour Red
-                                #Write-Error "The VM did not get turned on with in stipulated timeout:$timeout value"	
-                            }
-                            else {
-                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has successfully started" -Colour Green
-                                #Write-Output "The VM is successfully started"
-                            }
-                        }
-                    }
-                    elseif ($pattern) {
-                        Write-LogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Yellow
-                        #Write-Output "There are no VM's matching the pattern"
-                    }
-                    else {
-                        Write-Output "No Node is specified. Hence Starting the ESXi host"
-                        Start-VMHost -VMHost $server -Server $server -confirm:$false -RunAsync
-                    }
-                }
-                #else {
-                #    write-error("The task passed is neither Shutdown or Startup")
-                #}
-                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-            }
-            else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
-            }
-        }
-        else {
-            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
-        }
-    }  
-    Catch {
-        Debug-CatchWriter -object $_
-    }
-    Finally {
-        
-        Write-LogMessage -Type INFO -Message "Finished Exeuction of ShutdownStartup-ComponentOnHost cmdlet" -Colour Yellow
-    }
-}
-Export-ModuleMember -Function ShutdownStartup-ComponentOnHost
 
 Function SetClusterState-VROPS {
     <#
@@ -1681,3 +1562,165 @@ Function ShutdownStartup-SDDCComponent {
     }
 }
 Export-ModuleMember -Function ShutdownStartup-SDDCComponent
+
+Function ShutdownStartup-ComponentOnHost {
+    <#
+        .NOTES
+        ===========================================================================
+        Created by:  Sowjanya V / Gary Blake (Enhancements)
+        Date:   07/13/2021
+        Organization: VMware
+        ===========================================================================
+        
+        .SYNOPSIS
+        Shutdown/Startup the component on a given host
+    
+        .DESCRIPTION
+        Shutdown/Startup the given component matching the pattern on the host. If no pattern is 
+        specified, the host in itself will be shutdown 
+    
+        .EXAMPLE
+        PS C:\> ShutdownStartup-ComponentOnHost -server sfo-w01-esx01.sfo.rainpole.io 
+        -user root -pass VMw@re1! -component NSXT-NODE 
+        -nodeList "sfo-w01-en01", "sfo-w01-en02"
+        This example connects to the esxi host and searches for all vm's matching the pattern 
+        and shutdown the components
+    #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pattern,
+        [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$task='Shutdown'
+    )
+
+    Try {
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of ShutdownStartup-ComponentOnHost cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to $task nodes with pattern '$pattern'"
+
+                #$nodes = Get-VM | select Name, PowerState | where Name -match $pattern
+                if ($pattern) {
+                    $nodes = Get-VM -Server $server | Where-Object Name -match $pattern | Select-Object Name, PowerState, VMHost | Where-Object VMHost -match $server
+                }
+                else {
+                    $nodes = @()
+                }
+                #Write-Output $nodes.Name.Count
+
+                if ($task -eq 'Shutdown') {
+                    if ($nodes.Name.Count -ne 0) {
+                        foreach ($node in $nodes) {
+                            $count=0
+                            $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
+                            #Write-Output $vm_obj
+                            if ($vm_obj.State -eq 'NotRunning') {
+                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered Off state" -Colour Green
+                                #Write-Output "The VM $vm_obj is already in powered off state"
+                                Continue
+                            }
+                
+                            Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server | Stop-VMGuest -Confirm:$false | Out-Null
+                            $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
+                            #Write-Output $vm_obj.State
+                    
+                            #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
+                            While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
+                                Start-Sleep -Seconds 1
+                                #Write-Output "Sleeping for 1 second"
+                                $count = $count + 1
+                                $vm_obj = Get-VMGuest -VM $node.Name | Where-Object VmUid -match $server
+                                #Write-Output $vm_obj.State
+                            }
+                            if ($count -eq $timeout) {
+                                Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red
+                                #Write-Error "The VM did not get turned off with in stipulated timeout:$timeout value"	
+                                #Break 			
+                            }
+                            else {
+                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has successfully shutdown" -Colour Green
+                                #Write-Output "The VM is successfully shutdown"
+                            }
+                        }
+                    }
+                    elseif ($pattern) {
+                        Write-LogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Yellow
+                        #Write-Output "There are no VM's matching the pattern"
+                    }
+                    else {
+                        Write-Output "No Node is specified. Hence shutting down the ESXi host"
+                        Stop-VMHost -VMHost $server -Server $server -Confirm:$false -RunAsync
+                    }
+                }
+                elseif ($task -eq 'Startup') {
+                    if ($nodes.Name.Count -ne 0) {
+                        foreach ($node in $nodes) {
+                            $count=0
+                            $vm_obj = Get-VMGuest -server $server -VM $node.Name | Where-Object VmUid -match $server
+                            #Write-Output $vm_obj
+                            if ($vm_obj.State -eq 'Running') {
+                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered On state" -Colour Green
+                                #Write-Output "The VM $vm_obj is already in powered on state"
+                                Continue
+                            }
+                
+                            Start-VM -VM $node.Name | Out-Null
+                            $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
+                            #Write-Output $vm_obj.State
+                    
+                            #Get-VMGuest -VM $node | where $_.State -eq "NotRunning"
+                            While (($vm_obj.State -ne 'Running') -AND ($count -ne $timeout)) {
+                    `	        Start-Sleep -Seconds 1
+                                #Write-Output "Sleeping for 1 second"
+                                $count = $count + 1
+                                $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
+                                #Write-Output $vm_obj.State
+                            }
+                            if ($count -eq $timeout) {
+                                Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not start up within the stipulated timeout: $timeout value"	-Colour Red
+                                #Write-Error "The VM did not get turned on with in stipulated timeout:$timeout value"	
+                            }
+                            else {
+                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has successfully started" -Colour Green
+                                #Write-Output "The VM is successfully started"
+                            }
+                        }
+                    }
+                    elseif ($pattern) {
+                        Write-LogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Yellow
+                        #Write-Output "There are no VM's matching the pattern"
+                    }
+                    else {
+                        Write-Output "No Node is specified. Hence Starting the ESXi host"
+                        Start-VMHost -VMHost $server -Server $server -confirm:$false -RunAsync
+                    }
+                }
+                #else {
+                #    write-error("The task passed is neither Shutdown or Startup")
+                #}
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
+        else {
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        }
+    }  
+    Catch {
+        Debug-CatchWriter -object $_
+    }
+    Finally {
+        
+        Write-LogMessage -Type INFO -Message "Finished Exeuction of ShutdownStartup-ComponentOnHost cmdlet" -Colour Yellow
+    }
+}
+Export-ModuleMember -Function ShutdownStartup-ComponentOnHost
