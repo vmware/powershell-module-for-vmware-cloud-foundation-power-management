@@ -1130,45 +1130,51 @@ Function Test-VsanHealth {
     )
 	Try {
         Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-VsanHealth cmdlet" -Colour Yellow
-		Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-        if ($DefaultVIServer.Name -eq $server) {
-            Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting check the VSAN cluster health"
-            $vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
-            $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
-            $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
-            $healthCheckGroups = $results.groups
-            $health_status = 'GREEN'
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting check the VSAN cluster health"
+                $vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
+                $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
+                $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
+                $healthCheckGroups = $results.groups
+                $health_status = 'GREEN'
 
-            $healthCheckResults = @()
-            foreach ($healthCheckGroup in $healthCheckGroups) {
-                Switch ($healthCheckGroup.GroupHealth) {
-                    red {$healthStatus = "error"}
-                    yellow {$healthStatus = "warning"}
-                    green {$healthStatus = "passed"}
-                    info {$healthStatus = "passed"}
-                }
-                if ($healthStatus -eq "red") {
-                    $health_status = 'RED'
-                }
-                $healtCheckGroupResult = [pscustomobject] @{
-                    HealthCHeck = $healthCheckGroup.GroupName
-                    Result = $healthStatus
+                $healthCheckResults = @()
+                foreach ($healthCheckGroup in $healthCheckGroups) {
+                    Switch ($healthCheckGroup.GroupHealth) {
+                        red {$healthStatus = "error"}
+                        yellow {$healthStatus = "warning"}
+                        green {$healthStatus = "passed"}
+                        info {$healthStatus = "passed"}
+                    }
+                    if ($healthStatus -eq "red") {
+                        $health_status = 'RED'
+                    }
+                    $healtCheckGroupResult = [pscustomobject] @{
+                        HealthCHeck = $healthCheckGroup.GroupName
+                        Result = $healthStatus
 
+                    }
+                    $healthCheckResults+=$healtCheckGroupResult
                 }
-                $healthCheckResults+=$healtCheckGroupResult
-            }
-            if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
-                Write-LogMessage -Type INFO -Message "The VSAN Health Status for $cluster is GOOD" -Colour Green
+                if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
+                    Write-LogMessage -Type INFO -Message "The VSAN Health Status for $cluster is GOOD" -Colour Green
+                }
+                else {
+                    Write-LogMessage -Type ERROR -Message "The VSAN Health Status for $cluster is BAD" -Colour Red
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message "The VSAN Health Status for $cluster is BAD" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
-            Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-            Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
         }
         else {
-            Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
 	}
     Catch {
@@ -1185,7 +1191,7 @@ Function Test-ResyncingObject {
     .NOTES
     ===========================================================================
     Created by:  Sowjanya V / Gary Blake (Enhancements)
-    Date:   07/12/2021
+    Date:   07/13/2021
     Organization: VMware
     ===========================================================================
 
@@ -1208,23 +1214,29 @@ Function Test-ResyncingObject {
 	
 	Try {
         Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-ResyncingObject cmdlet" -Colour Yellow
-		Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-        if ($DefaultVIServer.Name -eq $server) {
-            Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
-            $no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster
-            Write-LogMessage -Type INFO -Message "The number of resyncing objects are $no_resyncing_objects"
-            if ($no_resyncing_objects.count -eq 0){
-                Write-LogMessage -Type INFO -Message "No resyncing objects" -Colour Green
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
+                $no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster
+                Write-LogMessage -Type INFO -Message "The number of resyncing objects are $no_resyncing_objects"
+                if ($no_resyncing_objects.count -eq 0){
+                    Write-LogMessage -Type INFO -Message "No resyncing objects" -Colour Green
+                }
+                else {
+                    Write-LogMessage -Type ERROR -Message "There are some resyncing happening" -Colour Red
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message "There are some resyncing happening" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
-            Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-            Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
         }
         else {
-            Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red 
         }
 	}
     Catch {
