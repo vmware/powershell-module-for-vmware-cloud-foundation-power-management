@@ -1214,15 +1214,11 @@ Function Test-ResyncingObject {
             Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
             $no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster
             Write-LogMessage -Type INFO -Message "The number of resyncing objects are $no_resyncing_objects"
-            #Write-Output "The number of resyncing objects are"
-            #Write-Output $no_resyncing_objects
             if ($no_resyncing_objects.count -eq 0){
                 Write-LogMessage -Type INFO -Message "No resyncing objects" -Colour Green
-                #Write-Output "No resyncing objects"
             }
             else {
                 Write-LogMessage -Type ERROR -Message "There are some resyncing happening" -Colour Red
-                #Write-Error "There are some resyncing happening"
             }
             Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
             Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
@@ -1237,7 +1233,6 @@ Function Test-ResyncingObject {
     Finally {
         Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-ResyncingObject cmdlet" -Colour Yellow
     }
-
 }
 Export-ModuleMember -Function Test-ResyncingObject
 
