@@ -1108,7 +1108,7 @@ Function Test-VsanHealth {
     .NOTES
     ===========================================================================
     Created by:  Sowjanya V / Gary Blake (Enhancements)
-    Date:   07/12/2021
+    Date:   07/13/2021
     Organization: VMware
     ===========================================================================
 
@@ -1158,18 +1158,11 @@ Function Test-VsanHealth {
                 }
                 $healthCheckResults+=$healtCheckGroupResult
             }
-            #Write-LogMessage -Type INFO -Message "Overall health:" $results.OverallHealth "("$results.OverallHealthDescription")"
-            #Write-Host "`nOverall health:" $results.OverallHealth "("$results.OverallHealthDescription")"
-            #$healthCheckResults
-            #Write-Output ""
             if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
                 Write-LogMessage -Type INFO -Message "The VSAN Health Status for $cluster is GOOD" -Colour Green
-                #Write-Output "The VSAN Health is GOOD"
             }
             else {
                 Write-LogMessage -Type ERROR -Message "The VSAN Health Status for $cluster is BAD" -Colour Red
-                #Write-Error "The VSAN Health is BAD"
-                #exit
             }
             Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
             Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
