@@ -6,17 +6,17 @@ https://docs.vmware.com/en/VMware-Validated-Design/6.2/sddc-shutdown-and-startup
 Download the code by doing git cloning  
     git clone https://gitlab.eng.vmware.com/cloud_foundation/dey-team/pweiss-team/lmahadevan-team/shutdownandstartup.git
 
-You will have two files downloaded. One **VMware.StartupShutdown.psm1** file which is library of functions and another is the launcher file **Testcases.ps1**, which has all test cases.  
+You will have two files downloaded. One **VMware.PowerManagement.psm1** file which is library of functions and another is the launcher file **Testcases.ps1**, which has all test cases.  
 
 The module file (.psm1 extension) has to be put in the path where PowerShell modules are accessed on the server where you have downloaded the code.  
 
 Execute the below PowerShell command  
  **$env:PSModulePath**  
-Try this path **“C:\Program Files\WindowsPowerShell\Modules”**. If not, search in all the other paths to figure out where is VMware.PowerCLI module resides. In that path, create a folder by the name VMware.StartupShutdown and then add the .psm1 into this folder   
+Try this path **“C:\Program Files\WindowsPowerShell\Modules”**. If not, search in all the other paths to figure out where is VMware.PowerCLI module resides. In that path, create a folder by the name VMware.PowerManagement and then add the .psm1 into this folder   
 
 Once done, in the PowerShell window, see if you could import this new module by executing the command   
 ``` 
-Import-Module VMware.StartupShutdown  
+Import-Module VMware.PowerManagement
 ```
 
 Now edit the **Testcases.ps1** file to provide information about your testbed and run it. This will shut down the VI Workload domain in your testbed . 
