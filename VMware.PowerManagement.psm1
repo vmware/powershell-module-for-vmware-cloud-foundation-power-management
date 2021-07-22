@@ -506,11 +506,11 @@ Function Get-VsanClusterMember {
         Get list of VSAN Cluster members listed from a given ESXi host 
     
         .DESCRIPTION
-		The Get-VSANClusterMember cmdlet uses the command "esxcli vsan cluster get", the output has a field SubClusterMemberHostNames
+		The Get-VsanClusterMember cmdlet uses the command "esxcli vsan cluster get", the output has a field SubClusterMemberHostNames
 		see if this has all the members listed
     
         .EXAMPLE
-        PS C:\> Get-VSANClusterMember -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -members "sfo01-w01-esx01.sfo.rainpole.io"
+        PS C:\> Get-VsanClusterMember -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -members "sfo01-w01-esx01.sfo.rainpole.io"
         This example connects to sfo01-w01-esx01.sfo.rainpole.io and checkahs that -members are listed
     #>
 
@@ -522,7 +522,7 @@ Function Get-VsanClusterMember {
     )
 
      Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Get-VSANClusterMember cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Get-VsanClusterMember cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -554,7 +554,7 @@ Function Get-VsanClusterMember {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VSANClusterMember cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VsanClusterMember cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Get-VsanClusterMember
