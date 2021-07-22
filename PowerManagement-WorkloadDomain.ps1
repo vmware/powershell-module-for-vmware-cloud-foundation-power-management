@@ -24,9 +24,8 @@ if ($accessToken) {
     Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
     # Gather Details from SDDC Manager
     $managementDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
-    #$esxiManagementDomain = (Get-VCFHost | Where-Object {$_.domain.id -eq $managementDomain.id}).fqdn
+    $mgmtCluster = Get-VCFCluster | Where-Object { $_.id -eq ($managementDomain.clusters.id) }
     $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.Name -eq $sddcDomain }
-    #$esxiWorkloadDomain = (Get-VCFHost | Where-Object {$_.domain.id -eq $workloadDomain.id}).fqdn
     $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
     $members = (Get-VCFHost | Where-Object {$_.cluster.id -eq $cluster.id} | Select-Object fqdn).fqdn
 
@@ -83,6 +82,16 @@ else {
 }
 
 if ($powerState -eq "Shutdown") {
+    # Change the DRS Automation Level to Partially Automated for both the Management Domain and VI Workload Domain Clusters
+    $checkServer = Test-Connection -ComputerName $mgmtVcServer.fqdn -Quiet -Count 1
+    if ($checkServer -eq "True") {
+        Set-DrsAutomationLevel -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -cluster $mgmtCluster.name -level PartiallyAutomated
+    }
+    $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
+    if ($checkServer -eq "True") {
+        Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
+    }
+
     # Shutdown the NSX Edge Nodes in the Virtual Infrastructure Workload Domain
     $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
     if ($checkServer -eq "True") {
@@ -156,7 +165,17 @@ if ($powerState -eq "Startup") {
     else {
         Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping startup of $nsxtEdgeNodes" -Colour Cyan
         Exit
-    }  
+    }
+
+    # Change the DRS Automation Level to Fully Automated for both the Management Domain and VI Workload Domain Clusters
+    $checkServer = Test-Connection -ComputerName $mgmtVcServer.fqdn -Quiet -Count 1
+    if ($checkServer -eq "True") {
+        Set-DrsAutomationLevel -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -cluster $mgmtCluster.name -level FullyAutomated
+    }
+    $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
+    if ($checkServer -eq "True") {
+        Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
+    }
 }
 
 

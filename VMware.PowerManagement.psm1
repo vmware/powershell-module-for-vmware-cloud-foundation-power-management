@@ -1151,10 +1151,11 @@ Function Set-DrsAutomationLevel {
         Set the DRS automation level
     
         .DESCRIPTION
-        Set the automation level to manual or fully automated 
+        The Set-DrsAutomationLevel cmdlet sets the automation level of the cluster based on the setting provided 
     
         .EXAMPLE
-        PS C:\> Set-DrsAutomationLevel -Server $server -User $user  -Pass $pass -cluster <clustername> -level <Manual/FullyAutomated>
+        PS C:\> Set-DrsAutomationLevel -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -level PartiallyAutomated
+        Thi examples sets the DRS Automation level for the sfo-m01-cl01 cluster to Partially Automated
     #>
 
 	Param (
@@ -1173,30 +1174,32 @@ Function Set-DrsAutomationLevel {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                $drsStatus = Get-Cluster -Name $cluster
-                if ($drsStatus.DrsAutomationLevel -eq $level) {
-                    Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' is already set to '$level'" -Colour Cyan
-                    #Write-Output "DrsAutomationLevel is already set to $level"
-                }
-                else {
-                    $drsStatus = Set-Cluster -Cluster $cluster -DrsAutomationLevel $level -Confirm:$false 
+                $drsStatus = Get-Cluster -Name $cluster -ErrorAction SilentlyContinue
+                if ($drsStatus) {
                     if ($drsStatus.DrsAutomationLevel -eq $level) {
-                        Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' has been set to '$level' successfully" -Colour Green
-                        #Write-Output "DrsAutomationLevel is set to $level successfully"
+                        Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' is already set to '$level'" -Colour Cyan
                     }
                     else {
-                        Write-LogMessage -Type ERROR -Message "The DRS Automation Level for cluster '$cluster' could not be set to '$level'" -Colour Red
-                        #Write-Output "DrsAutomationLevel could not be set to $level"
+                        $drsStatus = Set-Cluster -Cluster $cluster -DrsAutomationLevel $level -Confirm:$false 
+                        if ($drsStatus.DrsAutomationLevel -eq $level) {
+                            Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' has been set to '$level' successfully" -Colour Green
+                        }
+                        else {
+                            Write-LogMessage -Type ERROR -Message "The DRS Automation Level for cluster '$cluster' could not be set to '$level'" -Colour Red
+                        }
                     }
+                    Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                else {
+                    Write-LogMessage -Type ERROR -Message "Cluster '$cluster' not found on server '$server', please check your details and try again" -Colour Red
+                }
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Not connected to server '$server', due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
         }
         else {
-            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server '$server' failed, please check your details and try again" -Colour Red
         }
     } 
     Catch {
