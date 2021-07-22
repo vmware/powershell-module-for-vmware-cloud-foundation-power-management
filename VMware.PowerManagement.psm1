@@ -259,74 +259,105 @@ Function Start-CloudComponent {
 }
 Export-ModuleMember -Function Start-CloudComponent
 
-Function SetClusterState-VROPS {
+Function Set-MaintenanceMode {
     <#
         .NOTES
         ===========================================================================
-        Created by:  Sowjanya V
-        Date:   03/15/2021
+        Created by:  Sowjanya V / Gary Blake (Enhancements)
+        Date:   07/21/2021
         Organization: VMware
         ===========================================================================
         
         .SYNOPSIS
-        Get status of all the VM's matching the pattern on a given host
+        This is to set/unset maintenance mode on the host
     
         .DESCRIPTION
-        Get status of the given component matching the pattern on the host. If no pattern is 
-        specified 
+        The Set-MaintenanceMode cmdlet puts a host in maintenance mode or takes it out of maintenance mode 
     
         .EXAMPLE
-        PS C:\> Verify-VMStatus -server sfo-w01-esx01.sfo.rainpole.io 
-        -user root -pass VMw@re1! -pattern "^vCLS*"
-        This example connects to the esxi host and searches for all vm's matching the pattern 
-        and its status
+        PS C:\> Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state ENABLE
+        This example places the host in maintenance mode
+
+       .EXAMPLE
+        PS C:\> Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state DISABLE
+        This example removes a host from maintenance mode
     #>
 
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$mode
+		[Parameter (Mandatory = $true)] [ValidateSet("ENABLE", "DISABLE")] [String]$state
     )
-	
-    Try {
-		$params = @{"online_state" = $mode;
-			"online_state_reason" = "Maintenance";}
-			
-		$Global:myHeaders = createHeader $user $pass
-		Write-Output $myHeaders
-		
-		$uri = "https://$server/casa/deployment/cluster/info"
-		#https://xreg-vrops01.rainpole.io/casa/deployment/cluster/info
 
-        #$response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body $json
-		$response = Invoke-RestMethod -URI $uri -Headers $myHeaders -ContentType application/json 
-		Write-Output "------------------------------------"
-		Write-Output $response
-		Write-Output "------------------------------------"
-        if ($response.online_state -eq $mode) {
-            Write-Output "The cluster is already in the $mode state"
+    Try {
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Set-MaintenanceMode cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to $state Maintenance mode"
+                $hostStatus = (Get-VMHost -Server $server)
+                if ($state -eq "ENABLE") {
+                    if ($hostStatus.ConnectionState -eq "Connected") {
+                        Write-LogMessage -Type INFO -Message "Attempting to place $server into Maintenance mode"
+                        Get-View -ViewType HostSystem -Filter @{"Name" = $server }|?{!$_.Runtime.InMaintenanceMode}|%{$_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode=(new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction=[VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction})}))}
+                        $hostStatus = (Get-VMHost -Server $server)
+                        if ($hostStatus.ConnectionState -eq "Maintenance") {
+                            Write-LogMessage -Type INFO -Message "The host $server has been placed in Maintenance mode successfully" -Colour Green
+                        }
+                        else {
+                            Write-LogMessage -Type ERROR -Message "The host $server was not placed in Maintenance mode, verify and try again" -Colour Red
+                        }
+                    }
+                    elseif ($hostStatus.ConnectionState -eq "Maintenance") {
+                        Write-LogMessage -Type INFO -Message "The host $server is already in Maintenance mode" -Colour Green
+                    }
+                    else {
+                        Write-LogMessage -Type ERROR -Message "The host $server is not currently connected" -Colour Red
+                    }
+                }
+
+                elseif ($state -eq "DISABLE") {
+                    if ($hostStatus.ConnectionState -eq "Maintenance") {
+                        Write-LogMessage -Type INFO -Message "Attempting to take $server out of Maintenance mode"
+                        $task = Set-VMHost -VMHost $server -State "Connected" -RunAsync -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
+                        $vmhost = Wait-Task $task
+                        $hostStatus = (Get-VMHost -Server $server)
+                        if ($hostStatus.ConnectionState -eq "Connected") {
+                            Write-LogMessage -Type INFO -Message "The host $server has been taken out of Maintenance mode successfully" -Colour Green
+                        }
+                        else {
+                            Write-LogMessage -Type ERROR -Message "The host $server was not taken out of Maintenance mode, verify and try again" -Colour Red
+                        }
+                    }
+                    elseif ($hostStatus.ConnectionState -eq "Connected") {
+                        Write-LogMessage -Type INFO -Message "The host $server is already out of Maintenance mode" -Colour Green
+                    }
+                    else {
+                        Write-LogMessage -Type ERROR -Message "The host $server is not currently connected" -Colour Red
+                    }
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
         }
         else {
-			$uri = "https://$server/casa/public/cluster/online_state"
-			$response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body ($params | ConvertTo-Json)
-			Write-Output "------------------------------------"
-			Write-Output $response
-			Write-Output "------------------------------------"
-			if ($response.StatusCode -lt 300) {
-				Write-Output "The cluster is set to $mode mode"
-			}
-            else {
-				Write-Error "The cluster state could not be set"
-			}
-			#exit
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-    }
+    } 
     Catch {
         Debug-CatchWriter -object $_
+    } 
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Set-MaintenanceMode cmdlet" -Colour Yellow
     }
 }
-Export-ModuleMember -Function SetClusterState-VROPS
+Export-ModuleMember -Function Set-MaintenanceMode
 
 Function Get-VMRunningStatus {
     <#
@@ -464,7 +495,7 @@ Function Invoke-EsxCommand {
 New-Alias -Name Execute-OnEsx -Value Invoke-EsxCommand
 Export-ModuleMember -Alias Execute-OnEsx -Function Invoke-EsxCommand
 
-Function Get-VSANClusterMember {
+Function Get-VsanClusterMember {
     <#
         .NOTES
         ===========================================================================
@@ -481,7 +512,7 @@ Function Get-VSANClusterMember {
 		see if this has all the members listed
     
         .EXAMPLE
-        PS C:\> Get-VSANClusterMember -server "sfo01-w01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re1!" -members "sfo01-w01-esx01.sfo.rainpole.io" 
+        PS C:\> Get-VSANClusterMember -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -members "sfo01-w01-esx01.sfo.rainpole.io"
         This example connects to sfo01-w01-esx01.sfo.rainpole.io and checkahs that -members are listed
     #>
 
@@ -520,7 +551,6 @@ Function Get-VSANClusterMember {
         else {
             Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-        
     }
     Catch {
         Debug-CatchWriter -object $_
@@ -529,88 +559,71 @@ Function Get-VSANClusterMember {
         Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VSANClusterMember cmdlet" -Colour Yellow
     }
 }
-New-Alias -Name Verify-VSANClusterMembers -Value Get-VSANClusterMember
-Export-ModuleMember -Alias Verify-VSANClusterMembers -Function Get-VSANClusterMember
+New-Alias -Name Verify-VsanClusterMembers -Value Get-VsanClusterMember
+Export-ModuleMember -Alias Verify-VsanClusterMembers -Function Get-VsanClusterMember
 
-Function Set-MaintenanceMode {
+Function Test-VsanHealth {
     <#
         .NOTES
         ===========================================================================
         Created by:  Sowjanya V / Gary Blake (Enhancements)
-        Date:   07/21/2021
+        Date:   07/13/2021
         Organization: VMware
         ===========================================================================
-        
+    
         .SYNOPSIS
-        This is to set/unset maintenance mode on the host
-    
+        Check the health of the VSAN cluster
+        
         .DESCRIPTION
-        The Set-MaintenanceMode cmdlet puts a host in maintenance mode or takes it out of maintenance mode 
-    
+        The Test-VsanHealth cmdlet checks the healh of the VSAN cluster
+        
         .EXAMPLE
-        PS C:\> Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state ENABLE
-        This example places the host in maintenance mode
-
-       .EXAMPLE
-        PS C:\> Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state DISABLE
-        This example removes a host from maintenance mode
+        PS C:\> Test-VsanHealth -cluster sfo-m01-cl01 -server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re1!
+        This example connects to Management Domain vCenter Server and checks the health of the VSAN cluster
     #>
-
+    
     Param (
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateSet("ENABLE", "DISABLE")] [String]$state
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$cluster
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Set-MaintenanceMode cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-VsanHealth cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to $state Maintenance mode"
-                $hostStatus = (Get-VMHost -Server $server)
-                if ($state -eq "ENABLE") {
-                    if ($hostStatus.ConnectionState -eq "Connected") {
-                        Write-LogMessage -Type INFO -Message "Attempting to place $server into Maintenance mode"
-                        Get-View -ViewType HostSystem -Filter @{"Name" = $server }|?{!$_.Runtime.InMaintenanceMode}|%{$_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode=(new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction=[VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction})}))}
-                        $hostStatus = (Get-VMHost -Server $server)
-                        if ($hostStatus.ConnectionState -eq "Maintenance") {
-                            Write-LogMessage -Type INFO -Message "The host $server has been placed in Maintenance mode successfully" -Colour Green
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
+                $vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
+                $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
+                $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
+                $healthCheckGroups = $results.groups
+                $health_status = 'GREEN'
+                $healthCheckResults = @()
+                foreach ($healthCheckGroup in $healthCheckGroups) {
+                    Switch ($healthCheckGroup.GroupHealth) {
+                        red {$healthStatus = "error"}
+                        yellow {$healthStatus = "warning"}
+                        green {$healthStatus = "passed"}
+                        info {$healthStatus = "passed"}
+                    }
+                    if ($healthStatus -eq "red") {
+                        $health_status = 'RED'
+                    }
+                    $healtCheckGroupResult = [pscustomobject] @{
+                        HealthCHeck = $healthCheckGroup.GroupName
+                        Result = $healthStatus
                         }
-                        else {
-                            Write-LogMessage -Type ERROR -Message "The host $server was not placed in Maintenance mode, verify and try again" -Colour Red
+                        $healthCheckResults+=$healtCheckGroupResult
                         }
-                    }
-                    elseif ($hostStatus.ConnectionState -eq "Maintenance") {
-                        Write-LogMessage -Type INFO -Message "The host $server is already in Maintenance mode" -Colour Green
-                    }
-                    else {
-                        Write-LogMessage -Type ERROR -Message "The host $server is not currently connected" -Colour Red
-                    }
+                if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
+                    Write-LogMessage -Type INFO -Message "The VSAN Health Status for $cluster is GOOD" -Colour Green
                 }
-
-                elseif ($state -eq "DISABLE") {
-                    if ($hostStatus.ConnectionState -eq "Maintenance") {
-                        Write-LogMessage -Type INFO -Message "Attempting to take $server out of Maintenance mode"
-                        $task = Set-VMHost -VMHost $server -State "Connected" -RunAsync -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
-                        $vmhost = Wait-Task $task
-                        $hostStatus = (Get-VMHost -Server $server)
-                        if ($hostStatus.ConnectionState -eq "Connected") {
-                            Write-LogMessage -Type INFO -Message "The host $server has been taken out of Maintenance mode successfully" -Colour Green
-                        }
-                        else {
-                            Write-LogMessage -Type ERROR -Message "The host $server was not taken out of Maintenance mode, verify and try again" -Colour Red
-                        }
-                    }
-                    elseif ($hostStatus.ConnectionState -eq "Connected") {
-                        Write-LogMessage -Type INFO -Message "The host $server is already out of Maintenance mode" -Colour Green
-                    }
-                    else {
-                        Write-LogMessage -Type ERROR -Message "The host $server is not currently connected" -Colour Red
-                    }
+                else {
+                    Write-LogMessage -Type ERROR -Message "The VSAN Health Status for $cluster is BAD" -Colour Red
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
@@ -622,15 +635,77 @@ Function Set-MaintenanceMode {
         else {
             Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-    } 
+    }
     Catch {
         Debug-CatchWriter -object $_
-    } 
+    }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Set-MaintenanceMode cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-VsanHealth cmdlet" -Colour Yellow
     }
 }
-Export-ModuleMember -Function Set-MaintenanceMode
+Export-ModuleMember -Function Test-VsanHealth
+    
+Function Test-ResyncingObject {
+    <#
+        .NOTES
+        ===========================================================================
+        Created by:  Sowjanya V / Gary Blake (Enhancements)
+        Date:   07/13/2021
+        Organization: VMware
+        ===========================================================================
+
+        .SYNOPSIS
+        Check object sync for VSAN cluster
+        
+        .DESCRIPTION
+        The Test-ResyncingObject cmdlet checks for resyncing of objects on the VSAN cluster
+        
+        .EXAMPLE
+        PS C:\> Test-ResyncintObjects -cluster sfo-m01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
+        This example connects to Management Domain vCenter Server and checks the status of object syncing of the VSAN cluster
+    #>
+    Param(
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$cluster
+    )
+    
+    Try {
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-ResyncingObject cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
+                $no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster
+                Write-LogMessage -Type INFO -Message "The number of resyncing objects are $no_resyncing_objects"
+                if ($no_resyncing_objects.count -eq 0){
+                    Write-LogMessage -Type INFO -Message "No resyncing objects" -Colour Green
+                }
+                else {
+                    Write-LogMessage -Type ERROR -Message "There are some resyncing happening" -Colour Red
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
+        else {
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red 
+        }
+    }
+    Catch {
+        Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-ResyncingObject cmdlet" -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Test-ResyncingObject
 
 Function Connect-NSXTLocal {
     <#
@@ -649,7 +724,6 @@ Function Connect-NSXTLocal {
     
         .EXAMPLE
         PS C:\>Connect-NSXTLocal -url <url> 
-
     #>
           
     Param (
@@ -692,7 +766,6 @@ Function Get-VAMIServiceStatus {
     
         .EXAMPLE
         PS C:\>Get-VAMIServiceStatus -Server $server -User $user  -Pass $pass -service $service
-
     #>
 	Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
@@ -748,8 +821,8 @@ Function StartStop-VAMIServiceStatus {
     
         .EXAMPLE
         PS C:\>StartStop-VAMIServiceStatus -Server $server -User $user  -Pass $pass -service $service -action <START/STOP>
-
     #>
+
 	Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
@@ -805,30 +878,98 @@ Function StartStop-VAMIServiceStatus {
 }
 Export-ModuleMember -Function StartStop-VAMIServiceStatus
 
-Function Get-EnvironmentId {
- <#
+Function SetClusterState-VROPS {
+    <#
         .NOTES
         ===========================================================================
-        Created by:		Sowjanya V
-        Date:			03/16/2021
-        Organization:	VMware
+        Created by:  Sowjanya V
+        Date:   03/15/2021
+        Organization: VMware
         ===========================================================================
         
         .SYNOPSIS
-        Cross Region Envionment or globalenvironment Id of any product in VRSLCM need to be found
+        Get status of all the VM's matching the pattern on a given host
     
         .DESCRIPTION
-        This is to fetch right environment id for cross region env, which is needed for shutting down the VRA components via VRSLCM
-		This also fetches the global environment id for VIDM
+        Get status of the given component matching the pattern on the host. If no pattern is 
+        specified 
     
         .EXAMPLE
-        PS C:\>Get_EnvironmentId -host <VRSLCM> -user <username> -pass <password> -product <VRA/VROPS/VRLI/VIDM>
-        This example shows how to fetch environment id for cross region VRSLCM
-        Sample URL formed on TB04 is as shown below -- vcfadmin@local VMw@re123!
-        Do Get on https://xreg-vrslcm01.rainpole.io/lcm/lcops/api/v2/environments
-           and findout what is the id assosiated with Cross-Region Environment      
-
+        PS C:\> Verify-VMStatus -server sfo-w01-esx01.sfo.rainpole.io 
+        -user root -pass VMw@re1! -pattern "^vCLS*"
+        This example connects to the esxi host and searches for all vm's matching the pattern 
+        and its status
     #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$mode
+    )
+	
+    Try {
+		$params = @{"online_state" = $mode;
+			"online_state_reason" = "Maintenance";}
+			
+		$Global:myHeaders = createHeader $user $pass
+		Write-Output $myHeaders
+		
+		$uri = "https://$server/casa/deployment/cluster/info"
+		#https://xreg-vrops01.rainpole.io/casa/deployment/cluster/info
+
+        #$response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body $json
+		$response = Invoke-RestMethod -URI $uri -Headers $myHeaders -ContentType application/json 
+		Write-Output "------------------------------------"
+		Write-Output $response
+		Write-Output "------------------------------------"
+        if ($response.online_state -eq $mode) {
+            Write-Output "The cluster is already in the $mode state"
+        }
+        else {
+			$uri = "https://$server/casa/public/cluster/online_state"
+			$response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body ($params | ConvertTo-Json)
+			Write-Output "------------------------------------"
+			Write-Output $response
+			Write-Output "------------------------------------"
+			if ($response.StatusCode -lt 300) {
+				Write-Output "The cluster is set to $mode mode"
+			}
+            else {
+				Write-Error "The cluster state could not be set"
+			}
+			#exit
+        }
+    }
+    Catch {
+        Debug-CatchWriter -object $_
+    }
+}
+Export-ModuleMember -Function SetClusterState-VROPS
+
+Function Get-EnvironmentId {
+ <#
+    .NOTES
+    ===========================================================================
+    Created by:		Sowjanya V
+    Date:			03/16/2021
+    Organization:	VMware
+    ===========================================================================
+    
+    .SYNOPSIS
+    Cross Region Envionment or globalenvironment Id of any product in VRSLCM need to be found
+
+    .DESCRIPTION
+    This is to fetch right environment id for cross region env, which is needed for shutting down the VRA components via VRSLCM
+    This also fetches the global environment id for VIDM
+
+    .EXAMPLE
+    PS C:\>Get_EnvironmentId -host <VRSLCM> -user <username> -pass <password> -product <VRA/VROPS/VRLI/VIDM>
+    This example shows how to fetch environment id for cross region VRSLCM
+    Sample URL formed on TB04 is as shown below -- vcfadmin@local VMw@re123!
+    Do Get on https://xreg-vrslcm01.rainpole.io/lcm/lcops/api/v2/environments
+        and findout what is the id assosiated with Cross-Region Environment      
+#>
           
     Param (
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
@@ -968,6 +1109,7 @@ Function Set-DrsAutomationLevel {
         PS C:\>Set-DrsAutomationLevel -Server $server -User $user  -Pass $pass -cluster <clustername> -level <Manual/FullyAutomated>
 
     #>
+
 	Param (
         [Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
         [Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
@@ -1104,172 +1246,28 @@ Export-ModuleMember -Function Set-DrsAutomationLevel
 }
 #>
 
-Function Test-VsanHealth {
-<#
-    .NOTES
-    ===========================================================================
-    Created by:  Sowjanya V / Gary Blake (Enhancements)
-    Date:   07/13/2021
-    Organization: VMware
-    ===========================================================================
-
-    .SYNOPSIS
-    Check the health of the VSAN cluster
-    
-    .DESCRIPTION
-    The Test-VsanHealth cmdlet checks the healh of the VSAN cluster
-    
-    .EXAMPLE
-    PS C:\> Test-VsanHealth -cluster sfo-m01-cl01 -server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re1!
-    This example connects to Management Domain vCenter Server and checks the health of the VSAN cluster
-#>
-    Param (
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$cluster
-    )
-	Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-VsanHealth cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-            if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting check the VSAN cluster health"
-                $vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
-                $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
-                $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
-                $healthCheckGroups = $results.groups
-                $health_status = 'GREEN'
-
-                $healthCheckResults = @()
-                foreach ($healthCheckGroup in $healthCheckGroups) {
-                    Switch ($healthCheckGroup.GroupHealth) {
-                        red {$healthStatus = "error"}
-                        yellow {$healthStatus = "warning"}
-                        green {$healthStatus = "passed"}
-                        info {$healthStatus = "passed"}
-                    }
-                    if ($healthStatus -eq "red") {
-                        $health_status = 'RED'
-                    }
-                    $healtCheckGroupResult = [pscustomobject] @{
-                        HealthCHeck = $healthCheckGroup.GroupName
-                        Result = $healthStatus
-
-                    }
-                    $healthCheckResults+=$healtCheckGroupResult
-                }
-                if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
-                    Write-LogMessage -Type INFO -Message "The VSAN Health Status for $cluster is GOOD" -Colour Green
-                }
-                else {
-                    Write-LogMessage -Type ERROR -Message "The VSAN Health Status for $cluster is BAD" -Colour Red
-                }
-                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-            }
-            else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
-            }
-        }
-        else {
-            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
-        }
-	}
-    Catch {
-        Debug-CatchWriter -object $_
-    }
-    Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-VsanHealth cmdlet" -Colour Yellow
-    }
-}
-Export-ModuleMember -Function Test-VsanHealth
-
-Function Test-ResyncingObject {
-<#
-    .NOTES
-    ===========================================================================
-    Created by:  Sowjanya V / Gary Blake (Enhancements)
-    Date:   07/13/2021
-    Organization: VMware
-    ===========================================================================
-
-    .SYNOPSIS
-    Check object sync for VSAN cluster
-    
-    .DESCRIPTION
-    The Test-ResyncingObject cmdlet checks for resyncing of objects on the VSAN cluster
-    
-    .EXAMPLE
-    PS C:\> Test-ResyncintObjects -cluster sfo-m01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass "VMw@re1!"
-    This example connects to Management Domain vCenter Server and checks the status of object syncing of the VSAN cluster
-#>
-    Param(
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$cluster
-    )
-	
-	Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-ResyncingObject cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-            if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
-                $no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster
-                Write-LogMessage -Type INFO -Message "The number of resyncing objects are $no_resyncing_objects"
-                if ($no_resyncing_objects.count -eq 0){
-                    Write-LogMessage -Type INFO -Message "No resyncing objects" -Colour Green
-                }
-                else {
-                    Write-LogMessage -Type ERROR -Message "There are some resyncing happening" -Colour Red
-                }
-                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-            }
-            else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
-            }
-        }
-        else {
-            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red 
-        }
-	}
-    Catch {
-        Debug-CatchWriter -object $_
-    }
-    Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-ResyncingObject cmdlet" -Colour Yellow
-    }
-}
-Export-ModuleMember -Function Test-ResyncingObject
-
 Function PowerOn-EsxiUsingILO {
-<#
-    .NOTES
-    ===========================================================================
-     Created by:    Sowjanya V
-     Organization:  VMware
+    <#
+        .NOTES
+        ===========================================================================
+        Created by:    Sowjanya V
+        Organization:  VMware
 
-    ===========================================================================
-    .DESCRIPTION
-        This method is used to poweron the DELL ESxi server using ILO ip address using racadm 
-		This is cli equivalent of admin console for DELL servers
-    .PARAMETER 
-	ilo_ip
-        Out of Band Ipaddress
-	user
-		IDRAC console login user
-	pass
-		IDRAC console login password
-    .EXAMPLE
-        PowerOn-EsxiUsingILO -ilo_ip $ilo_ip  -ilo_user <drac_console_user>  -ilo_pass <drac_console_pass>
-#>
+        ===========================================================================
+        .DESCRIPTION
+            This method is used to poweron the DELL ESxi server using ILO ip address using racadm 
+            This is cli equivalent of admin console for DELL servers
+        .PARAMETER 
+        ilo_ip
+            Out of Band Ipaddress
+        user
+            IDRAC console login user
+        pass
+            IDRAC console login password
+        .EXAMPLE
+            PowerOn-EsxiUsingILO -ilo_ip $ilo_ip  -ilo_user <drac_console_user>  -ilo_pass <drac_console_pass>
+    #>
+    
     Param (
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_ip,
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_user,
@@ -1295,20 +1293,6 @@ Function PowerOn-EsxiUsingILO {
 }
 Export-ModuleMember -Function PowerOn-EsxiUsingILO
 
-Function createHeader  {
-    Param (
-        [Parameter (Mandatory=$true)] [String] $user,
-        [Parameter (Mandatory=$true)] [String] $pass
-    )
-
-    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user,$pass))) # Create Basic Authentication Encoded Credentials
-    $headers = @{"Accept" = "application/json"}
-    $headers.Add("Authorization", "Basic $base64AuthInfo")
-    
-    Return $headers
-}
-Export-ModuleMember -Function createHeader
-
 Function Ignore-CertificateError {
 	add-type @"
 		using System.Net;
@@ -1326,26 +1310,27 @@ Function Ignore-CertificateError {
 Export-ModuleMember -Function Ignore-CertificateError
 
 Function Get-NSXTMgrClusterStatus {
-<#
-    .NOTES
-    ===========================================================================
-     Created by:    Sowjanya V
-     Organization:  VMware
+    <#
+        .NOTES
+        ===========================================================================
+        Created by:    Sowjanya V
+        Organization:  VMware
 
-    ===========================================================================
-    .DESCRIPTION
-        This method is used to fetch the cluster status of nsx manager after restart
-    .PARAMETER 
-	server
-        The nsxt manager hostname
-	user
-		nsx manager login user
-	pass
-		nsx manager login password
-    .EXAMPLE
-        Get-NSXTMgrClusterStatus -server $server  -user $user  -pass $pass
-		sample url - "https://sfo-m01-nsx01.sfo.rainpole.io/api/v1/cluster/status"
-#>	
+        ===========================================================================
+        .DESCRIPTION
+            This method is used to fetch the cluster status of nsx manager after restart
+        .PARAMETER 
+        server
+            The nsxt manager hostname
+        user
+            nsx manager login user
+        pass
+            nsx manager login password
+        .EXAMPLE
+            Get-NSXTMgrClusterStatus -server $server  -user $user  -pass $pass
+            sample url - "https://sfo-m01-nsx01.sfo.rainpole.io/api/v1/cluster/status"
+    #>
+
 	Param(
 	    [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
@@ -1428,6 +1413,21 @@ Function Debug-CatchWriter {
     Write-LogMessage -Type EXCEPTION -Message "Error Message: $errorMessage" -Colour Red
 }
 Export-ModuleMember -Function Debug-CatchWriter
+
+Function createHeader  {
+    Param (
+        [Parameter (Mandatory=$true)] [String] $user,
+        [Parameter (Mandatory=$true)] [String] $pass
+    )
+
+    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user,$pass))) # Create Basic Authentication Encoded Credentials
+    $headers = @{"Accept" = "application/json"}
+    $headers.Add("Authorization", "Basic $base64AuthInfo")
+    
+    Return $headers
+}
+Export-ModuleMember -Function createHeader
+
 
 ######### End Useful Script Functions ##########
 
