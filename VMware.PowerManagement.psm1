@@ -168,7 +168,7 @@ Function Start-CloudComponent {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 if ($PSCmdlet.ParameterSetName -eq "Node") {
-                    Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to '$task' nodes '$nodes'"
+                    Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to start nodes '$nodes'"
                     if ($nodes.Count -ne 0) {
                         foreach ($node in $nodes) {
                                 $count=0
@@ -642,7 +642,7 @@ Function Test-VsanHealth {
 }
 Export-ModuleMember -Function Test-VsanHealth
     
-Function Test-ResyncingObject {
+Function Test-VsanObjectResync {
     <#
         .NOTES
         ===========================================================================
@@ -655,10 +655,10 @@ Function Test-ResyncingObject {
         Check object sync for VSAN cluster
         
         .DESCRIPTION
-        The Test-ResyncingObject cmdlet checks for resyncing of objects on the VSAN cluster
+        The Test-VsanObjectResync cmdlet checks for resyncing of objects on the VSAN cluster
         
         .EXAMPLE
-        PS C:\> Test-ResyncintObjects -cluster sfo-m01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
+        PS C:\> Test-VsanObjectResync -cluster sfo-m01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
         This example connects to Management Domain vCenter Server and checks the status of object syncing of the VSAN cluster
     #>
     Param(
@@ -669,7 +669,7 @@ Function Test-ResyncingObject {
     )
     
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-ResyncingObject cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-VsanObjectResync cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -699,10 +699,10 @@ Function Test-ResyncingObject {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-ResyncingObject cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-VsanObjectResync cmdlet" -Colour Yellow
     }
 }
-Export-ModuleMember -Function Test-ResyncingObject
+Export-ModuleMember -Function Test-VsanObjectResync
 
 Function Connect-NSXTLocal {
     <#
