@@ -61,7 +61,7 @@ Function Stop-CloudComponent {
                                     Write-LogMessage -Type ERROR -Message "Node '$node' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red			
                                 }
                                 else {
-                                    Write-LogMessage -Type INFO -Message "Node '$node' has successfully shutdown" -Colour Green
+                                    Write-LogMessage -Type INFO -Message "Node '$node' has shutdown successfully" -Colour Green
                                 }
                             }
                             else {
@@ -99,7 +99,7 @@ Function Stop-CloudComponent {
                                 Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red
                             }
                             else {
-                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has successfully shutdown" -Colour Green
+                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has shutdown successfully" -Colour Green
                             }
                         }
                     }
@@ -192,7 +192,7 @@ Function Start-CloudComponent {
                                     Break 			
                                 } 
                                 else {
-                                    Write-LogMessage -Type INFO -Message "Node '$node' has successfully turned on" -Colour Green
+                                    Write-LogMessage -Type INFO -Message "Node '$node' has started successfully" -Colour Green
                                 }
                             }
                             else {
@@ -231,7 +231,7 @@ Function Start-CloudComponent {
                                 Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not start up within the stipulated timeout: $timeout value"	-Colour Red
                             }
                             else {
-                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has successfully started" -Colour Green
+                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has started successfully" -Colour Green
                             }
                         }
                     }
@@ -397,17 +397,15 @@ Function Get-VMRunningStatus {
         Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VMRunningStatus cmdlet" -Colour Yellow
     }
 }
-Export-ModuleMember -Function Get-VMRunningStatus
 New-Alias -Name Verify-VMStatus -Value Get-VMRunningStatus
 Export-ModuleMember -Alias Verify-VMStatus  -Function Get-VMRunningStatus
 
-Function Execute-OnEsx {
-
+Function Invoke-EsxCommand {
     <#
         .NOTES
         ===========================================================================
-        Created by:  Sowjanya V
-        Date:   03/15/2021
+        Created by:  Sowjanya V / Gary Blake (Enhancements)
+        Date:   07/22/2021
         Organization: VMware
         ===========================================================================
         
@@ -415,14 +413,11 @@ Function Execute-OnEsx {
         Execute a given command on the esxi host
     
         .DESCRIPTION
-        Execute the command on the given ESXi host. There are no direct 
-        cmdlets to do the same. Hence written this function. If expected is
+        The Invoke-EsxCommand cmdlet executes a given command on a given ESXi host. If expected is
         not passed, then #exitstatus of 0 is considered as success 
     
         .EXAMPLE
-        PS C:\> Execute-OnEsx -server "sfo01-w01-esx02.sfo.rainpole.io" -user "root" -pass "VMw@re123!" 
-        -expected "Value of IgnoreClusterMemberListUpdates is 1" 
-        -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
+        PS C:\> Invoke-EsxCommand -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
     #>
 
     Param (
@@ -430,53 +425,44 @@ Function Execute-OnEsx {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cmd,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$expected,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$timeout = 60
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$expected
     )
 
-
     Try {
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Invoke-EsxCommand cmdlet" -Colour Yellow
         $password = ConvertTo-SecureString $pass -AsPlainText -Force
         $Cred = New-Object System.Management.Automation.PSCredential ($user, $password)
-		$time_val = 0
-        #$expected = "Value of IgnoreClusterMemberListUpdates is 1"
-
-        $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force
-        #Write-Output $session.SessionId 
-        $out = Invoke-SSHCommand -index $session.SessionId -Command $cmd
-        Write-Output $out.Output
-		
-		if ($expected) {
-			While ($time_val -lt $timeout) {
-				if ($out.Output -match $expected) {
-					Write-Output "Success. The recived and expected outputs are matching"
-					Break
-				}
-                else {
-					$time_val = $time_val + 5
-				}
-			} 
-			if ($time_val -ge $timeout) {
-				Write-Error "Failure. The received output is: $out.output \n The expexted output is $expected"
-				#exit
-			}
-		}
-        elseif ($out.exitStatus -eq 0) {
-			Write-Output "Success. The command got successfully executed"
+        Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue
+        if ($session) {
+            Write-LogMessage -Type INFO -Message "Attempting to execute command '$cmd' on server '$server'"
+            $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd
+            $timeoutValue = 0
+            if ($expected) {
+                Write-LogMessage -Type INFO -Message "Command '$cmd' executed with expected output on server '$server' successfully" -Colour Green
+            }
+            elseif ($commandOutput.exitStatus -eq 0) {
+                Write-LogMessage -Type INFO -Message "Success. The command got successfully executed" -Colour Green
+            }
+            else  {
+                Write-LogMessage -Type ERROR -Message "Failure. The command could not be executed" -Colour Red
+            }
+            Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+            Remove-SSHSession -Index $session.SessionId | Out-Null   
         }
-        else  {
-            Write-Error "Failure. The command could not be executed"
-			#exit
-        } 
-
-    } Catch {
+        else {
+            Write-LogMessage -Type ERROR -Message "Not connected to server '$server', due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+        }
+    }
+    Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Remove-SSHSession -Index $session.SessionId
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Invoke-EsxCommand cmdlet" -Colour Yellow
     }
 }
-Export-ModuleMember -Function Execute-OnEsx
+New-Alias -Name Execute-OnEsx -Value Invoke-EsxCommand
+Export-ModuleMember -Alias Execute-OnEsx -Function Invoke-EsxCommand
 
 Function Get-VSANClusterMember {
     <#
@@ -524,6 +510,8 @@ Function Get-VSANClusterMember {
                         Write-LogMessage -Type INFO -Message "VSAN Cluster Host member '$member' does not match" -Colour Red
                     }
                 }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -532,104 +520,117 @@ Function Get-VSANClusterMember {
         else {
             Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
+        
     }
     Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
         Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VSANClusterMember cmdlet" -Colour Yellow
-        Disconnect-VIServer -server $server -Confirm:$false
     }
 }
 New-Alias -Name Verify-VSANClusterMembers -Value Get-VSANClusterMember
 Export-ModuleMember -Alias Verify-VSANClusterMembers -Function Get-VSANClusterMember
 
-Function Set-MaintainanceMode {
-
+Function Set-MaintenanceMode {
     <#
         .NOTES
         ===========================================================================
-        Created by:  Sowjanya V
-        Date:   03/15/2021
+        Created by:  Sowjanya V / Gary Blake (Enhancements)
+        Date:   07/21/2021
         Organization: VMware
         ===========================================================================
         
         .SYNOPSIS
-        This is to set/unset maintainance mode on the host
+        This is to set/unset maintenance mode on the host
     
         .DESCRIPTION
-		The command is  "esxcli system maintenanceMode set -e false", to unset the 
-		maintainance mode
-		The command is  "esxcli system maintenanceMode set -e true", to set the 
-		maintainance mode
+        The Set-MaintenanceMode cmdlet puts a host in maintenance mode or takes it out of maintenance mode 
     
         .EXAMPLE
-        PS C:\> Set-MaintainanceMode -server "sfo01-w01-esx01.sfo.rainpole.io" -user "root" -pass "VMw@re123!" 
-        -cmd "esxcli system maintenanceMode set -e false" 
+        PS C:\> Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state ENABLE
+        This example places the host in maintenance mode
 
+       .EXAMPLE
+        PS C:\> Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state DISABLE
+        This example removes a host from maintenance mode
     #>
 
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cmd
+		[Parameter (Mandatory = $true)] [ValidateSet("ENABLE", "DISABLE")] [String]$state
     )
 
     Try {
-		Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-		$host1 = Get-VMHost $server
-		if ($cmd -match "false") {
-			if ($host1.ConnectionState -eq "Maintenance") {
-				Execute-OnEsx -server $server -user $user -pass $pass  -cmd $cmd
-				Start-Sleep -s 10
-				$count=1
-				$host1 = Get-VMHost $server
-				While ($host1.ConnectionState -eq "Maintenance" -OR $count -le 5) {
-					Start-Sleep -s 10
-					$count = $count + 1
-					$host1 = Get-VMHost $server
-				}
-			}
-			if ($host1.ConnectionState -eq "Maintenance") {
-				write-error "The host could not be taken out of maintainance mode"
-				#exit
-			}
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Set-MaintenanceMode cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to $state Maintenance mode"
+                $hostStatus = (Get-VMHost -Server $server)
+                if ($state -eq "ENABLE") {
+                    if ($hostStatus.ConnectionState -eq "Connected") {
+                        Write-LogMessage -Type INFO -Message "Attempting to place $server into Maintenance mode"
+                        Get-View -ViewType HostSystem -Filter @{"Name" = $server }|?{!$_.Runtime.InMaintenanceMode}|%{$_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode=(new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction=[VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction})}))}
+                        $hostStatus = (Get-VMHost -Server $server)
+                        if ($hostStatus.ConnectionState -eq "Maintenance") {
+                            Write-LogMessage -Type INFO -Message "The host $server has been placed in Maintenance mode successfully" -Colour Green
+                        }
+                        else {
+                            Write-LogMessage -Type ERROR -Message "The host $server was not placed in Maintenance mode, verify and try again" -Colour Red
+                        }
+                    }
+                    elseif ($hostStatus.ConnectionState -eq "Maintenance") {
+                        Write-LogMessage -Type INFO -Message "The host $server is already in Maintenance mode" -Colour Green
+                    }
+                    else {
+                        Write-LogMessage -Type ERROR -Message "The host $server is not currently connected" -Colour Red
+                    }
+                }
+
+                elseif ($state -eq "DISABLE") {
+                    if ($hostStatus.ConnectionState -eq "Maintenance") {
+                        Write-LogMessage -Type INFO -Message "Attempting to take $server out of Maintenance mode"
+                        $task = Set-VMHost -VMHost $server -State "Connected" -RunAsync -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
+                        $vmhost = Wait-Task $task
+                        $hostStatus = (Get-VMHost -Server $server)
+                        if ($hostStatus.ConnectionState -eq "Connected") {
+                            Write-LogMessage -Type INFO -Message "The host $server has been taken out of Maintenance mode successfully" -Colour Green
+                        }
+                        else {
+                            Write-LogMessage -Type ERROR -Message "The host $server was not taken out of Maintenance mode, verify and try again" -Colour Red
+                        }
+                    }
+                    elseif ($hostStatus.ConnectionState -eq "Connected") {
+                        Write-LogMessage -Type INFO -Message "The host $server is already out of Maintenance mode" -Colour Green
+                    }
+                    else {
+                        Write-LogMessage -Type ERROR -Message "The host $server is not currently connected" -Colour Red
+                    }
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             else {
-				write-output "The host was taken out of maintainance mode successfully"
-			}
-		}
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
         else {
-			if ($host1.ConnectionState -ne "Maintenance") {
-                Execute-OnEsx -server $server -user $user -pass $pass  -cmd $cmd
-				Start-Sleep -s 10
-				$count=1
-				$host1 = Get-VMHost $server
-				While ($host1.ConnectionState -ne "Maintenance" -OR $count -le 5) {
-					Start-Sleep -s 10
-					$count = $count + 1
-					$host1 = Get-VMHost $server
-				}
-			}
-		
-			if ($host1.ConnectionState -ne "Maintenance") {
-				write-error "The host could not be put into maintainance mode"
-				#exit
-			}
-            else {
-				write-output "The host has been set to maintainance mode successfully"
-			}
-		}
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        }
     } 
     Catch {
         Debug-CatchWriter -object $_
     } 
     Finally {
-        Disconnect-VIServer -server $server -Confirm:$false
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Set-MaintenanceMode cmdlet" -Colour Yellow
     }
 }
-Export-ModuleMember -Function Set-MaintainanceMode
+Export-ModuleMember -Function Set-MaintenanceMode
 
 Function Connect-NSXTLocal {
     <#
@@ -1119,7 +1120,7 @@ Function Test-VsanHealth {
     The Test-VsanHealth cmdlet checks the healh of the VSAN cluster
     
     .EXAMPLE
-    PS C:\> Test-VsanHealth -sluster sfo-m01-cl01 -server sfo-n01-vc01 -user administrator@vsphere.local -pass VMw@re1!
+    PS C:\> Test-VsanHealth -cluster sfo-m01-cl01 -server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re1!
     This example connects to Management Domain vCenter Server and checks the health of the VSAN cluster
 #>
     Param (
