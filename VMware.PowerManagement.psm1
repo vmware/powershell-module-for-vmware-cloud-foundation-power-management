@@ -714,29 +714,28 @@ Function Connect-NSXTLocal {
         ===========================================================================
         
         .SYNOPSIS
-        Check to see if local url or nsx-t manager works fine
+        Check to see if local url of nsx-t manager works fine
     
         .DESCRIPTION
-        This is to ensure local url or nsx-t manager works fine after it is started
+        This is to ensure local url of nsx-t manager works fine after it is started
     
         .EXAMPLE
         PS C:\>Connect-NSXTLocal -url <url> 
     #>
           
     Param (
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$url
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$url
     )
     
     Try {
-		#in core we do have -SkipCertificateCheck. No need of below block
-
+        Write-LogMessage -Type INFO -Message  "Starting Exeuction of Connect-NSXTLocal cmdlet" -Colour Yellow
+        #should this below call be only for desktop version of PS and not for core?
 		Ignore-CertificateError
 		$response = Invoke-WebRequest -uri $url
 		if($response.StatusCode -eq 200) {
-			write-output "The URL is working"
+            Write-LogMessage -Type INFO -Message  "The URL $url is working" -Colour Yellow
 		} else {
-			write-error "The URL is not working"
-			#exit
+            Write-LogMessage -Type ERROR -Message  "The URL $url is not working" -Colour Red
 		}
     }
     Catch {
@@ -1091,52 +1090,68 @@ Function Set-DrsAutomationLevel {
     <#
         .NOTES
         ===========================================================================
-        Created by:		Sowjanya V
-        Date:			03/16/2021
+        Created by:		Sowjanya V / Gary Blake (Enhancements)
+        Date:			07/22/2021
         Organization:	VMware
         ===========================================================================
         
         .SYNOPSIS
-        Set the automation level to manual or fully automated 
+        Set the DRS automation level
     
         .DESCRIPTION
         Set the automation level to manual or fully automated 
     
         .EXAMPLE
-        PS C:\>Set-DrsAutomationLevel -Server $server -User $user  -Pass $pass -cluster <clustername> -level <Manual/FullyAutomated>
-
+        PS C:\> Set-DrsAutomationLevel -Server $server -User $user  -Pass $pass -cluster <clustername> -level <Manual/FullyAutomated>
     #>
 
 	Param (
-        [Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][String]$server,
-        [Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][String]$user,
-        [Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][String]$pass,
-		[Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][string]$cluster,
-		[Parameter (Mandatory = $true)][ValidateNotNullOrEmpty()][string]$level
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster,
+		[Parameter (Mandatory = $true)] [ValidateSet("FullyAutomated", "Manual", "PartiallyAutomated", "Disabled")] [String]$level
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-        Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-		$out = Get-Cluster -Name $cluster
-		if ($out.DrsAutomationLevel -eq $level) {
-			Write-Output "DrsAutomationLevel is already set to $level"
-		}
-        else {
-			$task =  Set-Cluster -Cluster $cluster -DrsAutomationLevel $level -Confirm:$false 
-			if ($task.DrsAutomationLevel -eq $level) {
-				Write-Output "DrsAutomationLevel is set to $level successfully"
-			}
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Set-DrsAutomationLevel cmdlet" -Colour Yellow
+
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                $drsStatus = Get-Cluster -Name $cluster
+                if ($drsStatus.DrsAutomationLevel -eq $level) {
+                    Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' is already set to '$level'" -Colour Cyan
+                    #Write-Output "DrsAutomationLevel is already set to $level"
+                }
+                else {
+                    $drsStatus = Set-Cluster -Cluster $cluster -DrsAutomationLevel $level -Confirm:$false 
+                    if ($drsStatus.DrsAutomationLevel -eq $level) {
+                        Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' has been set to '$level' successfully" -Colour Green
+                        #Write-Output "DrsAutomationLevel is set to $level successfully"
+                    }
+                    else {
+                        Write-LogMessage -Type ERROR -Message "The DRS Automation Level for cluster '$cluster' could not be set to '$level'" -Colour Red
+                        #Write-Output "DrsAutomationLevel could not be set to $level"
+                    }
+                }
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             else {
-				Write-Output "DrsAutomationLevel could not be set to $level"
-			}
-		}		
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
+        else {
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        }
     } 
     Catch {
-        Write-Error "An error occured. $_"
+        Debug-CatchWriter -object $_
     }
     Finally {
-        Disconnect-VIServer -Server $server -confirm:$false
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Set-DrsAutomationLevel cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Set-DrsAutomationLevel
