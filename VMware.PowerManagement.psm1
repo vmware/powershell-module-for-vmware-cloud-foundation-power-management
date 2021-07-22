@@ -758,43 +758,86 @@ Function Get-VAMIServiceStatus {
         Get the current status of the service on a given CI server
     
         .DESCRIPTION
-        The status could be STARTED/STOPPED, check it out
+        Get the current status of the service on a given CI server. The status could be STARTED/STOPPED
     
         .EXAMPLE
-        PS C:\>Get-VAMIServiceStatus -Server $server -User $user  -Pass $pass -service $service
+        PS C:\> Get-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re123! -service 'wcp' -check_status 'STARTED'
+        This example connects to tanzu workload domain VC, uses check_status parameter and tries to see if 'wcp' service is 'STARTED' or not.
+
+        PS C:\> Get-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re123! -service 'wcp' -action 'STOP'
+        This example connects to tanzu workload domain VC, uses action parameter and tries to STOP the 'wcp' service.
+
+        PS C:\> Get-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re123! -service 'wcp' -action 'START'
+        This example connects to tanzu workload domain VC, uses action parameter and tries to START the 'wcp' service.
+
     #>
 	Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
 		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [string]$service,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$check_status
+        [Parameter (ParameterSetName = 'action', Mandatory = $true)] [ValidateNotNullOrEmpty()] [string]$action,
+		[Parameter (ParameterSetName = 'check_status', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$check_status
     )
 
     Try {
-		#in core we do have -SkipCertificateCheck. No need of below block
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and Trying to get service status" -Colour Yellow
+                #Connect-CisServer -server $server -user $user -pass $pass
+                $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
+                $serviceStatus = $vMonAPI.get($service,0)
+                $status = $serviceStatus.state
+                if ($PSCmdlet.ParameterSetName -eq "action") {
+                    
+                    if($status -match $action) {
+                        Write-LogMessage -Type INFO -Message "The service $service is $action successfully" -Colour Yellow
+                        Return 0
+                     }
+                    if ($action -eq 'START') {
+                        Write-LogMessage -Type INFO -Message "Starting $service service ..." -Colour Yellow
+                        $vMonAPI.start($service)
+                    } elseif ($action -eq 'STOP') {
+                        Write-LogMessage -Type INFO -Message "Stopping $service service ..." -Colour Yellow
+                        $vMonAPI.start($service)
+                    }
+                    Start-Sleep -s 10
+                    $serviceStatus = $vMonAPI.get($service,0)
+                    $status = $serviceStatus.state
+                    if ($status -match $action) {
+                        Write-LogMessage -Type INFO -Message "The service:$service status:$status is matching" -Colour Yellow
+                    }
+                    else {
+                        Write-LogMessage -Type ERROR -Message "The service:$service status_expected:$action   status_actual:$status is not matching" -Colour Red
+                    }
 
-		Connect-CisServer -server $server -user $user -pass $pass
-		$vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
-		$serviceStatus = $vMonAPI.get($service,0)
-		$status = $serviceStatus.state
-		if ($check_status) {
-			if ($serviceStatus.state -eq $check_status) {
-				write-output "The service:$service status:$status is matching"
-			}
+                } elseif ($PSCmdlet.ParameterSetName -eq "check_status") {
+                    if ($serviceStatus.state -eq $check_status) {
+                        Write-LogMessage -Type INFO -Message "The service:$service status:$status is matching" -Colour Yellow
+                    }
+                    else {
+                        Write-LogMessage -Type ERROR -Message  "The service:$service   status_expected:$check_status   status_actual:$status is not matching" -Colour Red
+                    }
+                }
+            }
             else {
-				write-error "The service:$service status_expected:$check_status   status_actual:$status is not matching"
-				#exit
-			}
-		}
+                Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
         else {
-			Return $serviceStatus.state
-		}
+            Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        }
+            
     } 
     Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VAMIServiceStatus cmdlet" -Colour Yellow
         Disconnect-CisServer -Server $server -confirm:$false
     }
 }
