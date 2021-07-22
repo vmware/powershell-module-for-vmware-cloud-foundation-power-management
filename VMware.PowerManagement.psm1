@@ -428,8 +428,7 @@ Function Get-VMRunningStatus {
         Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VMRunningStatus cmdlet" -Colour Yellow
     }
 }
-New-Alias -Name Verify-VMStatus -Value Get-VMRunningStatus
-Export-ModuleMember -Alias Verify-VMStatus  -Function Get-VMRunningStatus
+Export-ModuleMember -Function Get-VMRunningStatus
 
 Function Invoke-EsxCommand {
     <#
@@ -492,8 +491,7 @@ Function Invoke-EsxCommand {
         Write-LogMessage -Type INFO -Message "Finishing Exeuction of Invoke-EsxCommand cmdlet" -Colour Yellow
     }
 }
-New-Alias -Name Execute-OnEsx -Value Invoke-EsxCommand
-Export-ModuleMember -Alias Execute-OnEsx -Function Invoke-EsxCommand
+Export-ModuleMember -Function Invoke-EsxCommand
 
 Function Get-VsanClusterMember {
     <#
@@ -559,8 +557,7 @@ Function Get-VsanClusterMember {
         Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VSANClusterMember cmdlet" -Colour Yellow
     }
 }
-New-Alias -Name Verify-VsanClusterMembers -Value Get-VsanClusterMember
-Export-ModuleMember -Alias Verify-VsanClusterMembers -Function Get-VsanClusterMember
+Export-ModuleMember -Function Get-VsanClusterMember
 
 Function Test-VsanHealth {
     <#
