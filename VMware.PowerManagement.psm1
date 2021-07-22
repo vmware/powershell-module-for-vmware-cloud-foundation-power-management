@@ -1036,7 +1036,7 @@ Function Get-EnvironmentId {
 }
 Export-ModuleMember -Function Get-EnvironmentId
 
-Function ShutdownStartupProduct-ViaVRSLCM
+Function Request-StartStopViaVRSLCM
 {
     <#
         .NOTES
@@ -1047,19 +1047,23 @@ Function ShutdownStartupProduct-ViaVRSLCM
         ===========================================================================
         
         .SYNOPSIS
-        Shutting down VRA or VROPS via VRSLCM
+        Shutting down VRA or VIDM via VRSLCM
     
         .DESCRIPTION
-        There are no POWER CLI or POWER SHELL cmdlet to power off the products via VRSLCM. Hence writing my own
-    
-        .EXAMPLE
-        PS C:\> ShutdownProduct_ViaVRSLCM -server <VRSLCM> -user <username> -pass <password> -product <VRA/VROPS/VRLI/VIDM> -mode <power-on/power-off>
-        This example shutsdown a product via VRSLCM
-        Sample URL formed on TB04 is as shown below
-        Do Get on https://xreg-vrslcm01.rainpole.io/lcm/lcops/api/v2/environments
-           and findout what is the id assosiated with Cross-Region Environment 
+        There function is used to shutdown or startup VRA or VIDM components via VRSLCM. 
 
-        $uri = "https://xreg-vrslcm01.rainpole.io/lcm/lcops/api/v2/environments/Cross-Region-Env1612043838679/products/vra/deployed-vms"
+        .EXAMPLE
+        PS C:\> Request-StartStopViaVRSLCM -server xreg-vrslcm01.rainpole.io -user 'vcfadmin@local' -pass 'VMw@re123!' -env "global" -product 'vidm' -mode "power-on"
+        In this example we connect to VRSLCM and are starting either VIDM component 
+
+        PS C:\> Request-StartStopViaVRSLCM -server xreg-vrslcm01.rainpole.io -user 'vcfadmin@local' -pass 'VMw@re123!' -env "global" -product 'vidm' -mode "power-off"
+        In this example we connect to VRSLCM and gracefully shutdown VIDM component 
+
+        PS C:\> Request-StartStopViaVRSLCM -server xreg-vrslcm01.rainpole.io -user 'vcfadmin@local' -pass 'VMw@re123!' -env "Cross" -product 'VRA' -mode "power-on"
+        In this example we connect to VRSLCM and are starting either VRA component 
+
+        PS C:\> Request-StartStopViaVRSLCM -server xreg-vrslcm01.rainpole.io -user 'vcfadmin@local' -pass 'VMw@re123!' -env "Cross" -product 'VRA' -mode "power-off"
+        In this example we connect to VRSLCM and gracefully shutdown VRA component 
     #>
           
     Param (
@@ -1073,29 +1077,28 @@ Function ShutdownStartupProduct-ViaVRSLCM
     )
     
     Try {
-	
-		Write-Output $server
+        Write-LogMessage -Type INFO -Message "Starting Exeuction of Get-EnvironmentId cmdlet" -Colour Yellow
+		#Write-Output $server
         $env_id = Get-EnvironmentId -server $server -user $user -pass $pass -Name $env
-		Write-Output $env_id
+		#Write-Output $env_id
 		
 		$Global:myHeaders = createHeader $user $pass
-		Write-Output $myHeaders
+		#Write-Output $myHeaders
 		$uri = "https://$server/lcm/lcops/api/v2/environments/$env_id/products/$product/$mode"
 
 		
-		Write-Output $uri
+		#Write-Output $uri
         $json = {}
         $response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body $json
 		
-		Write-Output "------------------------------------"
-		Write-Output $response
-		Write-Output "------------------------------------"
+		#Write-Output "------------------------------------"
+		#Write-Output $response
+		#Write-Output "------------------------------------"
         if ($response.requestId) {
-            Write-Output "Successfully initiated $mode on $product"
+            Write-LogMessage -Type INFO -Message "Successfully initiated $mode on $product" -Colour Yellow
         }
         else {
-            Write-Error "Unable to $mode on $product due to response "
-			#exit
+            Write-LogMessage -Type ERROR -Message "Unable to $mode on $product due to response " -Colour Red
         }
 		$id = $response.requestId
 		#a893afc1-2035-4a9c-af91-0c55549e4e07
@@ -1107,27 +1110,33 @@ Function ShutdownStartupProduct-ViaVRSLCM
 			Start-Sleep -s 60
 			$response2 = Invoke-RestMethod -Method GET -URI $uri2 -headers $myHeaders -ContentType application/json 
 			if (($response2.state -eq 'COMPLETED') -or ($response2.state -eq 'FAILED')) {
-				Write-Output $response2.state
+                Write-LogMessage -Type INFO -Message "The API has exited with the following state" -Colour Yellow
+                Write-LogMessage -Type INFO -Message $response2.state -Colour Yellow
 				Break
 			}
 		}
 		if (($response2.state -eq 'COMPLETED') -and ($response2.errorCause -eq $null)) {
-			Write-Output "The $mode on $product is successfull "
+            Write-LogMessage -Type INFO -Message "The $mode on $product is successfull" -Colour Yellow
 		}
         elseif (($response2.state -eq 'FAILED')) {
-			Write-Output " could not $mode on $product because of "
-			Write-Error $response2.errorCause.message
+            Write-LogMessage -Type ERROR -Message "Could not $mode on $product because of" -Colour Red
+            Write-LogMessage -Type ERROR -Message $response2.errorCause.message -Colour Red
 	    }
         else {
-			Write-Error "could not $mode on $product within the timeout value"
+            Write-LogMessage -Type ERROR -Message "Could not $mode on $product within the timeout value" -Colour Red
 		}
     }
     Catch {
        #$PSItem.InvocationInfo
 	   Debug-CatchWriter -object $_
     }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-EnvironmentId cmdlet" -Colour Yellow
+    }
 }
-Export-ModuleMember -Function ShutdownStartupProduct-ViaVRSLCM
+Export-ModuleMember -Function Request-StartStopViaVRSLCM
+New-Alias -Name ShutdownStartupProduct-ViaVRSLCM -Value Request-StartStopViaVRSLCM
+Export-ModuleMember -Alias ShutdownStartupProduct-ViaVRSLCM  -Function Request-StartStopViaVRSLCM
 
 Function Set-DrsAutomationLevel {
     <#
