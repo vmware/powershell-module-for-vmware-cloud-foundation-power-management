@@ -1317,42 +1317,46 @@ Function PowerOn-EsxiUsingILO {
         Created by:    Sowjanya V
         Organization:  VMware
 
-        ===========================================================================
-        .DESCRIPTION
-            This method is used to poweron the DELL ESxi server using ILO ip address using racadm 
-            This is cli equivalent of admin console for DELL servers
-        .PARAMETER 
-        ilo_ip
-            Out of Band Ipaddress
-        user
-            IDRAC console login user
-        pass
-            IDRAC console login password
-        .EXAMPLE
-            PowerOn-EsxiUsingILO -ilo_ip $ilo_ip  -ilo_user <drac_console_user>  -ilo_pass <drac_console_pass>
-    #>
-    
+    ===========================================================================
+    .DESCRIPTION
+        This method is used to poweron the DELL ESxi server using ILO ip address using racadm cli. This is cli equivalent of admin console for DELL servers
+
+    .EXAMPLE
+        PowerOn-EsxiUsingILO -ilo_ip $ilo_ip  -ilo_user <drac_console_user>  -ilo_pass <drac_console_pass>
+        This example connects to out of band ip address powers on the ESXi host
+#>
     Param (
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_ip,
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_user,
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_pass
+		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_pass,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$exe_path
     )
 	
 	Try {
-
-		$out = cmd /c "C:\Program Files\Dell\SysMgt\rac5\racadm" -r $ilo_ip -u $ilo_user -p $ilo_pass  --nocertwarn serveraction powerup
+        $default_path = 'C:\Program Files\Dell\SysMgt\rac5\racadm.exe'
+        if (Test-path $exe_path) {
+            Write-LogMessage -Type INFO -Message "The racadm.exe is present in $exe_path" -Colour Yellow
+            $default_path = $exe_path
+        } elseif (Test-path  $default_path) {
+            Write-LogMessage -Type INFO -Message "The racadm.exe is present in the default path" -Colour Yellow
+        } else {
+            Write-LogMessage -Type Error -Message "The racadm.exe is not present in $exe_path or the default path $default_path" -Colour Red
+        }
+		$out = cmd /c $default_path -r $ilo_ip -u $ilo_user -p $ilo_pass  --nocertwarn serveraction powerup
 		if ( $out.contains("Server power operation successful")) {
-			Write-Output "Waiting for bootup to complete."
+            Write-LogMessage -Type INFO -Message "power-on on host $ilo_ip is successfully initiated" -Colour Yellow
 			Start-Sleep -Seconds 600
-			Write-Output "bootup complete."
+            Write-LogMessage -Type INFO -Message "bootup complete." -Colour Yellow
 		}
         else {
-			Write-Error "couldnot start the server"
-			#exit
+            Write-LogMessage -Type Error -Message "Couldn't poweron the server $ilo_ip" -Colour Red
 		}
 	}
     Catch {
         Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of PowerOn-EsxiUsingILO cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function PowerOn-EsxiUsingILO
