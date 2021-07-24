@@ -19,7 +19,7 @@ Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
 
 Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
 $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message "$StatusMsg" } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
 if ($accessToken) {
     Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
     # Gather Details from SDDC Manager
@@ -107,7 +107,7 @@ if ($powerState -eq "Shutdown") {
     $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
     if ($checkServer -eq "True") {
         Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
-        Test-ResyncingObject -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+        Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
     }
     else {
         Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping checking VSAN health for cluster $($cluster.name)" -Colour Cyan
@@ -177,5 +177,3 @@ if ($powerState -eq "Startup") {
         Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
     }
 }
-
-

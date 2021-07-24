@@ -1,3 +1,32 @@
+
+# Enable communication with self signed certs when using Powershell Core, if you require all communications to be secure and do not wish to
+# allow communication with self signed certs remove lines 31-52 before importing the module
+
+if ($PSEdition -eq 'Core') {
+    $PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck", $true)
+}
+
+if ($PSEdition -eq 'Desktop') {
+    # Enable communication with self signed certs when using Windows Powershell
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12;
+
+    if (-not ([System.Management.Automation.PSTypeName]'TrustAllCertificatePolicy').Type) {
+        Add-Type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertificatePolicy : ICertificatePolicy {
+        public TrustAllCertificatePolicy() {}
+        public bool CheckValidationResult(
+            ServicePoint sPoint, X509Certificate certificate,
+            WebRequest wRequest, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+    [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertificatePolicy
+}
+    }
+
 Function Stop-CloudComponent {
     <#
         .NOTES
@@ -46,7 +75,7 @@ Function Stop-CloudComponent {
                             if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 if ($vm_obj.State -eq 'NotRunning') {
-                                    Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered Off state" -Colour Green
+                                    Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered Off state" -Colour Cyan
                                     Continue
                                 }
                                 Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$node'"
@@ -84,7 +113,7 @@ Function Stop-CloudComponent {
                             $count=0
                             $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             if ($vm_obj.State -eq 'NotRunning') {
-                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered Off state" -Colour Green
+                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered Off state" -Colour Cyan
                                 Continue
                             }
                             Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$($node.name)'"
@@ -704,23 +733,23 @@ Function Test-VsanObjectResync {
 }
 Export-ModuleMember -Function Test-VsanObjectResync
 
-Function Connect-NSXTLocal {
+Function Test-WebUrl {
     <#
         .NOTES
         ===========================================================================
-        Created by:		Sowjanya V
-        Date:			03/16/2021
+        Created by:		Sowjanya V / Gary Blake (Enhancements)
+        Date:			07/24/2021
         Organization:	VMware
         ===========================================================================
         
         .SYNOPSIS
-        Check to see if local url of nsx-t manager works fine
+        Test connection to a url 
     
         .DESCRIPTION
-        This is to ensure local url of nsx-t manager works fine after it is started
+        The Test-WebUrl cmdlet tests the connection to the provided url
     
         .EXAMPLE
-        PS C:\>Connect-NSXTLocal -url <url> 
+        PS C:\> Test-WebUrl -url "https://sfo-w01-nsx01.sfo.rainpole.io/login.jsp?local=true"
     #>
           
     Param (
@@ -728,22 +757,24 @@ Function Connect-NSXTLocal {
     )
     
     Try {
-        Write-LogMessage -Type INFO -Message  "Starting Exeuction of Connect-NSXTLocal cmdlet" -Colour Yellow
-        #should this below call be only for desktop version of PS and not for core?
-		Ignore-CertificateError
-		$response = Invoke-WebRequest -uri $url
-		if($response.StatusCode -eq 200) {
-            Write-LogMessage -Type INFO -Message  "The URL $url is working" -Colour Yellow
-		} else {
-            Write-LogMessage -Type ERROR -Message  "The URL $url is not working" -Colour Red
+        Write-LogMessage -Type INFO -Message  "Starting Exeuction of Test-WebUrl cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Attempting connect to url '$url'"
+		$response = Invoke-WebRequest -uri $url -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+		if ($response.StatusCode -eq 200) {
+            Write-LogMessage -Type INFO -Message "Response Code: $($response.StatusCode) for URL '$url' - SUCCESS" -Colour Green
+		}
+        else {
+            Write-LogMessage -Type ERROR -Message "Response Code: $($response.StatusCode) for URL '$url'" -Colour Red
 		}
     }
     Catch {
-        $PSItem.InvocationInfo
-		Debug-CatchWriter -object $_
+        Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-WebUrl cmdlet" -Colour Yellow
     }
 }
-Export-ModuleMember -Function Connect-NSXTLocal
+Export-ModuleMember -Function Test-WebUrl
 
 Function Get-VAMIServiceStatus {
     <#
@@ -1448,7 +1479,7 @@ Export-ModuleMember -Function Start-SetupLogFile
 Function Write-LogMessage {
     Param (
         [Parameter (Mandatory = $true)] [AllowEmptyString()] [String]$Message,
-        [Parameter (Mandatory = $false)] [ValidateSet("INFO", "ERROR", "WARNING", "EXCEPTION")] [String]$type = "INFO   ",
+        [Parameter (Mandatory = $false)] [ValidateSet("INFO", "ERROR", "WARNING", "EXCEPTION")] [String]$Type,
         [Parameter (Mandatory = $false)] [String]$Colour,
         [Parameter (Mandatory = $false)] [string]$Skipnewline
     )
@@ -1461,13 +1492,15 @@ Function Write-LogMessage {
 
     Write-Host -NoNewline -ForegroundColor White " [$timestamp]"
     if ($Skipnewline) {
-        Write-Host -NoNewline -ForegroundColor $Colour " $type $Message"        
+        Write-Host -NoNewline -ForegroundColor $Colour " $Type $Message"        
     }
     else {
-        Write-Host -ForegroundColor $colour " $Type $Message" 
+        Write-Host -ForegroundColor $Colour " $Yype $Message" 
     }
-    $logContent = '[' + $timeStamp + '] ' + $Type + ' ' + $Message
-    Add-Content -Path $logFile $logContent
+    $logContent = '[' + $timeStamp + '] ' + $Yype + ' ' + $Message
+    if ($logFile) {
+        Add-Content -Path $logFile $logContent
+    }
 }
 Export-ModuleMember -Function Write-LogMessage
 
