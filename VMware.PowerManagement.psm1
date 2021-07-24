@@ -786,7 +786,7 @@ Function Get-VAMIServiceStatus {
         ===========================================================================
         
         .SYNOPSIS
-        Get the current status of the service on a given CI server
+        Get the status of the service on a given CI server
     
         .DESCRIPTION
         Get the current status of the service on a given CI server. The status could be STARTED/STOPPED
@@ -808,7 +808,7 @@ Function Get-VAMIServiceStatus {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
 		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [string]$service,
         [Parameter (ParameterSetName = 'action', Mandatory = $true)] [ValidateNotNullOrEmpty()] [string]$action,
-		[Parameter (ParameterSetName = 'check_status', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$check_status
+		[Parameter (ParameterSetName = 'checkStatus', Mandatory = $true)] [ValidateSet("STARTED", "STOPPED")] [String]$checkStatus
     )
 
     Try {
@@ -816,44 +816,45 @@ Function Get-VAMIServiceStatus {
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-            if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and Trying to get service status" -Colour Yellow
-                #Connect-CisServer -server $server -user $user -pass $pass
+            Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
+            if ($DefaultCisServers.Name -eq $server) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
-                $serviceStatus = $vMonAPI.get($service,0)
-                $status = $serviceStatus.state
+                $serviceStatus = $vMonAPI.Get($service,0)
+                #$status = $serviceStatus.state
                 if ($PSCmdlet.ParameterSetName -eq "action") {
-                    
-                    if($status -match $action) {
+                    if ($serviceStatus.state -match $action) {
                         Write-LogMessage -Type INFO -Message "The service $service is $action successfully" -Colour Yellow
                         Return 0
-                     }
+                    }
                     if ($action -eq 'START') {
                         Write-LogMessage -Type INFO -Message "Starting $service service ..." -Colour Yellow
                         $vMonAPI.start($service)
-                    } elseif ($action -eq 'STOP') {
+                    }
+                    elseif ($action -eq 'STOP') {
                         Write-LogMessage -Type INFO -Message "Stopping $service service ..." -Colour Yellow
                         $vMonAPI.start($service)
                     }
                     Start-Sleep -s 10
-                    $serviceStatus = $vMonAPI.get($service,0)
-                    $status = $serviceStatus.state
-                    if ($status -match $action) {
+                    #$serviceStatus = $vMonAPI.get($service,0)
+                    #$status = $serviceStatus.state
+                    if ($serviceStatus.state -match $action) {
                         Write-LogMessage -Type INFO -Message "The service:$service status:$status is matching" -Colour Yellow
                     }
                     else {
                         Write-LogMessage -Type ERROR -Message "The service:$service status_expected:$action   status_actual:$status is not matching" -Colour Red
                     }
-
-                } elseif ($PSCmdlet.ParameterSetName -eq "check_status") {
-                    if ($serviceStatus.state -eq $check_status) {
-                        Write-LogMessage -Type INFO -Message "The service:$service status:$status is matching" -Colour Yellow
+                }
+                if ($PSCmdlet.ParameterSetName -eq "checkStatus") {
+                    Write-LogMessage -Type INFO -Message "Checking the service '$service' status is $checkStatus"
+                    if ($serviceStatus.state -eq $checkStatus) {
+                        Write-LogMessage -Type INFO -Message "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Green
                     }
                     else {
-                        Write-LogMessage -Type ERROR -Message  "The service:$service   status_expected:$check_status   status_actual:$status is not matching" -Colour Red
+                        Write-LogMessage -Type ERROR -Message  "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Red
                     }
                 }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-CisServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -861,15 +862,13 @@ Function Get-VAMIServiceStatus {
         }
         else {
             Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
-        }
-            
+        } 
     } 
     Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
         Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VAMIServiceStatus cmdlet" -Colour Yellow
-        Disconnect-CisServer -Server $server -confirm:$false
     }
 }
 Export-ModuleMember -Function Get-VAMIServiceStatus
