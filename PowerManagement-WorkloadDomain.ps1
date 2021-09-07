@@ -1,3 +1,15 @@
+    <#
+        .SYNOPSIS
+        Connects to the specified SDDC Manager and shutdowns/starts up a VI Workload Domain
+
+        .DESCRIPTION
+        This script connects to the specified SDDC Manager and either shutsdown or start up a VI Workload Domain
+
+        .EXAMPLE
+        PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Shutdown
+        Initiaites a shutdown of the VI Workload Domain 'sfo-w01'
+    #>
+
 Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
@@ -72,9 +84,57 @@ if ($accessToken) {
     foreach ($node in $nsxtEdgeNodesfqdn) {
         [Array]$nsxtEdgeNodes += $node.Split(".")[0]
     }
-    $nsxtEdgeNodes = "ldn-w01-en01", "ldn-w01-en02"
 
-    $clusterPattern = "^vCLS.*"
+    # Gather vRealize Suite Details
+    $vrslcm = New-Object -TypeName PSCustomObject
+    $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
+    $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
+    $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
+    $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
+    $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
+    $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
+
+    $wsa = New-Object -TypeName PSCustomObject
+    $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).status
+    $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).loadBalancerFqdn
+    $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
+    $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
+    $wsaNodes = @()
+    foreach ($node in (Get-VCFWSA).nodes.fqdn | Sort-Object) {
+        [Array]$wsaNodes += $node.Split(".")[0]
+    }
+
+    $vrops = New-Object -TypeName PSCustomObject
+    $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).status
+    $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).loadBalancerFqdn
+    $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
+    $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
+    $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
+    $vropsNodes = @()
+    foreach ($node in (Get-VCFvROPS).nodes.fqdn | Sort-Object) {
+        [Array]$vropsNodes += $node.Split(".")[0]
+    }
+
+    $vra = New-Object -TypeName PSCustomObject
+    $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).status
+    $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).loadBalancerFqdn
+    $vra | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vra.fqdn -and $_.credentialType -eq "API"})).username
+    $vra | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vra.fqdn -and $_.credentialType -eq "API"})).password
+    $vraNodes = @()
+    foreach ($node in (Get-VCFvRA).nodes.fqdn | Sort-Object) {
+        [Array]$vraNodes += $node.Split(".")[0]
+    }
+
+    $vrli = New-Object -TypeName PSCustomObject
+    $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).status
+    $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).loadBalancerFqdn
+    $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
+    $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
+    $vrliNodes = @()
+    foreach ($node in (Get-VCFvRLI).nodes.fqdn | Sort-Object) {
+        [Array]$vrliNodes += $node.Split(".")[0]
+    }
+
 }
 else {
     Write-LogMessage -Type ERROR -Message "Unable to connect to SDDC Manager $server" -Colour Red
@@ -87,12 +147,48 @@ if ($powerState -eq "Shutdown") {
     if ($checkServer -eq "True") {
         Set-DrsAutomationLevel -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -cluster $mgmtCluster.name -level PartiallyAutomated
     }
-    $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-    if ($checkServer -eq "True") {
-        Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
+    if (!$($WorkloadDomain.type) -eq "MANAGEMENT") {
+        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
+        }
     }
 
-    # Shutdown the NSX Edge Nodes in the Virtual Infrastructure Workload Domain
+    # Shut Down the vSphere with Tanzu Virtual Machines
+    Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action STOP
+    $clusterPattern = "^SupervisorControlPlaneVM.*"
+    foreach ($esxiNode in $esxiWorkloadDomain) {
+        Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
+    }
+
+    $clusterPattern = "^harbor.*"
+    foreach ($esxiNode in $esxiWorkloadDomain) {
+        Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
+    }
+
+    # Shutdown vRealize Suite
+    if ($($WorkloadDomain.type) -eq "MANAGEMENT") {
+        if ($($vra.status -eq "ACTIVE")) {
+
+        }
+        if ($($vrops.status -eq "ACTIVE")) {
+            Set-vROPSClusterState -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword -mode OFFLINE
+            Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsNodes -timeout 600
+        }
+        if ($($wsa.status -eq "ACTIVE")) {
+
+        }
+        if ($($vrslcm.status -eq "ACTIVE")) {
+
+        }
+        if ($($vrli.status -eq "ACTIVE")) {
+            Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrliNodes -timeout 600
+        }
+    }
+
+pause 
+
+    # Shutdown the NSX Edge Nodes
     $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
     if ($checkServer -eq "True") {
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
@@ -100,7 +196,7 @@ if ($powerState -eq "Shutdown") {
     else {
         Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping shutdown of $nsxtEdgeNodes" -Colour Cyan
     }
-    # Shutdown the NSX Manager Nodes in the Management Domain
+    # Shutdown the NSX Manager Nodes
     Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
     # Check the health and sync status of the VSAN cluster
@@ -113,11 +209,12 @@ if ($powerState -eq "Shutdown") {
         Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping checking VSAN health for cluster $($cluster.name)" -Colour Cyan
     }
 
-    # Shutdown the Virtual Infrastructure Workload Domain vCenter Server
+    # Shutdown vCenter Server
     Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
 
     # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
     foreach ($esxiNode in $esxiWorkloadDomain) {
+        $clusterPattern = "^vCLS.*"
         Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
     }
 
@@ -145,6 +242,7 @@ if ($powerState -eq "Startup") {
     }
 
     # Startup the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
+    $clusterPattern = "^vCLS.*"
     foreach ($esxiNode in $esxiWorkloadDomain) {
         Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000 
     }
@@ -167,13 +265,36 @@ if ($powerState -eq "Startup") {
         Exit
     }
 
+    # Startup vRealize Suite
+    if ($($WorkloadDomain.type) -eq "MANAGEMENT") {
+        if ($($vra.status -eq "ACTIVE")) {
+
+        }
+        if ($($vrops.status -eq "ACTIVE")) {
+            Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsNodes -timeout 600
+            #Set-vROPSClusterState -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword -mode ONLINE
+        }
+        if ($($wsa.status -eq "ACTIVE")) {
+
+        }
+        if ($($vrslcm.status -eq "ACTIVE")) {
+
+        }
+        if ($($vrli.status -eq "ACTIVE")) {
+            Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrliNodes -timeout 600
+        }
+    }
+
     # Change the DRS Automation Level to Fully Automated for both the Management Domain and VI Workload Domain Clusters
     $checkServer = Test-Connection -ComputerName $mgmtVcServer.fqdn -Quiet -Count 1
     if ($checkServer -eq "True") {
         Set-DrsAutomationLevel -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -cluster $mgmtCluster.name -level FullyAutomated
     }
-    $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-    if ($checkServer -eq "True") {
-        Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
+
+    if (!$($WorkloadDomain.type) -eq "MANAGEMENT") {
+        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
+        }
     }
 }

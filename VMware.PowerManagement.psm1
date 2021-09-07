@@ -29,26 +29,19 @@ if ($PSEdition -eq 'Desktop') {
 
 Function Stop-CloudComponent {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:  Sowjanya V / Gary Blake (Enhancements)
-        Date:   07/13/2021
-        Organization: VMware
-        ===========================================================================
-        
         .SYNOPSIS
-        Shutdown the nodes on a given server
+        Shutdown node(s) on a given server
     
         .DESCRIPTION
-        The Stop-CloudComponent cmdlet shutdowns the given nodes on the server provided 
+        The Stop-CloudComponent cmdlet shutdowns the given node(s) on the server provided 
     
         .EXAMPLE
-        PS C:\> Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
-        This example connects to management vCenter Server and shuts down the nodes sfo-m01-en01 and sfo-m01-en02
+        Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
+        This example connects to a vCenter Server and shuts down the nodes sfo-m01-en01 and sfo-m01-en02
 
         .EXAMPLE
-        PS C:\> Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
-        This example connects to the ESXi Host and shuts down the nodes that match the pattern vCLS.*
+        Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
+        This example connects to an ESXi Host and shuts down the nodes that match the pattern vCLS.*
     #>
 
     Param (
@@ -61,7 +54,7 @@ Function Stop-CloudComponent {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Stop-CloudComponent cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Stop-CloudComponent cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -151,33 +144,26 @@ Function Stop-CloudComponent {
 		Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Stop-CloudComponent cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Stop-CloudComponent cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Stop-CloudComponent
 
 Function Start-CloudComponent {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:  Sowjanya V / Gary Blake (Enhancements)
-        Date:   07/13/2021
-        Organization: VMware
-        ===========================================================================
-        
         .SYNOPSIS
-        Startup the nodes on a given server
+        Startup node(s) on a given server
     
         .DESCRIPTION
-        The Start-CloudComponent cmdlet starts up the given nodes on the server provided 
+        The Start-CloudComponent cmdlet starts up the given node(s) on the server provided 
     
         .EXAMPLE
-        PS C:\> Start-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
-        This example connects to management vCenter Server and starts up the nodes sfo-m01-en01 and sfo-m01-en02
+        Start-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
+        This example connects to a vCenter Server and starts up the nodes sfo-m01-en01 and sfo-m01-en02
 
         .EXAMPLE
-        PS C:\> Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
-        This example connects to the ESXi Host and starts up the nodes that match the pattern vCLS.*
+        Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
+        This example connects to an ESXi Host and starts up the nodes that match the pattern vCLS.*
     #>
 
     Param (
@@ -190,7 +176,7 @@ Function Start-CloudComponent {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Start-CloudComponent cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Start-CloudComponent cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -283,33 +269,26 @@ Function Start-CloudComponent {
 		Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Start-CloudComponent cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Start-CloudComponent cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Start-CloudComponent
 
 Function Set-MaintenanceMode {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:  Sowjanya V / Gary Blake (Enhancements)
-        Date:   07/21/2021
-        Organization: VMware
-        ===========================================================================
-        
         .SYNOPSIS
-        This is to set/unset maintenance mode on the host
+        Enable or Disable maintenance mode on an ESXi host
     
         .DESCRIPTION
-        The Set-MaintenanceMode cmdlet puts a host in maintenance mode or takes it out of maintenance mode 
+        The Set-MaintenanceMode cmdlet place an ESXi host in maintenance mode or takes it out of maintenance mode 
     
         .EXAMPLE
-        PS C:\> Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state ENABLE
-        This example places the host in maintenance mode
+        Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state ENABLE
+        This example places an ESXi host in maintenance mode
 
        .EXAMPLE
-        PS C:\> Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state DISABLE
-        This example removes a host from maintenance mode
+        Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state DISABLE
+        This example takes an ESXi host out of maintenance mode
     #>
 
     Param (
@@ -320,7 +299,7 @@ Function Set-MaintenanceMode {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Set-MaintenanceMode cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Set-MaintenanceMode cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -383,29 +362,88 @@ Function Set-MaintenanceMode {
         Debug-CatchWriter -object $_
     } 
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Set-MaintenanceMode cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Set-MaintenanceMode cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Set-MaintenanceMode
 
-Function Get-VMRunningStatus {
+Function Set-DrsAutomationLevel {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:  Sowjanya V / Gary Blake (Enhancements)
-        Date:   07/07/2021
-        Organization: VMware
-        ===========================================================================
-        
         .SYNOPSIS
-        Get running status of all the VM's matching the pattern on a given host
+        Set the DRS automation level
     
         .DESCRIPTION
-        The Get-VMRunningStatus cmdlet gets the runnnig status of the given nodes matching the pattern on the host
+        The Set-DrsAutomationLevel cmdlet sets the automation level of the cluster based on the setting provided 
     
         .EXAMPLE
-        PS C:\> Get-VMRunningStatus -server sfo-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -pattern "^vCLS*"
-        This example connects to the esxi host and searches for all vm's matching the pattern and their running status
+        Set-DrsAutomationLevel -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -level PartiallyAutomated
+        Thi examples sets the DRS Automation level for the sfo-m01-cl01 cluster to Partially Automated
+    #>
+
+	Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster,
+		[Parameter (Mandatory = $true)] [ValidateSet("FullyAutomated", "Manual", "PartiallyAutomated", "Disabled")] [String]$level
+    )
+
+    Try {
+        Write-LogMessage -Type INFO -Message "Starting Execution of Set-DrsAutomationLevel cmdlet" -Colour Yellow
+
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                $drsStatus = Get-Cluster -Name $cluster -ErrorAction SilentlyContinue
+                if ($drsStatus) {
+                    if ($drsStatus.DrsAutomationLevel -eq $level) {
+                        Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' is already set to '$level'" -Colour Cyan
+                    }
+                    else {
+                        $drsStatus = Set-Cluster -Cluster $cluster -DrsAutomationLevel $level -Confirm:$false 
+                        if ($drsStatus.DrsAutomationLevel -eq $level) {
+                            Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' has been set to '$level' successfully" -Colour Green
+                        }
+                        else {
+                            Write-LogMessage -Type ERROR -Message "The DRS Automation Level for cluster '$cluster' could not be set to '$level'" -Colour Red
+                        }
+                    }
+                    Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                }
+                else {
+                    Write-LogMessage -Type ERROR -Message "Cluster '$cluster' not found on server '$server', please check your details and try again" -Colour Red
+                }
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message "Not connected to server '$server', due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
+        else {
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server '$server' failed, please check your details and try again" -Colour Red
+        }
+    } 
+    Catch {
+        Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Set-DrsAutomationLevel cmdlet" -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Set-DrsAutomationLevel
+
+Function Get-VMRunningStatus {
+    <#
+        .SYNOPSIS
+        Gets the running state of a virtual machine
+    
+        .DESCRIPTION
+        The Get-VMRunningStatus cmdlet gets the runnnig status of the given nodes matching the pattern on an ESXi host
+    
+        .EXAMPLE
+        Get-VMRunningStatus -server sfo-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -pattern "^vCLS*"
+        This example connects to an ESXi host and searches for all virtual machines matching the pattern and gets their running status
     #>
 
     Param (
@@ -413,11 +451,11 @@ Function Get-VMRunningStatus {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pattern,
-        [Parameter (Mandatory = $false)] [ValidateSet("Running","NotRunning")] [String]$status="Running"
+        [Parameter (Mandatory = $false)] [ValidateSet("Running","NotRunning")] [String]$Status="Running"
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Get-VMRunningStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Get-VMRunningStatus cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -454,29 +492,22 @@ Function Get-VMRunningStatus {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VMRunningStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-VMRunningStatus cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Get-VMRunningStatus
 
 Function Invoke-EsxCommand {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:  Sowjanya V / Gary Blake (Enhancements)
-        Date:   07/22/2021
-        Organization: VMware
-        ===========================================================================
-        
         .SYNOPSIS
-        Execute a given command on the esxi host
+        Execute a given command on an ESXi host
     
         .DESCRIPTION
         The Invoke-EsxCommand cmdlet executes a given command on a given ESXi host. If expected is
         not passed, then #exitstatus of 0 is considered as success 
     
         .EXAMPLE
-        PS C:\> Invoke-EsxCommand -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
+        Invoke-EsxCommand -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
     #>
 
     Param (
@@ -488,7 +519,7 @@ Function Invoke-EsxCommand {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Invoke-EsxCommand cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Invoke-EsxCommand cmdlet" -Colour Yellow
         $password = ConvertTo-SecureString $pass -AsPlainText -Force
         $Cred = New-Object System.Management.Automation.PSCredential ($user, $password)
         Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -517,30 +548,23 @@ Function Invoke-EsxCommand {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Invoke-EsxCommand cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Invoke-EsxCommand cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Invoke-EsxCommand
 
 Function Get-VsanClusterMember {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:  Sowjanya V
-        Date:   03/15/2021
-        Organization: VMware
-        ===========================================================================
-        
         .SYNOPSIS
-        Get list of VSAN Cluster members listed from a given ESXi host 
+        Get list of VSAN cluster members from a given ESXi host 
     
         .DESCRIPTION
 		The Get-VsanClusterMember cmdlet uses the command "esxcli vsan cluster get", the output has a field SubClusterMemberHostNames
-		see if this has all the members listed
+		to see if this has all the members listed
     
         .EXAMPLE
-        PS C:\> Get-VsanClusterMember -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -members "sfo01-w01-esx01.sfo.rainpole.io"
-        This example connects to sfo01-w01-esx01.sfo.rainpole.io and checkahs that -members are listed
+        Get-VsanClusterMember -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -members "sfo01-w01-esx01.sfo.rainpole.io"
+        This example connects to an ESXI host and checks that all members are listed
     #>
 
     Param (
@@ -551,7 +575,7 @@ Function Get-VsanClusterMember {
     )
 
      Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Get-VsanClusterMember cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Get-VsanClusterMember cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -583,20 +607,13 @@ Function Get-VsanClusterMember {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VsanClusterMember cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-VsanClusterMember cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Get-VsanClusterMember
 
 Function Test-VsanHealth {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:  Sowjanya V / Gary Blake (Enhancements)
-        Date:   07/13/2021
-        Organization: VMware
-        ===========================================================================
-    
         .SYNOPSIS
         Check the health of the VSAN cluster
         
@@ -604,8 +621,8 @@ Function Test-VsanHealth {
         The Test-VsanHealth cmdlet checks the healh of the VSAN cluster
         
         .EXAMPLE
-        PS C:\> Test-VsanHealth -cluster sfo-m01-cl01 -server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re1!
-        This example connects to Management Domain vCenter Server and checks the health of the VSAN cluster
+        Test-VsanHealth -cluster sfo-m01-cl01 -server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re1!
+        This example connects to a vCenter Server and checks the health of the VSAN cluster
     #>
     
     Param (
@@ -616,7 +633,7 @@ Function Test-VsanHealth {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-VsanHealth cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Test-VsanHealth cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -666,20 +683,13 @@ Function Test-VsanHealth {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-VsanHealth cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Test-VsanHealth cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Test-VsanHealth
     
 Function Test-VsanObjectResync {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:  Sowjanya V / Gary Blake (Enhancements)
-        Date:   07/13/2021
-        Organization: VMware
-        ===========================================================================
-
         .SYNOPSIS
         Check object sync for VSAN cluster
         
@@ -687,8 +697,8 @@ Function Test-VsanObjectResync {
         The Test-VsanObjectResync cmdlet checks for resyncing of objects on the VSAN cluster
         
         .EXAMPLE
-        PS C:\> Test-VsanObjectResync -cluster sfo-m01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
-        This example connects to Management Domain vCenter Server and checks the status of object syncing of the VSAN cluster
+        Test-VsanObjectResync -cluster sfo-m01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
+        This example connects to a vCenter Server and checks the status of object syncing for the VSAN cluster
     #>
     Param(
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
@@ -698,7 +708,7 @@ Function Test-VsanObjectResync {
     )
     
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Test-VsanObjectResync cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Test-VsanObjectResync cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -728,20 +738,13 @@ Function Test-VsanObjectResync {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-VsanObjectResync cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Test-VsanObjectResync cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Test-VsanObjectResync
 
 Function Test-WebUrl {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:		Sowjanya V / Gary Blake (Enhancements)
-        Date:			07/24/2021
-        Organization:	VMware
-        ===========================================================================
-        
         .SYNOPSIS
         Test connection to a url 
     
@@ -749,7 +752,8 @@ Function Test-WebUrl {
         The Test-WebUrl cmdlet tests the connection to the provided url
     
         .EXAMPLE
-        PS C:\> Test-WebUrl -url "https://sfo-w01-nsx01.sfo.rainpole.io/login.jsp?local=true"
+        Test-WebUrl -url "https://sfo-w01-nsx01.sfo.rainpole.io/login.jsp?local=true"
+        This example tests a connection to the login page for NSX Manager
     #>
           
     Param (
@@ -757,7 +761,7 @@ Function Test-WebUrl {
     )
     
     Try {
-        Write-LogMessage -Type INFO -Message  "Starting Exeuction of Test-WebUrl cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message  "Starting Execution of Test-WebUrl cmdlet" -Colour Yellow
         Write-LogMessage -Type INFO -Message "Attempting connect to url '$url'"
 		$response = Invoke-WebRequest -uri $url -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
 		if ($response.StatusCode -eq 200) {
@@ -771,48 +775,33 @@ Function Test-WebUrl {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Test-WebUrl cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Test-WebUrl cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Test-WebUrl
 
-Function Get-VAMIServiceStatus {
+Function Get-VamiServiceStatus {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:		Sowjanya V
-        Date:			03/16/2021
-        Organization:	VMware
-        ===========================================================================
-        
         .SYNOPSIS
-        Get the status of the service on a given CI server
+        Get the status of the service on a given vCenter Server
     
         .DESCRIPTION
-        Get the current status of the service on a given CI server. The status could be STARTED/STOPPED
+        The Get-VamiServiceStatus cmdlet gets the current status of the service on a given vCenter Server. The status can be STARTED/STOPPED
     
         .EXAMPLE
-        PS C:\> Get-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re123! -service 'wcp' -check_status 'STARTED'
-        This example connects to tanzu workload domain VC, uses check_status parameter and tries to see if 'wcp' service is 'STARTED' or not.
-
-        PS C:\> Get-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re123! -service 'wcp' -action 'STOP'
-        This example connects to tanzu workload domain VC, uses action parameter and tries to STOP the 'wcp' service.
-
-        PS C:\> Get-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re123! -service 'wcp' -action 'START'
-        This example connects to tanzu workload domain VC, uses action parameter and tries to START the 'wcp' service.
-
+        Get-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -checkStatus STARTED
+        This example connects to a vCenter Server and checks the wcp service is STARTED
     #>
 	Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
 		[Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service,
-        [Parameter (ParameterSetName = 'action', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$action,
-		[Parameter (ParameterSetName = 'checkStatus', Mandatory = $true)] [ValidateSet("STARTED", "STOPPED")] [String]$checkStatus
+		[Parameter (Mandatory = $true)] [ValidateSet("STARTED", "STOPPED")] [String]$checkStatus
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -820,38 +809,12 @@ Function Get-VAMIServiceStatus {
             if ($DefaultCisServers.Name -eq $server) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
                 $serviceStatus = $vMonAPI.Get($service,0)
-                #$status = $serviceStatus.state
-                if ($PSCmdlet.ParameterSetName -eq "action") {
-                    if ($serviceStatus.state -match $action) {
-                        Write-LogMessage -Type INFO -Message "The service $service is $action successfully" -Colour Yellow
-                        Return 0
-                    }
-                    if ($action -eq 'START') {
-                        Write-LogMessage -Type INFO -Message "Starting $service service ..." -Colour Yellow
-                        $vMonAPI.start($service)
-                    }
-                    elseif ($action -eq 'STOP') {
-                        Write-LogMessage -Type INFO -Message "Stopping $service service ..." -Colour Yellow
-                        $vMonAPI.start($service)
-                    }
-                    Start-Sleep -s 10
-                    #$serviceStatus = $vMonAPI.get($service,0)
-                    #$status = $serviceStatus.state
-                    if ($serviceStatus.state -match $action) {
-                        Write-LogMessage -Type INFO -Message "The service:$service status:$status is matching" -Colour Yellow
-                    }
-                    else {
-                        Write-LogMessage -Type ERROR -Message "The service:$service status_expected:$action   status_actual:$status is not matching" -Colour Red
-                    }
+                Write-LogMessage -Type INFO -Message "Checking the service '$service' status is $checkStatus"
+                if ($serviceStatus.state -eq $checkStatus) {
+                    Write-LogMessage -Type INFO -Message "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Green
                 }
-                if ($PSCmdlet.ParameterSetName -eq "checkStatus") {
-                    Write-LogMessage -Type INFO -Message "Checking the service '$service' status is $checkStatus"
-                    if ($serviceStatus.state -eq $checkStatus) {
-                        Write-LogMessage -Type INFO -Message "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Green
-                    }
-                    else {
-                        Write-LogMessage -Type ERROR -Message  "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Red
-                    }
+                else {
+                    Write-LogMessage -Type ERROR -Message  "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Red
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-CisServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
@@ -868,153 +831,227 @@ Function Get-VAMIServiceStatus {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Get-VAMIServiceStatus
 
-Function StartStop-VAMIServiceStatus {
+Function Set-VamiServiceStatus {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:		Sowjanya V
-        Date:			03/16/2021
-        Organization:	VMware
-        ===========================================================================
-        
         .SYNOPSIS
-        START/STOP the service on a given CI server
+        Starts/Stops the service on a given vCenter Server
     
         .DESCRIPTION
-        START/STOP the service on a given CI server
+        The Set-VamiServiceStatus cmdlet starts or stops the service on a given vCenter Server.
     
         .EXAMPLE
-        PS C:\>StartStop-VAMIServiceStatus -Server $server -User $user  -Pass $pass -service $service -action <START/STOP>
+        Set-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -action STOP
+        This example connects to a vCenter Server and attempts to STOP the wcp service
+
+        .EXAMPLE
+        Set-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -action START
+        This example connects to a vCenter Server and attempts to START the wcp service
+
     #>
 
 	Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [string]$service,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$action
+		[Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service,
+        [Parameter (Mandatory = $true)] [ValidateSet("START", "STOP")] [String]$action
     )
 
     Try {
-		Connect-CisServer -server $server -user $user -pass $pass
-		$vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
-		$serviceStatus = $vMonAPI.get($service,0)
-		$status = $serviceStatus.state
-		if ($status -match $action) {
-			Write-output "The servic $service is $action successfully"
-			Return 0
-		}
-		if ($action -eq 'START') {
-			Write-Output "Starting $service service ..."
-			$vMonAPI.start($service)
-			Start-Sleep -s 10
-			$serviceStatus = $vMonAPI.get($service,0)
-			$status = $serviceStatus.state
-			if ($status -match $action) {
-				write-output "The service:$service status:$status is matching"
-			}
+        Write-LogMessage -Type INFO -Message "Starting Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
+            if ($DefaultCisServers.Name -eq $server) {
+                $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
+                $serviceStatus = $vMonAPI.Get($service,0)                
+                if ($serviceStatus.state -match $action) {
+                    Write-LogMessage -Type INFO -Message "The service $service is $action successfully" -Colour Yellow
+                }
+                if ($action -eq 'START') {
+                    Write-LogMessage -Type INFO -Message "Attempting to Start $service service ..." -Colour Yellow
+                    $vMonAPI.start($service)
+                }
+                elseif ($action -eq 'STOP') {
+                    Write-LogMessage -Type INFO -Message "Attempting to Stop $service service ..." -Colour Yellow
+                    $vMonAPI.stop($service)
+                }
+                Start-Sleep -s 10
+                if ($serviceStatus.state -match $action) {
+                    Write-LogMessage -Type INFO -Message "The service: $service status: $status is matching" -Colour Yellow
+                }
+                else {
+                    Write-LogMessage -Type ERROR -Message "The service: $service status_expected: $action status_actual: $status is not matching" -Colour Red
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-CisServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             else {
-				write-error "The service:$service status_expected:$action   status_actual:$status is not matching"
-				#exit
-			}
-		}
-		if ($action -eq 'STOP') {
-			Write-Output "Stoping $service service ..."
-			$vMonAPI.stop($service)
-			Start-Sleep -s 10
-			$serviceStatus = $vMonAPI.get($service,0)	
-			$status = $serviceStatus.state			
-			if ($status -match $action) {
-				write-output "The service:$service status:$status is matching"
-			}
-            else {
-				write-error "The service:$service status_expected:$action   status_actual:$status is not matching"
-				#exit
-			}
-		}
+                Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
+        else {
+            Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        } 
     } 
     Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Disconnect-CisServer -Server $server -confirm:$false
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
     }
 }
-Export-ModuleMember -Function StartStop-VAMIServiceStatus
+Export-ModuleMember -Function Set-VAMIServiceStatus
 
-Function SetClusterState-VROPS {
+Function Set-vROPSClusterState {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:  Sowjanya V
-        Date:   03/15/2021
-        Organization: VMware
-        ===========================================================================
-        
         .SYNOPSIS
-        Get status of all the VM's matching the pattern on a given host
+        Set the status of the vRealize Operations Manager cluster
     
         .DESCRIPTION
-        Get status of the given component matching the pattern on the host. If no pattern is 
-        specified 
+        The Set-vROPSClusterState cmdlet sets the status of the vRealize Operations Manager cluster
     
         .EXAMPLE
-        PS C:\> Verify-VMStatus -server sfo-w01-esx01.sfo.rainpole.io 
-        -user root -pass VMw@re1! -pattern "^vCLS*"
-        This example connects to the esxi host and searches for all vm's matching the pattern 
-        and its status
+        Set-vROPSClusterState -server xint-vrops01a.rainpole.io -user admin -pass VMw@re1! -mode OFFLINE
+        This example takes the vRealize Operations Manager cluster offline
+
+        .EXAMPLE
+        Set-vROPSClusterState -server xint-vrops01a.rainpole.io -user admin -pass VMw@re1! -mode ONLINE
+        This example places the vRealize Operations Manager cluster online
     #>
 
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$mode
+        [Parameter (Mandatory = $true)] [ValidateSet("ONLINE", "OFFLINE", "RESTART")] [String]$mode
     )
 	
     Try {
-		$params = @{"online_state" = $mode;
-			"online_state_reason" = "Maintenance";}
-			
-		$Global:myHeaders = createHeader $user $pass
-		Write-Output $myHeaders
-		
-		$uri = "https://$server/casa/deployment/cluster/info"
-		#https://xreg-vrops01.rainpole.io/casa/deployment/cluster/info
+        Write-LogMessage -Type INFO -Message "Starting Execution of Set-vROPSClusterState cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
 
-        #$response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body $json
-		$response = Invoke-RestMethod -URI $uri -Headers $myHeaders -ContentType application/json 
-		Write-Output "------------------------------------"
-		Write-Output $response
-		Write-Output "------------------------------------"
-        if ($response.online_state -eq $mode) {
-            Write-Output "The cluster is already in the $mode state"
+            $vropsHeader = createHeader $user $pass
+            $statusUri = "https://$server/casa/deployment/cluster/info"
+            $clusterStatus = Invoke-RestMethod -Method GET -URI $statusUri -Headers $vropsHeader -ContentType application/json 
+            if ($clusterStatus) {
+                if ($clusterStatus.online_state -eq $mode ) {
+                    Write-LogMessage -Type INFO -Message "The vRealize Operations Manager cluster is already in the $mode state"
+                }
+                else {
+                    $params = @{"online_state" = $mode; "online_state_reason" = "Maintenance Window";}
+                    $uri = "https://$server/casa/public/cluster/online_state"
+                    $response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body ($params | ConvertTo-Json)
+                    Write-LogMessage -Type INFO -Message "The vRealize Operations Manager cluster is set to $mode state, waiting for operation to complete"
+                    Do {
+                        Start-Sleep 5
+                        $response = Invoke-RestMethod -Method GET -URI $statusUri -Headers $vropsHeader -ContentType application/json
+                        if ($response.online_state -eq $mode) { $finished = $true }
+                    } Until ($finished)
+                    Write-LogMessage -Type INFO -Message "The vRealize Operations Manager cluster is now $mode"
+                }
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
         }
         else {
-			$uri = "https://$server/casa/public/cluster/online_state"
-			$response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body ($params | ConvertTo-Json)
-			Write-Output "------------------------------------"
-			Write-Output $response
-			Write-Output "------------------------------------"
-			if ($response.StatusCode -lt 300) {
-				Write-Output "The cluster is set to $mode mode"
-			}
-            else {
-				Write-Error "The cluster state could not be set"
-			}
-			#exit
+            Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        }
+    }
+    Catch {
+        Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Set-vROPSClusterState cmdlet" -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Set-vROPSClusterState
+
+Function Get-vROPSClusterDetail {
+    <#
+        .SYNOPSIS
+        Get the details of the vRealize Operations Manager cluster
+    
+        .DESCRIPTION
+        The Get-vROPSClusterDetail cmdlet gets the details of the vRealize Operations Manager cluster 
+    
+        .EXAMPLE
+        Get-vROPSClusterDetail -server xint-vrops01.rainpole.io -user root -pass VMw@re1!
+        This example gets the details of the vRealize Operations Manager cluster
+    #>
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass
+    )
+
+    $vropsHeader = createHeader $user $pass
+    $uri = "https://$server/casa/cluster/status"
+    $response = Invoke-RestMethod -URI $uri -Headers $vropsHeader -ContentType application/json 
+    $response
+}
+Export-ModuleMember -Function Get-vROPSClusterDetail 
+
+Function Request-vROPSToken {
+    <#
+        .SYNOPSIS
+        Connects to vRealize Operations Manager to request an API access token
+
+        .DESCRIPTION
+        The Request-vROPSToken cmdlet connects to vRealize Operations Manager to request an API access token
+
+        .EXAMPLE
+        Request-vROPSToken -fqdn xint-vrops01.rainpole.io -username admin -password VMw@re1!
+        This example shows how to connect to vRealize Operations Manager to request API token
+      #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$username,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$password
+    )
+
+    if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("password"))) {
+        $creds = Get-Credential # Request Credentials
+        $username = $creds.UserName.ToString()
+        $password = $creds.GetNetworkCredential().password
+    }
+
+    $vropsFqdn = $fqdn
+    $Global:vropsHeader = @{"Content-Type" = "application/json"}
+    $uri = "https://$vropsFqdn/suite-api/api/auth/token/acquire" # Set URI for executing an API call to validate authentication
+    $body = '{"username": "' + $username + '","password": "' + $password + '"}'
+
+    Try {
+        # Checking authentication with SDDC Manager
+        if ($PSEdition -eq 'Core') {
+            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $vropsHeader -body $body -SkipCertificateCheck # PS Core has -SkipCertificateCheck implemented
+            $Global:vropsToken = $response.'auth-token'.token
+        }
+        else {
+            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $vropsHeader -body $body
+            $Global:vropsToken = $response.'auth-token'.token
+        }
+        if ($response.'auth-token'.token) {
+            $vropsHeader.Add("Accept", "application/json")
+            $vropsHeader.Add("Authorization", "vRealizeOpsToken $vropsToken")
+            Write-Output "Successfully Requested New API Token From vRealize Operations Manager: $vropsFqdn"
         }
     }
     Catch {
         Debug-CatchWriter -object $_
     }
 }
-Export-ModuleMember -Function SetClusterState-VROPS
+Export-ModuleMember -Function Request-vROPSToken
 
 Function Get-EnvironmentId {
  <#
@@ -1107,7 +1144,7 @@ Function Request-StartStopViaVRSLCM
     )
     
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Get-EnvironmentId cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Get-EnvironmentId cmdlet" -Colour Yellow
 		#Write-Output $server
         $env_id = Get-EnvironmentId -server $server -user $user -pass $pass -Name $env
 		#Write-Output $env_id
@@ -1161,85 +1198,13 @@ Function Request-StartStopViaVRSLCM
 	   Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Get-EnvironmentId cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-EnvironmentId cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Request-StartStopViaVRSLCM
 New-Alias -Name ShutdownStartupProduct-ViaVRSLCM -Value Request-StartStopViaVRSLCM
 Export-ModuleMember -Alias ShutdownStartupProduct-ViaVRSLCM  -Function Request-StartStopViaVRSLCM
 
-Function Set-DrsAutomationLevel {
-    <#
-        .NOTES
-        ===========================================================================
-        Created by:		Sowjanya V / Gary Blake (Enhancements)
-        Date:			07/22/2021
-        Organization:	VMware
-        ===========================================================================
-        
-        .SYNOPSIS
-        Set the DRS automation level
-    
-        .DESCRIPTION
-        The Set-DrsAutomationLevel cmdlet sets the automation level of the cluster based on the setting provided 
-    
-        .EXAMPLE
-        PS C:\> Set-DrsAutomationLevel -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -level PartiallyAutomated
-        Thi examples sets the DRS Automation level for the sfo-m01-cl01 cluster to Partially Automated
-    #>
-
-	Param (
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster,
-		[Parameter (Mandatory = $true)] [ValidateSet("FullyAutomated", "Manual", "PartiallyAutomated", "Disabled")] [String]$level
-    )
-
-    Try {
-        Write-LogMessage -Type INFO -Message "Starting Exeuction of Set-DrsAutomationLevel cmdlet" -Colour Yellow
-
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-            if ($DefaultVIServer.Name -eq $server) {
-                $drsStatus = Get-Cluster -Name $cluster -ErrorAction SilentlyContinue
-                if ($drsStatus) {
-                    if ($drsStatus.DrsAutomationLevel -eq $level) {
-                        Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' is already set to '$level'" -Colour Cyan
-                    }
-                    else {
-                        $drsStatus = Set-Cluster -Cluster $cluster -DrsAutomationLevel $level -Confirm:$false 
-                        if ($drsStatus.DrsAutomationLevel -eq $level) {
-                            Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' has been set to '$level' successfully" -Colour Green
-                        }
-                        else {
-                            Write-LogMessage -Type ERROR -Message "The DRS Automation Level for cluster '$cluster' could not be set to '$level'" -Colour Red
-                        }
-                    }
-                    Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-                }
-                else {
-                    Write-LogMessage -Type ERROR -Message "Cluster '$cluster' not found on server '$server', please check your details and try again" -Colour Red
-                }
-            }
-            else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server '$server', due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
-            }
-        }
-        else {
-            Write-LogMessage -Type ERROR -Message "Testing a connection to server '$server' failed, please check your details and try again" -Colour Red
-        }
-    } 
-    Catch {
-        Debug-CatchWriter -object $_
-    }
-    Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of Set-DrsAutomationLevel cmdlet" -Colour Yellow
-    }
-}
-Export-ModuleMember -Function Set-DrsAutomationLevel
 
 <#Function ShutdownStartupProduct-ViaVRSLCM
 {
@@ -1494,9 +1459,9 @@ Function Write-LogMessage {
         Write-Host -NoNewline -ForegroundColor $Colour " $Type $Message"        
     }
     else {
-        Write-Host -ForegroundColor $Colour " $Yype $Message" 
+        Write-Host -ForegroundColor $Colour " $Type $Message" 
     }
-    $logContent = '[' + $timeStamp + '] ' + $Yype + ' ' + $Message
+    $logContent = '[' + $timeStamp + '] ' + $Type + ' ' + $Message
     if ($logFile) {
         Add-Content -Path $logFile $logContent
     }
