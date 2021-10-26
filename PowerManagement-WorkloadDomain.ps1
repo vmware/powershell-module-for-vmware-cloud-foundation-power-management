@@ -272,7 +272,7 @@ if ($powerState -eq "Startup") {
         }
         if ($($vrops.status -eq "ACTIVE")) {
             Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsNodes -timeout 600
-            #Set-vROPSClusterState -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword -mode ONLINE
+            Set-vROPSClusterState -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword -mode ONLINE
         }
         if ($($wsa.status -eq "ACTIVE")) {
 

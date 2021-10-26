@@ -1001,67 +1001,9 @@ Function Get-vROPSClusterDetail {
 }
 Export-ModuleMember -Function Get-vROPSClusterDetail 
 
-Function Request-vROPSToken {
-    <#
-        .SYNOPSIS
-        Connects to vRealize Operations Manager to request an API access token
-
-        .DESCRIPTION
-        The Request-vROPSToken cmdlet connects to vRealize Operations Manager to request an API access token
-
-        .EXAMPLE
-        Request-vROPSToken -fqdn xint-vrops01.rainpole.io -username admin -password VMw@re1!
-        This example shows how to connect to vRealize Operations Manager to request API token
-      #>
-
-    Param (
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$username,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$password
-    )
-
-    if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("password"))) {
-        $creds = Get-Credential # Request Credentials
-        $username = $creds.UserName.ToString()
-        $password = $creds.GetNetworkCredential().password
-    }
-
-    $vropsFqdn = $fqdn
-    $Global:vropsHeader = @{"Content-Type" = "application/json"}
-    $uri = "https://$vropsFqdn/suite-api/api/auth/token/acquire" # Set URI for executing an API call to validate authentication
-    $body = '{"username": "' + $username + '","password": "' + $password + '"}'
-
-    Try {
-        # Checking authentication with SDDC Manager
-        if ($PSEdition -eq 'Core') {
-            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $vropsHeader -body $body -SkipCertificateCheck # PS Core has -SkipCertificateCheck implemented
-            $Global:vropsToken = $response.'auth-token'.token
-        }
-        else {
-            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $vropsHeader -body $body
-            $Global:vropsToken = $response.'auth-token'.token
-        }
-        if ($response.'auth-token'.token) {
-            $vropsHeader.Add("Accept", "application/json")
-            $vropsHeader.Add("Authorization", "vRealizeOpsToken $vropsToken")
-            Write-Output "Successfully Requested New API Token From vRealize Operations Manager: $vropsFqdn"
-        }
-    }
-    Catch {
-        Debug-CatchWriter -object $_
-    }
-}
-Export-ModuleMember -Function Request-vROPSToken
 
 Function Get-EnvironmentId {
  <#
-    .NOTES
-    ===========================================================================
-    Created by:		Sowjanya V
-    Date:			03/16/2021
-    Organization:	VMware
-    ===========================================================================
-    
     .SYNOPSIS
     Cross Region Envionment or globalenvironment Id of any product in VRSLCM need to be found
 
@@ -1081,24 +1023,29 @@ Function Get-EnvironmentId {
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$Name
+        [Parameter (ParameterSetName = 'Environments', Mandatory=$false)] [ValidateNotNullOrEmpty()] [Switch]$all,
+		[Parameter (ParameterSetName = 'Name', Mandatory=$false)] [ValidateNotNullOrEmpty()] [String]$name,
+        [Parameter (ParameterSetName = 'Product', Mandatory=$false)] [ValidateSet("vidm", "vra", "vrops", "vrli")] [String]$product
     )
     
     Try {
-		#write-output "11. $server, $user, $pass, $Name  "
-		$Global:myHeaders = createHeader $user $pass
-		#write-output $Global:myHeaders
+		$vrslcmHeaders = createHeader $user $pass
         $uri = "https://$server/lcm/lcops/api/v2/environments"
-		#write-output "1. $uri"
-        $response = Invoke-RestMethod -Method GET -URI $uri -headers $myHeaders -ContentType application/json 
-		#write-output "2." $response
-        $env_id = $response  | foreach-object -process { if($_.environmentName -match $Name) { $_.environmentId }} 
-        #write-output "3." $env_id
-		return $env_id
+        $response = Invoke-RestMethod -Method GET -URI $uri -headers $vrslcmHeaders -ContentType application/json
+        if ($PsBoundParameters.ContainsKey("name")) {
+            $envId = $response | foreach-object -process { if($_.environmentName -match $name) { $_.environmentId }} 
+		    Return $envId
+        }
+        if ($PsBoundParameters.ContainsKey("product")){
+            $envId = $response | foreach-object -process { if($_.products.id -match $product) { $_.environmentId }}
+            Return $envId
+        }
+        else {
+            $response
+        }
     }
     Catch {
-       $PSItem.InvocationInfo
-	   Debug-CatchWriter -object $_
+        Debug-CatchWriter -object $_
     }
 }
 Export-ModuleMember -Function Get-EnvironmentId
