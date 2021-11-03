@@ -1,6 +1,11 @@
+<#
+    Script Module : VMware.PowerManagement
+    Version       : 1.0
+    Authors        : Sowjanya V, Gary Blake - Cloud Infrastructure Business Group
+#>
 
 # Enable communication with self signed certs when using Powershell Core, if you require all communications to be secure and do not wish to
-# allow communication with self signed certs remove lines 31-52 before importing the module
+# Allow communication with self signed certs remove lines 31-52 before importing the module
 
 if ($PSEdition -eq 'Core') {
     $PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck", $true)
@@ -25,7 +30,7 @@ if ($PSEdition -eq 'Desktop') {
 "@
     [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertificatePolicy
 }
-    }
+}
 
 Function Stop-CloudComponent {
     <#
@@ -1001,7 +1006,6 @@ Function Get-vROPSClusterDetail {
 }
 Export-ModuleMember -Function Get-vROPSClusterDetail 
 
-
 Function Get-EnvironmentId {
  <#
     .SYNOPSIS
@@ -1445,8 +1449,3 @@ Export-ModuleMember -Function createHeader
 
 
 ######### End Useful Script Functions ##########
-
-
-
-########## Can be removed after testing ##########
-
