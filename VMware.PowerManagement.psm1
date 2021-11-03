@@ -1,7 +1,7 @@
 <#
     Script Module : VMware.PowerManagement
     Version       : 1.0
-    Authors        : Sowjanya V, Gary Blake - Cloud Infrastructure Business Group
+    Authors       : Sowjanya V, Gary Blake - Cloud Infrastructure Business Group
 #>
 
 # Enable communication with self signed certs when using Powershell Core, if you require all communications to be secure and do not wish to
@@ -70,7 +70,7 @@ Function Stop-CloudComponent {
                     if ($nodes.Count -ne 0) {
                         foreach ($node in $nodes) {
                             $count=0
-                            if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
+                            if (Get-VM | Where-Object {$_.Name -eq $node}) {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 if ($vm_obj.State -eq 'NotRunning') {
                                     Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered Off state" -Colour Cyan
@@ -192,7 +192,7 @@ Function Start-CloudComponent {
                     if ($nodes.Count -ne 0) {
                         foreach ($node in $nodes) {
                                 $count=0
-                            if ($checkVm =  Get-VM | Where-Object {$_.Name -eq $node}) {
+                            if (Get-VM | Where-Object {$_.Name -eq $node}) {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                     if($vm_obj.State -eq 'Running'){
                                     Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered On state" -Colour Green
@@ -315,7 +315,7 @@ Function Set-MaintenanceMode {
                 if ($state -eq "ENABLE") {
                     if ($hostStatus.ConnectionState -eq "Connected") {
                         Write-LogMessage -Type INFO -Message "Attempting to place $server into Maintenance mode"
-                        Get-View -ViewType HostSystem -Filter @{"Name" = $server }|?{!$_.Runtime.InMaintenanceMode}|%{$_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode=(new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction=[VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction})}))}
+                        Get-View -ViewType HostSystem -Filter @{"Name" = $server }| Where-Object {!$_.Runtime.InMaintenanceMode} | ForEach-Object {$_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode=(new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction=[VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction})}))}
                         $hostStatus = (Get-VMHost -Server $server)
                         if ($hostStatus.ConnectionState -eq "Maintenance") {
                             Write-LogMessage -Type INFO -Message "The host $server has been placed in Maintenance mode successfully" -Colour Green
@@ -336,7 +336,7 @@ Function Set-MaintenanceMode {
                     if ($hostStatus.ConnectionState -eq "Maintenance") {
                         Write-LogMessage -Type INFO -Message "Attempting to take $server out of Maintenance mode"
                         $task = Set-VMHost -VMHost $server -State "Connected" -RunAsync -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
-                        $vmhost = Wait-Task $task
+                        Wait-Task $task
                         $hostStatus = (Get-VMHost -Server $server)
                         if ($hostStatus.ConnectionState -eq "Connected") {
                             Write-LogMessage -Type INFO -Message "The host $server has been taken out of Maintenance mode successfully" -Colour Green
@@ -532,7 +532,7 @@ Function Invoke-EsxCommand {
         if ($session) {
             Write-LogMessage -Type INFO -Message "Attempting to execute command '$cmd' on server '$server'"
             $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd
-            $timeoutValue = 0
+            #$timeoutValue = 0
             if ($expected) {
                 Write-LogMessage -Type INFO -Message "Command '$cmd' executed with expected output on server '$server' successfully" -Colour Green
             }
@@ -1133,7 +1133,7 @@ Function Request-StartStopViaVRSLCM
 				Break
 			}
 		}
-		if (($response2.state -eq 'COMPLETED') -and ($response2.errorCause -eq $null)) {
+		if (($null -eq $response2.errorCause) -and ($response2.state -eq 'COMPLETED')) {
             Write-LogMessage -Type INFO -Message "The $mode on $product is successfull" -Colour Yellow
 		}
         elseif (($response2.state -eq 'FAILED')) {
@@ -1145,7 +1145,6 @@ Function Request-StartStopViaVRSLCM
 		}
     }
     Catch {
-       #$PSItem.InvocationInfo
 	   Debug-CatchWriter -object $_
     }
     Finally {
@@ -1259,7 +1258,7 @@ Export-ModuleMember -Alias ShutdownStartupProduct-ViaVRSLCM  -Function Request-S
 }
 #>
 
-Function PowerOn-EsxiUsingILO {
+Function Start-EsxiUsingILO {
     <#
         .NOTES
         ===========================================================================
@@ -1308,23 +1307,7 @@ Function PowerOn-EsxiUsingILO {
         Write-LogMessage -Type INFO -Message "Finishing Exeuction of PowerOn-EsxiUsingILO cmdlet" -Colour Yellow
     }
 }
-Export-ModuleMember -Function PowerOn-EsxiUsingILO
-
-Function Ignore-CertificateError {
-	add-type @"
-		using System.Net;
-		using System.Security.Cryptography.X509Certificates;
-		public class TrustAllCertsPolicy : ICertificatePolicy {
-			public bool CheckValidationResult(
-				ServicePoint srvPoint, X509Certificate certificate,
-				WebRequest request, int certificateProblem) {
-				return true;
-			}
-		}
-"@
-	[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
-}
-Export-ModuleMember -Function Ignore-CertificateError
+Export-ModuleMember -Function Start-EsxiUsingILO
 
 Function Get-NSXTMgrClusterStatus {
     <#
@@ -1449,3 +1432,22 @@ Export-ModuleMember -Function createHeader
 
 
 ######### End Useful Script Functions ##########
+
+
+##### Remove After Testing
+
+Function Grant-IgnoreCertificateError {
+	add-type @"
+		using System.Net;
+		using System.Security.Cryptography.X509Certificates;
+		public class TrustAllCertsPolicy : ICertificatePolicy {
+			public bool CheckValidationResult(
+				ServicePoint srvPoint, X509Certificate certificate,
+				WebRequest request, int certificateProblem) {
+				return true;
+			}
+		}
+"@
+	[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+}
+Export-ModuleMember -Function Grant-IgnoreCertificateError
