@@ -24,7 +24,7 @@ if ($moduleLoaded) {
 }
 Import-Module .\VMware.PowerManagement.psm1
 
-#Clear-Host
+Clear-Host
 
 Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
 Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
