@@ -1102,34 +1102,27 @@ Function Request-PowerStateViaVRSLCM
 		$uri = "https://$server/lcm/lcops/api/v2/environments/$environmentId/products/$product/$mode"
         $json = {}
         $response = Invoke-RestMethod -Method POST -URI $uri -headers $vrslcmHeaders -ContentType application/json -body $json
-		
+        Start-Sleep 10
         if ($response.requestId) {
             Write-LogMessage -Type INFO -Message "Initiated $mode for $product Successfully" -Colour Green
         }
         else {
-            Write-LogMessage -Type ERROR -Message "Unable to $mode for $product due to response " -Colour Red
+            Write-LogMessage -Type ERROR -Message "Unable to $mode for $product due to response" -Colour Red
         }
 
 		$id = $response.requestId
 		$uri = "https://$server/lcm/request/api/v2/requests/$id"
-		$count = 0
-		While ($count -le $timeout) {
-			$count = $count + 60
-			Start-Sleep -s 60
-			$response = Invoke-RestMethod -Method GET -URI $uri -headers $vrslcmHeaders -ContentType application/json 
-			if (($response.state -eq 'COMPLETED') -or ($response.state -eq 'FAILED')) {
-                Write-LogMessage -Type INFO -Message "The API has exited with the following state '$($response.state)'" -Colour Yellow
-			}
-		}
-		if (($null -eq $response.errorCause) -and ($response.state -eq 'COMPLETED')) {
+
+        Do {
+            $requestStatus = (Invoke-RestMethod -Method GET -URI $uri -headers $vrslcmHeaders -ContentType application/json | Where-Object {$_.vmid -eq $id}).state
+        } 
+        Until ($requestStatus -ne "INPROGRESS")
+        if ($requestStatus -eq "COMPLETED") {
             Write-LogMessage -Type INFO -Message "The $mode of $product Completed Successfully" -Colour Green
-		}
-        elseif (($response.state -eq 'FAILED')) {
+        }
+        elseif ($requestStatus -ne "FAILED") {
             Write-LogMessage -Type ERROR -Message "Could not $mode of $product because of $($response.errorCause.message)" -Colour Red
-	    }
-        else {
-            Write-LogMessage -Type ERROR -Message "Could not $mode of $product within the timeout value" -Colour Red
-		}
+        }
         Write-LogMessage -Type INFO -Message "Finishing Execution of Request-PowerStateViaVRSLCM" -Colour Yellow
     }
     Catch {
@@ -1138,124 +1131,20 @@ Function Request-PowerStateViaVRSLCM
 }
 Export-ModuleMember -Function Request-PowerStateViaVRSLCM
 
-
-<#Function ShutdownStartupProduct-ViaVRSLCM
-{
-    
-        .NOTES
-        ===========================================================================
-        Created by:		Sowjanya V
-        Date:			03/16/2021
-        Organization:	VMware
-        ===========================================================================
-        
-        .SYNOPSIS
-        Shutting down VRA or VROPS via VRSLCM
-    
-        .DESCRIPTION
-        There are no POWER CLI or POWER SHELL cmdlet to power off the products via VRSLCM. Hence writing my own
-    
-        .EXAMPLE
-        PS C:\> ShutdownProduct_ViaVRSLCM -host <VRSLCM> -user <username> -pass <password> -component <VRA/VROPS/VRLI/VIDM>
-        This example shutsdown a product via VRSLCM
-        Sample URL formed on TB04 is as shown below
-        Do Get on https://xreg-vrslcm01.rainpole.io/lcm/lcops/api/v2/environments
-           and findout what is the id assosiated with Cross-Region Environment 
-
-        $uri = "https://xreg-vrslcm01.rainpole.io/lcm/lcops/api/v2/environments/Cross-Region-Env1612043838679/products/vra/deployed-vms"
-
-    
-    Param (
-        [Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$host,
-        [Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$user,
-        [Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$pass,
-        [string]$on,
-        [Parameter (Mandatory=$true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$product
-
-    )
-    
-    Try {
-        $env_id = Get-EnvironmentId -user $user -pass $pass -host $host -Name "Cross"
-		
-		write-output $env_id
-		
-		$Global:myHeaders = createHeader $user $pass
-		write-output $myHeaders
-		if($on) {
-			$uri = "https://$host/lcm/lcops/api/v2/environments/$env_id/products/$product/power-on"
-            $success_msg = "The $product is successfully started"
-            $failure_msg = "The $product could not be started within the timeout value"
-            $succ_init_msg = "Successfully initiated startup of the product $product"
-            $fail_init_msg = "Unable to starup $product due to response"
-
-		} else {
-			$uri = "https://$host/lcm/lcops/api/v2/environments/$env_id/products/$product/power-off"
-            $success_msg = "The $product is successfully shutdown"
-            $failure_msg = "The $product could not be shutdown within the timeout value"
-            $succ_init_msg = "Successfully initiated shutdown of the product $product"
-            $fail_init_msg = "Unable to shutdown $product due to response"
-		}
-		write-output $uri
-        $json = {}
-        $response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body $json
-		
-		write-output "------------------------------------"
-		write-output $response
-		write-output "------------------------------------"
-        if($response.requestId) {
-            Write-Output $succ_init_msg
-        } else {
-            Write-Error $fail_init_msg
-			#exit
-        }
-		$id = $response.requestId
-		$uri2 = "https://$host/lcm/request/api/v2/requests/$id"
-		$count = 0
-		$timeout = 1800
-		while($count -le $timeout) {
-			$count = $count + 60
-			start-sleep -s 60
-			$response2 = Invoke-RestMethod -Method GET -URI $uri2 -headers $myHeaders -ContentType application/json 
-			if(($response2.state -eq 'COMPLETED') ) {
-				break
-			}
-		}
-		if(($response2.state -eq 'COMPLETED') -and ($response2.errorCause -eq $null) ) {
-			write-output $success_msg
-		} else {
-			write-output $failure_msg
-		}
-    }
-    Catch {
-       $PSItem.InvocationInfo
-	   Debug-CatchWriter -object $_
-    }
-}
-#>
-
 Function Start-EsxiUsingILO {
     <#
-        .NOTES
-        ===========================================================================
-        Created by:    Sowjanya V
-        Organization:  VMware
+    .SYNOPSIS
+    Power On/Off via DELL ESXi Server
 
-    ===========================================================================
+
     .DESCRIPTION
-        This method is used to poweron the DELL ESxi server using ILO ip address using racadm cli. This is cli equivalent of admin console for DELL servers
+    This method is used to poweron the DELL ESXi server using ILO ip address using racadm cli. This is cli equivalent of admin console for DELL servers
 
     .EXAMPLE
-        PowerOn-EsxiUsingILO -ilo_ip $ilo_ip  -ilo_user <drac_console_user>  -ilo_pass <drac_console_pass>
-        This example connects to out of band ip address powers on the ESXi host
+    PowerOn-EsxiUsingILO -ilo_ip $ilo_ip  -ilo_user <drac_console_user>  -ilo_pass <drac_console_pass>
+    This example connects to out of band ip address powers on the ESXi host
 #>
+
     Param (
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_ip,
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_user,
@@ -1322,7 +1211,6 @@ Function Get-NSXTMgrClusterStatus {
     
 	Try {
 		$uri2 = "https://$server/api/v1/cluster/status"
-		#$uri2="https://sfo-w01-nsx01.sfo.rainpole.io/api/v1/cluster/status"
 		$myHeaders = createHeader $user $pass
 		write-output $uri2
 		write-output $myHeaders
@@ -1419,18 +1307,18 @@ Export-ModuleMember -Function createHeader
 
 ##### Remove After Testing
 
-Function Grant-IgnoreCertificateError {
-	add-type @"
-		using System.Net;
-		using System.Security.Cryptography.X509Certificates;
-		public class TrustAllCertsPolicy : ICertificatePolicy {
-			public bool CheckValidationResult(
-				ServicePoint srvPoint, X509Certificate certificate,
-				WebRequest request, int certificateProblem) {
-				return true;
-			}
-		}
-"@
-	[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
-}
-Export-ModuleMember -Function Grant-IgnoreCertificateError
+#Function Grant-IgnoreCertificateError {
+#	add-type @"
+#		using System.Net;
+#		using System.Security.Cryptography.X509Certificates;
+#		public class TrustAllCertsPolicy : ICertificatePolicy {
+#			public bool CheckValidationResult(
+#				ServicePoint srvPoint, X509Certificate certificate,
+#				WebRequest request, int certificateProblem) {
+#				return true;
+#			}
+#		}
+#"@
+#	[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+#}
+#Export-ModuleMember -Function Grant-IgnoreCertificateError
