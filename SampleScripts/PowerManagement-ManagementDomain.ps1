@@ -3,15 +3,15 @@
         Connects to the specified SDDC Manager and shutdown/startup a Management Domain
 
         .DESCRIPTION
-        This script connects to the specified SDDC Manager and either shutdowns or startups a Virtual Infrastructure Workload Domain
+        This script connects to the specified SDDC Manager and either shutdowns or startups a Management Domain
 
         .EXAMPLE
-        PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Shutdown
-        Initiaites a shutdown of the Virtual Infrastructure Workload Domain 'sfo-w01'
+        PowerManagement-ManagementDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Shutdown
+        Initiaites a shutdown of the Management Domain 'sfo-w01'
 
         .EXAMPLE
         PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.ioc
-        Initiaites the startup of the Virtual Infrastructure Workload Domain 'sfo-w01'
+        Initiaites the startup of the Management Domain 'sfo-w01'
     #>
 
 Param (

@@ -954,7 +954,7 @@ Function Set-vROPSClusterState {
                 else {
                     $params = @{"online_state" = $mode; "online_state_reason" = "Maintenance Window";}
                     $uri = "https://$server/casa/public/cluster/online_state"
-                    $response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body ($params | ConvertTo-Json)
+                    $response = Invoke-RestMethod -Method POST -URI $uri -headers $vropsHeader -ContentType application/json -body ($params | ConvertTo-Json)
                     Write-LogMessage -Type INFO -Message "The vRealize Operations Manager cluster is set to $mode state, waiting for operation to complete"
                     Do {
                         Start-Sleep 5
@@ -1002,25 +1002,29 @@ Function Get-vROPSClusterDetail {
     $vropsHeader = createHeader $user $pass
     $uri = "https://$server/casa/cluster/status"
     $response = Invoke-RestMethod -URI $uri -Headers $vropsHeader -ContentType application/json 
-    $response
+    $response.'nodes_states'
 }
 Export-ModuleMember -Function Get-vROPSClusterDetail 
 
 Function Get-EnvironmentId {
  <#
     .SYNOPSIS
-    Cross Region Envionment or globalenvironment Id of any product in VRSLCM need to be found
+    Obtain the Environment ID from vRealize Suite Lifecycle Manager
 
     .DESCRIPTION
-    This is to fetch right environment id for cross region env, which is needed for shutting down the VRA components via VRSLCM
-    This also fetches the global environment id for VIDM
+    The Get-EnvironmentId cmdlet obtains the Environment ID from vRealize Suite Lifecycle Manager
 
     .EXAMPLE
-    PS C:\>Get_EnvironmentId -host <VRSLCM> -user <username> -pass <password> -product <VRA/VROPS/VRLI/VIDM>
-    This example shows how to fetch environment id for cross region VRSLCM
-    Sample URL formed on TB04 is as shown below -- vcfadmin@local VMw@re123!
-    Do Get on https://xreg-vrslcm01.rainpole.io/lcm/lcops/api/v2/environments
-        and findout what is the id assosiated with Cross-Region Environment      
+    Get-EnvironmentId server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -all
+    This example shows how to obtain all Environment IDs
+
+    .EXAMPLE
+    Get-EnvironmentId server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product vra
+    This example shows how to obtain the Environment ID for vRealize Automation 
+
+    .EXAMPLE
+    Get-EnvironmentId server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -name xint-env
+    This example shows how to obtain the Environment ID based on the environemnt name 
 #>
           
     Param (
@@ -1054,106 +1058,85 @@ Function Get-EnvironmentId {
 }
 Export-ModuleMember -Function Get-EnvironmentId
 
-Function Request-StartStopViaVRSLCM
+Function Request-PowerStateViaVRSLCM
 {
-    <#
-        .NOTES
-        ===========================================================================
-        Created by:		Sowjanya V
-        Date:			03/16/2021
-        Organization:	VMware
-        ===========================================================================
-        
-        .SYNOPSIS
-        Shutting down VRA or VIDM via VRSLCM
-    
-        .DESCRIPTION
-        There function is used to shutdown or startup VRA or VIDM components via VRSLCM. 
+<#
+    .SYNOPSIS
+    Power On/Off via vRealize Suite Lifecycle Manager
 
-        .EXAMPLE
-        PS C:\> Request-StartStopViaVRSLCM -server xreg-vrslcm01.rainpole.io -user 'vcfadmin@local' -pass 'VMw@re123!' -env "global" -product 'vidm' -mode "power-on"
-        In this example we connect to VRSLCM and are starting either VIDM component 
+    .DESCRIPTION
+    The Request-PowerStateViaVRSLCM cmdlet is used to shutdown or startup vRealize Automation or Workspace ONE Access via vRealize Suite Lifecycle Manager
 
-        PS C:\> Request-StartStopViaVRSLCM -server xreg-vrslcm01.rainpole.io -user 'vcfadmin@local' -pass 'VMw@re123!' -env "global" -product 'vidm' -mode "power-off"
-        In this example we connect to VRSLCM and gracefully shutdown VIDM component 
+    .EXAMPLE
+    Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VRA -mode power-off
+    In this example we are stopping vRealize Automation
 
-        PS C:\> Request-StartStopViaVRSLCM -server xreg-vrslcm01.rainpole.io -user 'vcfadmin@local' -pass 'VMw@re123!' -env "Cross" -product 'VRA' -mode "power-on"
-        In this example we connect to VRSLCM and are starting either VRA component 
+    .EXAMPLE
+    Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VRA -mode power-on
+    In this example we are starting vRealize Automation
 
-        PS C:\> Request-StartStopViaVRSLCM -server xreg-vrslcm01.rainpole.io -user 'vcfadmin@local' -pass 'VMw@re123!' -env "Cross" -product 'VRA' -mode "power-off"
-        In this example we connect to VRSLCM and gracefully shutdown VRA component 
-    #>
+    .EXAMPLE
+    Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VIDM -mode power-off
+    In this example we are stopping Workspace ONE Access
+
+    .EXAMPLE
+    Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VIDM -mode power-on
+    In this example we are starting Workspace ONE Access
+#>
           
     Param (
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$mode,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$product,
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$env,
+		[Parameter (Mandatory=$true)] [ValidateSet("power-on", "power-off")] [String]$mode,
+        [Parameter (Mandatory=$true)] [ValidateSet("VRA", "VIDM")] [String]$product,
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [Int]$timeout
     )
     
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Get-EnvironmentId cmdlet" -Colour Yellow
-		#Write-Output $server
-        $env_id = Get-EnvironmentId -server $server -user $user -pass $pass -Name $env
-		#Write-Output $env_id
+        Write-LogMessage -Type INFO -Message "Starting Execution of Request-PowerStateViaVRSLCM" -Colour Yellow
+		Write-LogMessage -Type INFO -Message "Obtaining the vRealize Suite Lifecycle Manager Environment ID for '$product'"
+        $environmentId = Get-EnvironmentId -server $server -user $user -pass $pass -product $product
 		
-		$Global:myHeaders = createHeader $user $pass
-		#Write-Output $myHeaders
-		$uri = "https://$server/lcm/lcops/api/v2/environments/$env_id/products/$product/$mode"
-
-		
-		#Write-Output $uri
+		$vrslcmHeaders = createHeader $user $pass
+		$uri = "https://$server/lcm/lcops/api/v2/environments/$environmentId/products/$product/$mode"
         $json = {}
-        $response = Invoke-RestMethod -Method POST -URI $uri -headers $myHeaders -ContentType application/json -body $json
+        $response = Invoke-RestMethod -Method POST -URI $uri -headers $vrslcmHeaders -ContentType application/json -body $json
 		
-		#Write-Output "------------------------------------"
-		#Write-Output $response
-		#Write-Output "------------------------------------"
         if ($response.requestId) {
-            Write-LogMessage -Type INFO -Message "Successfully initiated $mode on $product" -Colour Yellow
+            Write-LogMessage -Type INFO -Message "Initiated $mode for $product Successfully" -Colour Green
         }
         else {
-            Write-LogMessage -Type ERROR -Message "Unable to $mode on $product due to response " -Colour Red
+            Write-LogMessage -Type ERROR -Message "Unable to $mode for $product due to response " -Colour Red
         }
+
 		$id = $response.requestId
-		#a893afc1-2035-4a9c-af91-0c55549e4e07
-		$uri2 = "https://$server/lcm/request/api/v2/requests/$id"
-		
+		$uri = "https://$server/lcm/request/api/v2/requests/$id"
 		$count = 0
 		While ($count -le $timeout) {
 			$count = $count + 60
 			Start-Sleep -s 60
-			$response2 = Invoke-RestMethod -Method GET -URI $uri2 -headers $myHeaders -ContentType application/json 
-			if (($response2.state -eq 'COMPLETED') -or ($response2.state -eq 'FAILED')) {
-                Write-LogMessage -Type INFO -Message "The API has exited with the following state" -Colour Yellow
-                Write-LogMessage -Type INFO -Message $response2.state -Colour Yellow
-				Break
+			$response = Invoke-RestMethod -Method GET -URI $uri -headers $vrslcmHeaders -ContentType application/json 
+			if (($response.state -eq 'COMPLETED') -or ($response.state -eq 'FAILED')) {
+                Write-LogMessage -Type INFO -Message "The API has exited with the following state '$($response.state)'" -Colour Yellow
 			}
 		}
-		if (($null -eq $response2.errorCause) -and ($response2.state -eq 'COMPLETED')) {
-            Write-LogMessage -Type INFO -Message "The $mode on $product is successfull" -Colour Yellow
+		if (($null -eq $response.errorCause) -and ($response.state -eq 'COMPLETED')) {
+            Write-LogMessage -Type INFO -Message "The $mode of $product Completed Successfully" -Colour Green
 		}
-        elseif (($response2.state -eq 'FAILED')) {
-            Write-LogMessage -Type ERROR -Message "Could not $mode on $product because of" -Colour Red
-            Write-LogMessage -Type ERROR -Message $response2.errorCause.message -Colour Red
+        elseif (($response.state -eq 'FAILED')) {
+            Write-LogMessage -Type ERROR -Message "Could not $mode of $product because of $($response.errorCause.message)" -Colour Red
 	    }
         else {
-            Write-LogMessage -Type ERROR -Message "Could not $mode on $product within the timeout value" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Could not $mode of $product within the timeout value" -Colour Red
 		}
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Request-PowerStateViaVRSLCM" -Colour Yellow
     }
     Catch {
 	   Debug-CatchWriter -object $_
     }
-    Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-EnvironmentId cmdlet" -Colour Yellow
-    }
 }
-Export-ModuleMember -Function Request-StartStopViaVRSLCM
-New-Alias -Name ShutdownStartupProduct-ViaVRSLCM -Value Request-StartStopViaVRSLCM
-Export-ModuleMember -Alias ShutdownStartupProduct-ViaVRSLCM  -Function Request-StartStopViaVRSLCM
+Export-ModuleMember -Function Request-PowerStateViaVRSLCM
 
 
 <#Function ShutdownStartupProduct-ViaVRSLCM
