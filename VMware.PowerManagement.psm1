@@ -1181,6 +1181,103 @@ Function Start-EsxiUsingILO {
 }
 Export-ModuleMember -Function Start-EsxiUsingILO
 
+Function Set-Retreatmode {
+    <#
+        .NOTES
+        ===========================================================================
+        Created by:    Sowjanya V
+        Organization:  VMware
+
+        ===========================================================================
+        .DESCRIPTION
+            This method is used to set the vlcs cluster domain id to enabled or disabled state
+        .PARAMETER
+            server
+                The vCenter server hostname
+            user
+                The username to login to vCenter server
+            pass
+                The password to login to vCenter server
+            cluster
+                The cluster in which the vlcs vm's to be put in retreat mode resides
+            mode
+                The mode parameter is to enable or disable retreat mode on vcls vms's
+        .EXAMPLE
+            Set-Retreatmode -server $server  -user $user  -pass $pass -cluster $cluster -mode 'enable'
+                This example puts the vcls vms' in the retreat mode
+
+            Set-Retreatmode -server $server  -user $user  -pass $pass -cluster $cluster -mode 'disable'
+                This example takes the vcls vms' out of retreat mode
+    #>
+
+	Param(
+	    [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $cluster,
+        [Parameter (Mandatory=$true)] [ValidateSet("enable", "disable")] [String] $mode
+
+    )
+
+	Try {
+	    Write-LogMessage -Type INFO -Message "Starting Execution of Set-Retreatmode cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server'"
+                $cluster_id = Get-Cluster -Name $cluster | select-object -property Id
+                #Write-LogMessage -Type INFO -Message "cluster_id: $cluster_id "
+                $domain_out = $cluster_id.Id -match 'domain-c.*'
+                $domain_id = $Matches[0]
+                #Write-LogMessage -Type INFO -Message "domain_id: $domain_id "
+                $advanced_setting = "config.vcls.clusters.$domain_id.enabled"
+                if (Get-AdvancedSetting -Entity $server -Name  $advanced_setting) {
+                    Write-LogMessage -Type INFO -Message "The advanced setting $advanced_setting is present"
+                    if ($mode -eq 'enable') {
+                        Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'false' -Confirm:$false
+                        Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false"
+                    }
+                    else {
+                        Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'true' -Confirm:$false
+                        Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true"
+                    }
+                }
+                else {
+                    if ($mode -eq 'enable') {
+                       New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'false' -Confirm:$false
+                       Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false"
+                    }
+                    else {
+                       New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'true' -Confirm:$false
+                       Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true"
+                    }
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+
+        } else {
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        }
+
+	}
+    Catch {
+        Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Set-Retreatmode cmdlet" -Colour Yellow
+    }
+
+}
+Export-ModuleMember -Function Set-Retreatmode
+
+
 Function Get-NSXTMgrClusterStatus {
     <#
         .NOTES
