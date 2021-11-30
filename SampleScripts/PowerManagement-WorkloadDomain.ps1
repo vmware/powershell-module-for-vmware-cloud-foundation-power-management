@@ -1,18 +1,33 @@
-    <#
-        .SYNOPSIS
-        Connects to the specified SDDC Manager and shutdown/startup a VI Workload Domain
+<#
+    .NOTES
+    ===============================================================================================================
+    .Created By:    Gary Blake
+    .Group:         Cloud Infrastructure Business Group (CIBG)
+    .Organization:  VMware
+    .Version:       1.0 (Build 001)
+    .Date:          2021-11-23
+    ===============================================================================================================
 
-        .DESCRIPTION
-        This script connects to the specified SDDC Manager and either shutdowns or startups a Virtual Infrastructure Workload Domain
+    .CHANGE_LOG
 
-        .EXAMPLE
-        PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Shutdown
-        Initiates a shutdown of the Virtual Infrastructure Workload Domain 'sfo-w01'
+    - 1.0.001   (Gary Blake / 2021-11-23) - Initial script creation
 
-        .EXAMPLE
-        PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Startup
-        Initiates the startup of the Virtual Infrastructure Workload Domain 'sfo-w01'
-    #>
+    ===============================================================================================================
+    .SYNOPSIS
+    Connects to the specified SDDC Manager and shutdown/startup a VI Workload Domain
+
+    .DESCRIPTION
+    This script connects to the specified SDDC Manager and either shutdowns or startups a Virual Infrastructure Workload Domain
+
+    .EXAMPLE
+    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Shutdown
+    Initiaites a shutdown of the Virual Infrastructure Workload Domain 'sfo-w01'
+
+    .EXAMPLE
+    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Startup
+    Initiaites the startup of the Virual Infrastructure Workload Domain 'sfo-w01'
+#>
+
 
 Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
