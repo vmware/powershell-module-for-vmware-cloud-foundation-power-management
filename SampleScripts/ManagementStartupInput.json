@@ -2,7 +2,7 @@
         "Domain": {
           "name": 'sfo-m01'
         },
-        "cluster": {
+        "Cluster": {
             "name": "sfo-m01-cl01"
         },
         "Server" : {
