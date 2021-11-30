@@ -116,65 +116,53 @@ Try {
             }
 
 
-            # Gather vRealize Suite Details
-            $GLobal:vrslcm = New-Object -TypeName PSCustomObject
-            $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
-            $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
-            $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
-            $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
-            $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
-            $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
+        # Gather vRealize Suite Details
+        $vrslcm = New-Object -TypeName PSCustomObject
+        $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
+        $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
+        $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
+        $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
+        $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
+        $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
 
+        $wsa = New-Object -TypeName PSCustomObject
+        $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).elements.status
+        $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).elements.loadBalancerFqdn
+        $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
+        $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
+        $wsaNodes = @()
+        foreach ($node in (Get-VCFWSA).elements.nodes.fqdn | Sort-Object) {
+            [Array]$wsaNodes += $node.Split(".")[0]
+        }
 
-            $Global:wsa = New-Object -TypeName PSCustomObject
-            $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).elements.status
-            $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).elements.loadBalancerFqdn
-            $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
-            $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
-            $wsaNodes = @()
-            foreach ($node in (Get-VCFWSA).elements.nodes.fqdn | Sort-Object) {
-                [Array]$wsaNodes += $node.Split(".")[0]
-            }
+        $vrops = New-Object -TypeName PSCustomObject
+        $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).elements.status
+        $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).elements.loadBalancerFqdn
+        $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
+        $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
+        $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).elements.nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
+        $vropsNodes = @()
+        foreach ($node in (Get-VCFvROPS).elements.nodes.fqdn | Sort-Object) {
+            [Array]$vropsNodes += $node.Split(".")[0]
+        }
 
+        $vra = New-Object -TypeName PSCustomObject
+        $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).elements.status
+        $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).elements.loadBalancerFqdn
+        $vraNodes = @()
+        foreach ($node in (Get-VCFvRA).elements.nodes.fqdn | Sort-Object) {
+            [Array]$vraNodes += $node.Split(".")[0]
+        }
 
-            $Global:vrops = New-Object -TypeName PSCustomObject
-            $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).elements.status
-            $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).elements.loadBalancerFqdn
-            $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
-            $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
-            $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).elements.nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
-            $vropsNodes = @()
-            foreach ($node in (Get-VCFvROPS).elements.nodes.fqdn | Sort-Object) {
-                [Array]$vropsNodes += $node.Split(".")[0]
-            }
-            if($vrops.master) {
-                $Global:vropsCollectorNodes = @()
-                foreach ($node in (Get-vROPSClusterDetail -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword | Where-Object {$_.role -eq "REMOTE_COLLECTOR"} | Select-Object name)) {
-                    [Array]$vropsCollectorNodes += $node
-                }
-            }
-
-
-            $Global:vra = New-Object -TypeName PSCustomObject
-            $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).elements.status
-            $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).elements.loadBalancerFqdn
-            $vraNodes = @()
-            foreach ($node in (Get-VCFvRA).elements.nodes.fqdn | Sort-Object) {
-                [Array]$vraNodes += $node.Split(".")[0]
-            }
-            Write-LogMessage -Type INFO -Message "$vra"
-
-            $Global:vrli = New-Object -TypeName PSCustomObject
-            $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).elements.status
-            $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).elements.loadBalancerFqdn
-            $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
-            $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
-            $vrliNodes = @()
-            foreach ($node in (Get-VCFvRLI).elements.nodes.fqdn | Sort-Object) {
-
-                [Array]$vrliNodes += $node.Split(".")[0]
-            }
-
+        $vrli = New-Object -TypeName PSCustomObject
+        $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).elements.status
+        $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).elements.loadBalancerFqdn
+        $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
+        $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
+        $vrliNodes = @()
+        foreach ($node in (Get-VCFvRLI).elements.nodes.fqdn | Sort-Object) {
+            [Array]$vrliNodes += $node.Split(".")[0]
+        }
 
             #get SDDC VM name from Vcenter server
             $Global:sddcmVMName
@@ -194,18 +182,19 @@ Try {
             Exit
         }
 
-
         # Shutdown vRealize Suite
         if ($($WorkloadDomain.type) -eq "MANAGEMENT") {
-            Write-LogMessage -Type INFO -Message $vra.status
             if ($($vra.status -eq "ACTIVE")) {
                 Request-PowerStateViaVRSLCM -server $vrslcm.fqdn -user $vrslcm.adminUser -pass $vrslcm.adminPassword -product VRA -mode power-off -timeout 1800
             }
-
             if ($($vrops.status -eq "ACTIVE")) {
+                $vropsCollectorNodes = @()
                 Set-vROPSClusterState -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword -mode OFFLINE
-                Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsNodes -timeout 600
+                foreach ($node in (Get-vROPSClusterDetail -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword | Where-Object {$_.role -eq "REMOTE_COLLECTOR"} | Select-Object name)) {
+                    [Array]$vropsCollectorNodes += $node.name
+                }
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsCollectorNodes -timeout 600
+                Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsNodes -timeout 600
             }
             if ($($wsa.status -eq "ACTIVE")) {
                 Request-PowerStateViaVRSLCM -server $vrslcm.fqdn -user $vrslcm.adminUser -pass $vrslcm.adminPassword -product VIDM -mode power-off -timeout 1800
@@ -217,6 +206,7 @@ Try {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrliNodes -timeout 600
             }
         }
+
 
 
         # Shutdown the NSX Edge Nodes
@@ -396,77 +386,67 @@ Try {
             }
 
 
-            # Gather vRealize Suite Details
-            $GLobal:vrslcm = New-Object -TypeName PSCustomObject
-            $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
-            $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
-            $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
-            $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
-            $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
-            $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
-            Write-LogMessage -Type INFO -Message "$vrslcm"
+        # Gather vRealize Suite Details
+        $vrslcm = New-Object -TypeName PSCustomObject
+        $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
+        $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
+        $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
+        $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
+        $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
+        $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
 
-            $Global:wsa = New-Object -TypeName PSCustomObject
-            $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).elements.status
-            $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).elements.loadBalancerFqdn
-            $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
-            $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
-            $wsaNodes = @()
-            foreach ($node in (Get-VCFWSA).elements.nodes.fqdn | Sort-Object) {
-                [Array]$wsaNodes += $node.Split(".")[0]
-            }
+        $wsa = New-Object -TypeName PSCustomObject
+        $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).elements.status
+        $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).elements.loadBalancerFqdn
+        $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
+        $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
+        $wsaNodes = @()
+        foreach ($node in (Get-VCFWSA).elements.nodes.fqdn | Sort-Object) {
+            [Array]$wsaNodes += $node.Split(".")[0]
+        }
+
+        $vrops = New-Object -TypeName PSCustomObject
+        $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).elements.status
+        $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).elements.loadBalancerFqdn
+        $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
+        $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
+        $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).elements.nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
+        $vropsNodes = @()
+        foreach ($node in (Get-VCFvROPS).elements.nodes.fqdn | Sort-Object) {
+            [Array]$vropsNodes += $node.Split(".")[0]
+        }
+
+        $vra = New-Object -TypeName PSCustomObject
+        $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).elements.status
+        $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).elements.loadBalancerFqdn
+        $vraNodes = @()
+        foreach ($node in (Get-VCFvRA).elements.nodes.fqdn | Sort-Object) {
+            [Array]$vraNodes += $node.Split(".")[0]
+        }
+
+        $vrli = New-Object -TypeName PSCustomObject
+        $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).elements.status
+        $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).elements.loadBalancerFqdn
+        $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
+        $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
+        $vrliNodes = @()
+        foreach ($node in (Get-VCFvRLI).elements.nodes.fqdn | Sort-Object) {
+            [Array]$vrliNodes += $node.Split(".")[0]
+        }
 
 
-            $Global:vrops = New-Object -TypeName PSCustomObject
-            $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).elements.status
-            $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).elements.loadBalancerFqdn
-            $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
-            $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
-            $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).elements.nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
-            $vropsNodes = @()
-            foreach ($node in (Get-VCFvROPS).elements.nodes.fqdn | Sort-Object) {
-                [Array]$vropsNodes += $node.Split(".")[0]
-            }
-            if($vrops.master) {
-                $Global:vropsCollectorNodes = @()
-                foreach ($node in (Get-vROPSClusterDetail -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword | Where-Object {$_.role -eq "REMOTE_COLLECTOR"} | Select-Object name)) {
-                    [Array]$vropsCollectorNodes += $node
-                }
-            }
-
-
-            $Global:vra = New-Object -TypeName PSCustomObject
-            $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).elements.status
-            $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).elements.loadBalancerFqdn
-            $vraNodes = @()
-            foreach ($node in (Get-VCFvRA).elements.nodes.fqdn | Sort-Object) {
-                [Array]$vraNodes += $node.Split(".")[0]
-            }
-
-
-            $Global:vrli = New-Object -TypeName PSCustomObject
-            $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).elements.status
-            $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).elements.loadBalancerFqdn
-            $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
-            $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
-            $vrliNodes = @()
-            foreach ($node in (Get-VCFvRLI).elements.nodes.fqdn | Sort-Object) {
-
-                [Array]$vrliNodes += $node.Split(".")[0]
-            }
-
-            #get SDDC VM name from Vcenter server
+        #get SDDC VM name from Vcenter server
+        Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name : $vcServer.fqdn"
+        $Global:sddcmVMName
+        if ($vcServer.fqdn) {
             Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name : $vcServer.fqdn"
-            $Global:sddcmVMName
-            if ($vcServer.fqdn) {
-                Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name : $vcServer.fqdn"
-                Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
-                $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
-            }
+            Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
+            $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
+        }
 
 
-            $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
-            Write-LogMessage -Type INFO -Message "$sddcmVMName  :: $nsxt_local_url"
+        $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
+        Write-LogMessage -Type INFO -Message "$sddcmVMName  :: $nsxt_local_url"
 
         }
         else {
@@ -490,22 +470,28 @@ Try {
 
         # Startup vRealize Suite
         if ($($WorkloadDomain.type) -eq "MANAGEMENT") {
-            if ($($vra.status -eq "ACTIVE")) {
-                Request-PowerStateViaVRSLCM -server $vrslcm.fqdn -user $vrslcm.adminUser -pass $vrslcm.adminPassword -product VRA -mode power-on -timeout 1800
-
-            }
-            if ($($vrops.status -eq "ACTIVE")) {
-                Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsNodes -timeout 600
-                Set-vROPSClusterState -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword -mode ONLINE
-            }
-            if ($($wsa.status -eq "ACTIVE")) {
-                Request-PowerStateViaVRSLCM -server $vrslcm.fqdn -user $vrslcm.adminUser -pass $vrslcm.adminPassword -product VIDM -mode power-on -timeout 1800
-            }
             if ($($vrslcm.status -eq "ACTIVE")) {
                 Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrslcm.fqdn.Split(".")[0] -timeout 600
             }
             if ($($vrli.status -eq "ACTIVE")) {
                 Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrliNodes -timeout 600
+            }
+            if ($($vrops.status -eq "ACTIVE")) {
+                Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsNodes -timeout 600
+                $vropsCollectorNodes = @()
+                foreach ($node in (Get-vROPSClusterDetail -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword | Where-Object {$_.role -eq "REMOTE_COLLECTOR"} | Select-Object name)) {
+                    [Array]$vropsCollectorNodes += $node.name
+                }
+                Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsCollectorNodes -timeout 600
+            }
+            if ($($vra.status -eq "ACTIVE")) {
+                Request-PowerStateViaVRSLCM -server $vrslcm.fqdn -user $vrslcm.adminUser -pass $vrslcm.adminPassword -product VRA -mode power-on -timeout 1800
+            }
+            if ($($wsa.status -eq "ACTIVE")) {
+                Request-PowerStateViaVRSLCM -server $vrslcm.fqdn -user $vrslcm.adminUser -pass $vrslcm.adminPassword -product VIDM -mode power-on -timeout 1800
+            }
+            if ($($vrops.status -eq "ACTIVE")) {
+                Set-vROPSClusterState -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword -mode ONLINE
             }
         }
 
