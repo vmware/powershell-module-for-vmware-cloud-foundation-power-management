@@ -1401,21 +1401,3 @@ Export-ModuleMember -Function createHeader
 
 ######### End Useful Script Functions ##########
 
-
-##### Remove After Testing
-
-#Function Grant-IgnoreCertificateError {
-#	add-type @"
-#		using System.Net;
-#		using System.Security.Cryptography.X509Certificates;
-#		public class TrustAllCertsPolicy : ICertificatePolicy {
-#			public bool CheckValidationResult(
-#				ServicePoint srvPoint, X509Certificate certificate,
-#				WebRequest request, int certificateProblem) {
-#				return true;
-#			}
-#		}
-#"@
-#	[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
-#}
-#Export-ModuleMember -Function Grant-IgnoreCertificateError
