@@ -1,6 +1,6 @@
 {
         "Domain": {
-          "name": 'sfo-m01'
+          "name": "sfo-m01"
         },
         "Cluster": {
             "name": "sfo-m01-cl01"
