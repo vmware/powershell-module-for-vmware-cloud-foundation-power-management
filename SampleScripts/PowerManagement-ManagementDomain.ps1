@@ -98,10 +98,10 @@ Try {
             # Gather NSX Manager Cluster Details
             $nsxtCluster = Get-VCFNsxtCluster | Where-Object {$_.id -eq $workloadDomain.nsxtCluster.id}
             $nsxtMgrfqdn = $nsxtCluster.vipFqdn
-            $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
             $nsxMgrVIP = New-Object -TypeName PSCustomObject
             $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).username
             $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).password
+            $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
             $nsxtNodes = @()
             foreach ($node in $nsxtNodesfqdn) {
                 [Array]$nsxtNodes += $node.Split(".")[0]
@@ -171,11 +171,6 @@ Try {
                 Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
                 $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
             }
-
-
-            $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
-            Write-LogMessage -Type INFO -Message "$sddcmVMName  :: $nsxt_local_url"
-
         }
         else {
             Write-LogMessage -Type ERROR -Message "Unable to connect to SDDC Manager $server" -Colour Red
@@ -368,10 +363,11 @@ Try {
             # Gather NSX Manager Cluster Details
             $nsxtCluster = Get-VCFNsxtCluster | Where-Object {$_.id -eq $workloadDomain.nsxtCluster.id}
             $nsxtMgrfqdn = $nsxtCluster.vipFqdn
-            $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
             $nsxMgrVIP = New-Object -TypeName PSCustomObject
             $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).username
             $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).password
+
+            $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
             $nsxtNodes = @()
             foreach ($node in $nsxtNodesfqdn) {
                 [Array]$nsxtNodes += $node.Split(".")[0]
@@ -446,7 +442,7 @@ Try {
 
 
         $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
-        Write-LogMessage -Type INFO -Message "$sddcmVMName  :: $nsxt_local_url"
+
 
         }
         else {
@@ -456,6 +452,8 @@ Try {
 
         # Startup the NSX Manager Nodes in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
+        Test-WebUrl -url  $nsxt_local_url
+        Get-NSXTMgrClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
 
          # Startup the NSX Edge Nodes in the Management Workload Domain
         if ($nsxtEdgeNodes) {
