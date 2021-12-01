@@ -1,6 +1,6 @@
     <#
         .SYNOPSIS
-        Connects to the specified SDDC Manager and shutdown/startup a Tanzu Domain
+        Connects to the specified SDDC Manager and shutdown/startup a Tanzu Workload Domain
 
         .DESCRIPTION
         This script connects to the specified SDDC Manager and either shutdowns or startups a Tanzu Workload Domain
@@ -96,55 +96,7 @@ Try {
             [Array]$nsxtEdgeNodes += $node.Split(".")[0]
         }
 
-        # Gather vRealize Suite Details
-        $vrslcm = New-Object -TypeName PSCustomObject
-        $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
-        $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
-        $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
-        $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
-        $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
-        $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
 
-        $wsa = New-Object -TypeName PSCustomObject
-        $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).status
-        $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).loadBalancerFqdn
-        $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
-        $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
-        $wsaNodes = @()
-        foreach ($node in (Get-VCFWSA).nodes.fqdn | Sort-Object) {
-            [Array]$wsaNodes += $node.Split(".")[0]
-        }
-
-        $vrops = New-Object -TypeName PSCustomObject
-        $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).status
-        $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).loadBalancerFqdn
-        $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
-        $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
-        $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
-        $vropsNodes = @()
-        foreach ($node in (Get-VCFvROPS).nodes.fqdn | Sort-Object) {
-            [Array]$vropsNodes += $node.Split(".")[0]
-        }
-
-        $vra = New-Object -TypeName PSCustomObject
-        $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).status
-        $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).loadBalancerFqdn
-        $vra | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vra.fqdn -and $_.credentialType -eq "API"})).username
-        $vra | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vra.fqdn -and $_.credentialType -eq "API"})).password
-        $vraNodes = @()
-        foreach ($node in (Get-VCFvRA).nodes.fqdn | Sort-Object) {
-            [Array]$vraNodes += $node.Split(".")[0]
-        }
-
-        $vrli = New-Object -TypeName PSCustomObject
-        $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).status
-        $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).loadBalancerFqdn
-        $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
-        $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
-        $vrliNodes = @()
-        foreach ($node in (Get-VCFvRLI).nodes.fqdn | Sort-Object) {
-            [Array]$vrliNodes += $node.Split(".")[0]
-        }
     }
     else {
         Write-LogMessage -Type ERROR -Message "Unable to connect to SDDC Manager $server" -Colour Red
@@ -163,16 +115,31 @@ Try {
         if ($checkServer -eq "True") {
             Set-DrsAutomationLevel -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -cluster $mgmtCluster.name -level PartiallyAutomated
         }
-        if (!$($WorkloadDomain.type) -eq "MANAGEMENT") {
-            $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-            if ($checkServer -eq "True") {
-                Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
-            }
-        }
+
+        #Shut Down the vSphere Cluster Services Virtual Machines
+        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode 'disable'
 
         # Shut Down the vSphere with Tanzu Virtual Machines
         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action STOP
+
+        # Check the health and sync status of the VSAN cluster
+        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+            Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+            # Shutdown vCenter Server
+            Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
+        }
+        else {
+            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping checking VSAN health for cluster $($cluster.name)" -Colour Cyan
+        }
+
         $clusterPattern = "^SupervisorControlPlaneVM.*"
+        foreach ($esxiNode in $esxiWorkloadDomain) {
+            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
+        }
+
+        $clusterPattern = "^.*-tkc01-.*"
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
         }
@@ -182,40 +149,14 @@ Try {
             Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
         }
 
-        # Shutdown the NSX Edge Nodes
-        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            if ($nsxtEdgeNodes) {
-                Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
-            }
-            else {
-                Write-LogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping shutdown" -Colour Cyan
-            }
+        #search for the edgenodes and shutdown
+        foreach ($nsxtEdgeNode in $nsxtEdgeNodes) {
+            $gethost = Get-VM | where-object Name -match $nsxtEdgeNode  | select VMHost
+            Stop-CloudComponent -server $gethost.VMHost.Name -pattern $nsxtEdgeNode -user $esxiNode.username -pass $esxiNode.password -timeout 600
         }
-        else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping shutdown of $nsxtEdgeNodes" -Colour Cyan
-        }
+
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
-
-        # Check the health and sync status of the VSAN cluster
-        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
-            Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
-        }
-        else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping checking VSAN health for cluster $($cluster.name)" -Colour Cyan
-        }
-
-        # Shutdown vCenter Server
-        Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
-
-        # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-        foreach ($esxiNode in $esxiWorkloadDomain) {
-            $clusterPattern = "^vCLS.*"
-            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
-        }
 
         # Prepare the vSAN cluster for shutdown - Performed on a single host only
         Invoke-EsxCommand -server $esxiWorkloadDomain.fqdn[0] -user $esxiWorkloadDomain.username[0] -pass $esxiWorkloadDomain.password[0] -expected "Cluster preparation is done" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py prepare"
@@ -246,46 +187,55 @@ Try {
             Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
         }
 
-        # Startup the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-        $clusterPattern = "^vCLS.*"
-        foreach ($esxiNode in $esxiWorkloadDomain) {
-            Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000 
-        }
-
-        # Startup the Virtual Infrastructure Workload Domain vCenter Server
+        # Startup the Tanzu Workload Domain vCenter Server
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
         Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
         Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
 
-        # Startup the NSX Manager Nodes in the Management Domain
-        Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
-
-        # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain
+        # Check the health and sync status of the VSAN cluster
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
-            if ($nsxtEdgeNodes) {
-                Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
-            }
-            else {
-                Write-LogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
-            }
+            Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+            Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
         }
         else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping startup of $nsxtEdgeNodes" -Colour Cyan
+            Write-LogMessage -Type ERROR -Message "The VC is still not up" -Colour RED
             Exit
+        }
+
+        $HAStatus = Get-Cluster -Name $cluster.name | Select HAEnabled
+        if ($HAStatus)  {
+             Write-LogMessage -Type INFO -Message "The HA is enabled on the VSAN cluster, restarting the same"
+             Set-Cluster -Name $cluster.name -HAEnabled:$false
+             if (-Not get-cluster -Name $cluster.name | select HAEnabled) {
+                 Write-LogMessage -Type INFO -Message "The HA is disabled"
+             }
+             Start-Sleep -s 5
+             Set-Cluster -Name $cluster.name -HAEnabled:$true
+             if (get-cluster -Name $cluster.name | select HAEnabled) {
+                 Write-LogMessage -Type INFO -Message "The HA is enabled. Vsphere HA is restarted"
+             }
+        }
+        Get-VAMIServiceStatus $vcServer.fqdn -user $vcUser -pass $vcPass -service 'wcp' -check_status 'STARTED'
+
+        #Startup vSphere Cluster Services Virtual Machines
+        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode 'enable'
+
+        # Startup the NSX Manager Nodes in the Management Domain
+        Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
+
+        # Startup the NSX Edge Nodes in the Tanzu Workload Domain
+        if ($nsxtEdgeNodes) {
+            Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
+        }
+        else {
+            Write-LogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
         }
 
         # Change the DRS Automation Level to Fully Automated for both the Management Domain and Tanzu Domain Clusters
         $checkServer = Test-Connection -ComputerName $mgmtVcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
             Set-DrsAutomationLevel -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -cluster $mgmtCluster.name -level FullyAutomated
-        }
-
-        if (!$($WorkloadDomain.type) -eq "MANAGEMENT") {
-            $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-            if ($checkServer -eq "True") {
-                Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
-            }
         }
     }
 }
