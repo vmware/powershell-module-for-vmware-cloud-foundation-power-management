@@ -1058,8 +1058,7 @@ Function Get-EnvironmentId {
 }
 Export-ModuleMember -Function Get-EnvironmentId
 
-Function Request-PowerStateViaVRSLCM
-{
+Function Request-PowerStateViaVRSLCM {
 <#
     .SYNOPSIS
     Power On/Off via vRealize Suite Lifecycle Manager
@@ -1132,16 +1131,15 @@ Function Request-PowerStateViaVRSLCM
 Export-ModuleMember -Function Request-PowerStateViaVRSLCM
 
 Function Start-EsxiUsingILO {
-    <#
+<#
     .SYNOPSIS
     Power On/Off via DELL ESXi Server
-
 
     .DESCRIPTION
     This method is used to poweron the DELL ESXi server using ILO ip address using racadm cli. This is cli equivalent of admin console for DELL servers
 
     .EXAMPLE
-    PowerOn-EsxiUsingILO -ilo_ip $ilo_ip  -ilo_user <drac_console_user>  -ilo_pass <drac_console_pass>
+    PowerOn-EsxiUsingILO -ilo_ip $ilo_ip -ilo_user <drac_console_user> -ilo_pass <drac_console_pass>
     This example connects to out of band ip address powers on the ESXi host
 #>
 
@@ -1276,8 +1274,6 @@ Function Set-Retreatmode {
 
 }
 Export-ModuleMember -Function Set-Retreatmode
-
-
 Function Get-NSXTMgrClusterStatus {
     <#
         .NOTES
@@ -1398,6 +1394,4 @@ Function createHeader  {
 }
 Export-ModuleMember -Function createHeader
 
-
 ######### End Useful Script Functions ##########
-
