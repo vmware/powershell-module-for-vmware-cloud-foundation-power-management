@@ -97,10 +97,6 @@ Try {
 
             # Gather NSX Manager Cluster Details
             $nsxtCluster = Get-VCFNsxtCluster | Where-Object {$_.id -eq $workloadDomain.nsxtCluster.id}
-            $nsxtMgrfqdn = $nsxtCluster.vipFqdn
-            $nsxMgrVIP = New-Object -TypeName PSCustomObject
-            $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).username
-            $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).password
             $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
             $nsxtNodes = @()
             foreach ($node in $nsxtNodesfqdn) {
@@ -382,68 +378,65 @@ Try {
             }
 
 
-        # Gather vRealize Suite Details
-        $vrslcm = New-Object -TypeName PSCustomObject
-        $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
-        $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
-        $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
-        $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
-        $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
-        $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
+            # Gather vRealize Suite Details
+            $vrslcm = New-Object -TypeName PSCustomObject
+            $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
+            $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
+            $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
+            $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
+            $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
+            $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
 
-        $wsa = New-Object -TypeName PSCustomObject
-        $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).elements.status
-        $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).elements.loadBalancerFqdn
-        $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
-        $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
-        $wsaNodes = @()
-        foreach ($node in (Get-VCFWSA).elements.nodes.fqdn | Sort-Object) {
-            [Array]$wsaNodes += $node.Split(".")[0]
-        }
+            $wsa = New-Object -TypeName PSCustomObject
+            $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).elements.status
+            $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).elements.loadBalancerFqdn
+            $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
+            $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
+            $wsaNodes = @()
+            foreach ($node in (Get-VCFWSA).elements.nodes.fqdn | Sort-Object) {
+                [Array]$wsaNodes += $node.Split(".")[0]
+            }
 
-        $vrops = New-Object -TypeName PSCustomObject
-        $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).elements.status
-        $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).elements.loadBalancerFqdn
-        $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
-        $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
-        $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).elements.nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
-        $vropsNodes = @()
-        foreach ($node in (Get-VCFvROPS).elements.nodes.fqdn | Sort-Object) {
-            [Array]$vropsNodes += $node.Split(".")[0]
-        }
+            $vrops = New-Object -TypeName PSCustomObject
+            $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).elements.status
+            $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).elements.loadBalancerFqdn
+            $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
+            $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
+            $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).elements.nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
+            $vropsNodes = @()
+            foreach ($node in (Get-VCFvROPS).elements.nodes.fqdn | Sort-Object) {
+                [Array]$vropsNodes += $node.Split(".")[0]
+            }
 
-        $vra = New-Object -TypeName PSCustomObject
-        $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).elements.status
-        $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).elements.loadBalancerFqdn
-        $vraNodes = @()
-        foreach ($node in (Get-VCFvRA).elements.nodes.fqdn | Sort-Object) {
-            [Array]$vraNodes += $node.Split(".")[0]
-        }
+            $vra = New-Object -TypeName PSCustomObject
+            $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).elements.status
+            $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).elements.loadBalancerFqdn
+            $vraNodes = @()
+            foreach ($node in (Get-VCFvRA).elements.nodes.fqdn | Sort-Object) {
+                [Array]$vraNodes += $node.Split(".")[0]
+            }
 
-        $vrli = New-Object -TypeName PSCustomObject
-        $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).elements.status
-        $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).elements.loadBalancerFqdn
-        $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
-        $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
-        $vrliNodes = @()
-        foreach ($node in (Get-VCFvRLI).elements.nodes.fqdn | Sort-Object) {
-            [Array]$vrliNodes += $node.Split(".")[0]
-        }
+            $vrli = New-Object -TypeName PSCustomObject
+            $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).elements.status
+            $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).elements.loadBalancerFqdn
+            $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
+            $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
+            $vrliNodes = @()
+            foreach ($node in (Get-VCFvRLI).elements.nodes.fqdn | Sort-Object) {
+                [Array]$vrliNodes += $node.Split(".")[0]
+            }
 
 
-        #get SDDC VM name from Vcenter server
-        Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name : $vcServer.fqdn"
-        $Global:sddcmVMName
-        if ($vcServer.fqdn) {
+            #get SDDC VM name from Vcenter server
             Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name : $vcServer.fqdn"
-            Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
-            $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
-        }
+            $Global:sddcmVMName
+            if ($vcServer.fqdn) {
+                Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name : $vcServer.fqdn"
+                Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
+                $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
+            }
 
-
-        $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
-
-
+            $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
         }
         else {
             Write-LogMessage -Type ERROR -Message "Unable to connect to SDDC Manager $server" -Colour Red
