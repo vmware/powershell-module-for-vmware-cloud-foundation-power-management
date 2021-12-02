@@ -41,7 +41,7 @@ Clear-Host; Write-Host ""
 # Check that the FQDN of the SDDC Manager is valid 
 Try {
     if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
-        Write-Error "Unable to connect to server: $server, check details and try again"
+        Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
     }
 }
@@ -114,7 +114,7 @@ Try {
         }
     }
     else {
-        Write-LogMessage -Type ERROR -Message "Unable to connect to SDDC Manager $server" -Colour Red
+        Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
         Exit
     }
 }

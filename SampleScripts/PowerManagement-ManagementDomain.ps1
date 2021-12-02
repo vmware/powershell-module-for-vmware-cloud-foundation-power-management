@@ -42,7 +42,7 @@ Clear-Host; Write-Host ""
 if ($powerState -eq "shutdown") {
     Try {
         if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
-            Write-Error "Unable to connect to server: $server, check details and try again"
+            Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
             Break
         }
     }
@@ -92,8 +92,6 @@ Try {
                 $esxiWorkloadDomain += $esxDetails
             }
             Write-LogMessage -Type INFO -Message "esxiWorkloadDomain ::   $esxiWorkloadDomain"
-
-
 
             # Gather NSX Manager Cluster Details
             $nsxtCluster = Get-VCFNsxtCluster | Where-Object {$_.id -eq $workloadDomain.nsxtCluster.id}
@@ -169,7 +167,7 @@ Try {
             }
         }
         else {
-            Write-LogMessage -Type ERROR -Message "Unable to connect to SDDC Manager $server" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
             Exit
         }
 
@@ -197,8 +195,6 @@ Try {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrliNodes -timeout 600
             }
         }
-
-
 
         # Shutdown the NSX Edge Nodes
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
@@ -439,7 +435,7 @@ Try {
             $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
         }
         else {
-            Write-LogMessage -Type ERROR -Message "Unable to connect to SDDC Manager $server" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
             Exit
         }
 
