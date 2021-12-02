@@ -199,6 +199,11 @@ Try {
             Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
         }
 
+        $clusterPattern = "^.*-tkc01-.*"
+        foreach ($esxiNode in $esxiWorkloadDomain) {
+            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
+        }
+
         $clusterPattern = "^harbor.*"
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
