@@ -178,7 +178,7 @@ Catch {
 Try {
     if ($powerState -eq "Startup") {
 
-        # Shut Down the vSphere with Tanzu Virtual Machines
+        # Startup the vSphere with Tanzu Virtual Machines
         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action START
 
         $clusterPattern = "^harbor.*"
