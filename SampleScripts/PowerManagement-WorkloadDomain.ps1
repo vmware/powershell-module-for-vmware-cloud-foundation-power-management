@@ -13,6 +13,7 @@
     - 1.0.001   (Gary Blake / 2021-11-23) - Initial script creation
 
     ===============================================================================================================
+    
     .SYNOPSIS
     Connects to the specified SDDC Manager and shutdown/startup a VI Workload Domain
 
@@ -27,7 +28,6 @@
     PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Startup
     Initiaites the startup of the Virual Infrastructure Workload Domain 'sfo-w01'
 #>
-
 
 Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
@@ -65,7 +65,6 @@ Try {
         $mgmtCluster = Get-VCFCluster | Where-Object { $_.id -eq ($managementDomain.clusters.id) }
         $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.Name -eq $sddcDomain }
         $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
-        #$members = (Get-VCFHost | Where-Object {$_.cluster.id -eq $cluster.id} | Select-Object fqdn).fqdn
 
         # Gather vCenter Server Details and Credentials
         $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id)})
@@ -307,9 +306,7 @@ Try {
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
         Test-WebUrl -url $nsxt_local_url
         Start-Sleep -Seconds 120
-        Get-NSXTMgrClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
-
-
+        Get-NsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
 
         # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1

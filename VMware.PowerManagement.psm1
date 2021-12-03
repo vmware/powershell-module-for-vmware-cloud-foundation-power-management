@@ -1,11 +1,16 @@
-<#
-    Script Module : VMware.PowerManagement
-    Version       : 1.0
-    Authors       : Sowjanya V, Gary Blake - Cloud Infrastructure Business Group
-#>
+# PowerShell module for Power Management of an SDDC
 
-# Enable communication with self signed certs when using Powershell Core, if you require all communications to be secure and do not wish to
-# Allow communication with self signed certs remove lines 31-52 before importing the module
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+# OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+### Note
+# This PowerShell module should be considered entirely experimental. It is still in development & not tested beyond
+# lab scenarios. It is recommended you dont use it for any production environment without testing extensively!
+
+# Enable communication with self signed certs when using Powershell Core if you require all communications to be secure
+# and do not wish to allow communication with self signed certs remove lines 23-35 before importing the module
 
 if ($PSEdition -eq 'Core') {
     $PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck", $true)
@@ -1180,33 +1185,21 @@ Function Start-EsxiUsingILO {
 Export-ModuleMember -Function Start-EsxiUsingILO
 
 Function Set-Retreatmode {
-    <#
-        .NOTES
-        ===========================================================================
-        Created by:    Sowjanya V
-        Organization:  VMware
+<#
+    .SYNOPSIS
+    Enable/Disable retreat mode for vSphere Cluster 
 
-        ===========================================================================
-        .DESCRIPTION
-            This method is used to set the vlcs cluster domain id to enabled or disabled state
-        .PARAMETER
-            server
-                The vCenter server hostname
-            user
-                The username to login to vCenter server
-            pass
-                The password to login to vCenter server
-            cluster
-                The cluster in which the vlcs vm's to be put in retreat mode resides
-            mode
-                The mode parameter is to enable or disable retreat mode on vcls vms's
-        .EXAMPLE
-            Set-Retreatmode -server $server  -user $user  -pass $pass -cluster $cluster -mode 'enable'
-                This example puts the vcls vms' in the retreat mode
+    .DESCRIPTION
+    The Set-Retreatmode cmdlet enables or disables retreat mode for the vSphere Cluster virtual machines
 
-            Set-Retreatmode -server $server  -user $user  -pass $pass -cluster $cluster -mode 'disable'
-                This example takes the vcls vms' out of retreat mode
-    #>
+    .EXAMPLE
+    Set-Retreatmode -server $server -user $user -pass $pass -cluster $cluster -mode enable
+    This example places the vSphere Cluster virtual machines (vCLS) in the retreat mode
+
+    .EXAMPLE
+    Set-Retreatmode -server $server -user $user -pass $pass -cluster $cluster -mode disable
+    This example takes places the vSphere Cluster virtual machines (vCLS) out of retreat mode
+#>
 
 	Param(
 	    [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
@@ -1214,7 +1207,6 @@ Function Set-Retreatmode {
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $cluster,
         [Parameter (Mandatory=$true)] [ValidateSet("enable", "disable")] [String] $mode
-
     )
 
 	Try {
@@ -1226,10 +1218,8 @@ Function Set-Retreatmode {
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server'"
                 $cluster_id = Get-Cluster -Name $cluster | select-object -property Id
-                #Write-LogMessage -Type INFO -Message "cluster_id: $cluster_id "
                 $domain_out = $cluster_id.Id -match 'domain-c.*'
                 $domain_id = $Matches[0]
-                #Write-LogMessage -Type INFO -Message "domain_id: $domain_id "
                 $advanced_setting = "config.vcls.clusters.$domain_id.enabled"
                 if (Get-AdvancedSetting -Entity $server -Name  $advanced_setting) {
                     Write-LogMessage -Type INFO -Message "The advanced setting $advanced_setting is present"
@@ -1263,7 +1253,6 @@ Function Set-Retreatmode {
         } else {
             Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-
 	}
     Catch {
         Debug-CatchWriter -object $_
@@ -1274,27 +1263,19 @@ Function Set-Retreatmode {
 
 }
 Export-ModuleMember -Function Set-Retreatmode
-Function Get-NSXTMgrClusterStatus {
-    <#
-        .NOTES
-        ===========================================================================
-        Created by:    Sowjanya V
-        Organization:  VMware
 
-        ===========================================================================
-        .DESCRIPTION
-            This method is used to fetch the cluster status of nsx manager after restart
-        .PARAMETER 
-        server
-            The nsxt manager hostname
-        user
-            nsx manager login user
-        pass
-            nsx manager login password
-        .EXAMPLE
-            Get-NSXTMgrClusterStatus -server $server  -user $user  -pass $pass
-            sample url - "https://sfo-m01-nsx01.sfo.rainpole.io/api/v1/cluster/status"
-    #>
+Function Get-NsxtClusterStatus {
+<#
+    .SYNOPSIS
+    Fetch cluster status of NSX Manager 
+
+    .DESCRIPTION
+    The Get-NsxtClusterStatus cmdlet fetches the cluster status of NSX manager after a restart
+
+    .EXAMPLE
+    Get-NsxtClusterStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re1!VMw@re1!
+    This example gets the Cluster Status of the sfo-m01-nsx01.sfo.rainpole.io NSX Management Cluster
+#>
 
 	Param(
 	    [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
@@ -1303,24 +1284,25 @@ Function Get-NSXTMgrClusterStatus {
     )
     
 	Try {
-		$uri2 = "https://$server/api/v1/cluster/status"
-		$myHeaders = createHeader $user $pass
-		write-output $uri2
-		write-output $myHeaders
+        Write-LogMessage -Type INFO -Message "Starting Execution of Get-NsxtClusterStatus" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Checking the cluster status for NSX Management Cluster '$server'"
+		$uri = "https://$server/api/v1/cluster/status"
+		$nsxHeaders = createHeader $user $pass
 
-		$response2 = Invoke-RestMethod -Method GET -URI $uri2 -headers $myHeaders -ContentType application/json 
-		if ($response2.mgmt_cluster_status.status -eq 'STABLE') {
-			Write-Output "The cluster state is stable"
+		$response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json 
+		if ($response.mgmt_cluster_status.status -eq 'STABLE') {
+			Write-Output "NSX Management Cluster '$server' reporting as STABLE"
 		}
         else {
-			Write-Output "The cluster state is not stable"
+			Write-Output "NSX Management Cluster '$server' reporting as NOT STABLE"
 		}
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-NsxtClusterStatus" -Colour Yellow
 	} 
     Catch {
         Debug-CatchWriter -object $_
     }
 }
-Export-ModuleMember -Function Get-NSXTMgrClusterStatus
+Export-ModuleMember -Function Get-NsxtClusterStatus
 
 ######### Start Useful Script Functions ##########
 

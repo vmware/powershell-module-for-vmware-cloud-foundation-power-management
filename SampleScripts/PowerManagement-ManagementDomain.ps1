@@ -442,7 +442,7 @@ Try {
         # Startup the NSX Manager Nodes in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
         Test-WebUrl -url  $nsxt_local_url
-        Get-NSXTMgrClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
+        Get-NsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
 
          # Startup the NSX Edge Nodes in the Management Workload Domain
         if ($nsxtEdgeNodes) {
