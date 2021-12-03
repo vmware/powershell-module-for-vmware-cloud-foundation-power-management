@@ -21,11 +21,11 @@
     This script connects to the specified SDDC Manager and either shutdowns or startups the vRealize Suite components
 
     .EXAMPLE
-    PowerManagement-vRealizeSuite.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-m01 -powerState Shutdown
+    PowerManagement-vRealizeSuite.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerState Shutdown
     Initiaites a shutdown of the the vRealize Suite components
 
     .EXAMPLE
-    PowerManagement-vRealizeSuite.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-m01 -powerState Startup
+    PowerManagement-vRealizeSuite.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerState Startup
     Initiaites the startup of the the vRealize Suite components
 #>
 
@@ -75,41 +75,41 @@ Try {
         $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
 
         $wsa = New-Object -TypeName PSCustomObject
-        $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).elements.status
-        $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).elements.loadBalancerFqdn
+        $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).status
+        $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).loadBalancerFqdn
         $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
         $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
         $wsaNodes = @()
-        foreach ($node in (Get-VCFWSA).elements.nodes.fqdn | Sort-Object) {
+        foreach ($node in (Get-VCFWSA).nodes.fqdn | Sort-Object) {
             [Array]$wsaNodes += $node.Split(".")[0]
         }
 
         $vrops = New-Object -TypeName PSCustomObject
-        $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).elements.status
-        $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).elements.loadBalancerFqdn
+        $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).status
+        $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).loadBalancerFqdn
         $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
         $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
-        $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).elements.nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
+        $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
         $vropsNodes = @()
-        foreach ($node in (Get-VCFvROPS).elements.nodes.fqdn | Sort-Object) {
+        foreach ($node in (Get-VCFvROPS).nodes.fqdn | Sort-Object) {
             [Array]$vropsNodes += $node.Split(".")[0]
         }
 
         $vra = New-Object -TypeName PSCustomObject
-        $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).elements.status
-        $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).elements.loadBalancerFqdn
+        $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).status
+        $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).loadBalancerFqdn
         $vraNodes = @()
-        foreach ($node in (Get-VCFvRA).elements.nodes.fqdn | Sort-Object) {
+        foreach ($node in (Get-VCFvRA).nodes.fqdn | Sort-Object) {
             [Array]$vraNodes += $node.Split(".")[0]
         }
 
         $vrli = New-Object -TypeName PSCustomObject
-        $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).elements.status
-        $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).elements.loadBalancerFqdn
+        $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).status
+        $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).loadBalancerFqdn
         $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
         $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
         $vrliNodes = @()
-        foreach ($node in (Get-VCFvRLI).elements.nodes.fqdn | Sort-Object) {
+        foreach ($node in (Get-VCFvRLI).nodes.fqdn | Sort-Object) {
             [Array]$vrliNodes += $node.Split(".")[0]
         }
     }

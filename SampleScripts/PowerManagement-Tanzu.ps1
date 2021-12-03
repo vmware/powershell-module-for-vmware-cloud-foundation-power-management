@@ -62,6 +62,7 @@ Try {
         Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
         # Gather Details from SDDC Manager
         $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.Name -eq $sddcDomain }
+        $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
 
         # Gather vCenter Server Details and Credentials
         $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id)})
@@ -91,22 +92,27 @@ Catch {
 # Execute the Shutdown procedures
 Try {
     if ($powerState -eq "Shutdown") {
+        # Change the DRS Automation Level to Partially Automated for the VI Workload Domain Clusters
+        if ((Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) -eq "True") {
+                Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
+        }
+
         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action STOP
 
-        #$clusterPattern = "^SupervisorControlPlaneVM.*"
-        #foreach ($esxiNode in $esxiWorkloadDomain) {
-        #    Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
-        #}
+        $clusterPattern = "^SupervisorControlPlaneVM.*"
+        foreach ($esxiNode in $esxiWorkloadDomain) {
+            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1800
+        }
 
-        #$clusterPattern = "^.*-tkc01-.*"
-        #foreach ($esxiNode in $esxiWorkloadDomain) {
-        #    Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
-        #}
+        $clusterPattern = "^.*-tkc01-.*"
+        foreach ($esxiNode in $esxiWorkloadDomain) {
+            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1800
+        }
 
-        #$clusterPattern = "^harbor.*"
-        #foreach ($esxiNode in $esxiWorkloadDomain) {
-        #    Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
-        #}
+        $clusterPattern = "^harbor.*"
+        foreach ($esxiNode in $esxiWorkloadDomain) {
+            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1800
+        }
     }
 }
 Catch {
@@ -120,19 +126,24 @@ Try {
         # Startup the vSphere with Tanzu Virtual Machines
         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action START
 
-        $clusterPattern = "^harbor.*"
-        foreach ($esxiNode in $esxiWorkloadDomain) {
-            Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
-        }
+        #$clusterPattern = "^harbor.*"
+        #foreach ($esxiNode in $esxiWorkloadDomain) {
+        #    Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
+        #}
 
-        $clusterPattern = "^.*-tkc01-.*"
-        foreach ($esxiNode in $esxiWorkloadDomain) {
-            Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
-        }
+        #$clusterPattern = "^.*-tkc01-.*"
+        #foreach ($esxiNode in $esxiWorkloadDomain) {
+        #    Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
+        #}
 
-        $clusterPattern = "^SupervisorControlPlaneVM.*"
-        foreach ($esxiNode in $esxiWorkloadDomain) {
-            Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
+        #$clusterPattern = "^SupervisorControlPlaneVM.*"
+        #foreach ($esxiNode in $esxiWorkloadDomain) {
+        #    Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
+        #}
+        
+        # Change the DRS Automation Level to Fully Automated for the VI Workload Domain Clusters
+        if ((Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) -eq "True") {
+            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
         }
     }
 }

@@ -65,8 +65,7 @@ Function Stop-CloudComponent {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting Execution of Stop-CloudComponent cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        if ((Test-Connection -ComputerName $server -Quiet -Count 1) -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -79,21 +78,22 @@ Function Stop-CloudComponent {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 if ($vm_obj.State -eq 'NotRunning') {
                                     Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered Off state" -Colour Cyan
-                                    Continue
-                                }
-                                Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$node'"
-                                Stop-VMGuest -Server $server -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
-                                Write-LogMessage -Type INFO -Message "Waiting for node '$node' to shut down"
-                                While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
-                                    Start-Sleep -Seconds 5
-                                    $count = $count + 1
-                                    $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
-                                }
-                                if ($count -eq $timeout) {
-                                    Write-LogMessage -Type ERROR -Message "Node '$node' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red			
                                 }
                                 else {
-                                    Write-LogMessage -Type INFO -Message "Node '$node' has shutdown successfully" -Colour Green
+                                    Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$node'"
+                                    Stop-VMGuest -Server $server -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+                                    Write-LogMessage -Type INFO -Message "Waiting for node '$node' to shut down"
+                                    While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
+                                        Start-Sleep -Seconds 5
+                                        $count = $count + 1
+                                        $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                    }
+                                    if ($count -eq $timeout) {
+                                        Write-LogMessage -Type ERROR -Message "Node '$node' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red			
+                                    }
+                                    else {
+                                        Write-LogMessage -Type INFO -Message "Node '$node' has shutdown successfully" -Colour Green
+                                    }
                                 }
                             }
                             else {
@@ -117,21 +117,22 @@ Function Stop-CloudComponent {
                             $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             if ($vm_obj.State -eq 'NotRunning') {
                                 Write-LogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered Off state" -Colour Cyan
-                                Continue
-                            }
-                            Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$($node.name)'"
-                            Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server | Stop-VMGuest -Confirm:$false | Out-Null
-                            $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
-                            While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
-                                Start-Sleep -Seconds 1
-                                $count = $count + 1
-                                $vm_obj = Get-VMGuest -VM $node.Name | Where-Object VmUid -match $server
-                            }
-                            if ($count -eq $timeout) {
-                                Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red
                             }
                             else {
-                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has shutdown successfully" -Colour Green
+                                Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$($node.name)'"
+                                Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server | Stop-VMGuest -Confirm:$false | Out-Null
+                                $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
+                                While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
+                                    Start-Sleep -Seconds 1
+                                    $count = $count + 1
+                                    $vm_obj = Get-VMGuest -VM $node.Name | Where-Object VmUid -match $server
+                                }
+                                if ($count -eq $timeout) {
+                                    Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red
+                                }
+                                else {
+                                    Write-LogMessage -Type INFO -Message "Node '$($node.name)' has shutdown successfully" -Colour Green
+                                }
                             }
                         }
                     }
@@ -187,8 +188,7 @@ Function Start-CloudComponent {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting Execution of Start-CloudComponent cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        if ((Test-Connection -ComputerName $server -Quiet -Count 1) -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -201,8 +201,9 @@ Function Start-CloudComponent {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                     if($vm_obj.State -eq 'Running'){
                                     Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered On state" -Colour Green
-                                    Continue
                                 }
+                            }
+                            else {
                                 Write-LogMessage -Type INFO -Message "Attempting to startup node '$node'"
                                 Start-VM -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
                                 Start-Sleep -Seconds 5
@@ -220,12 +221,13 @@ Function Start-CloudComponent {
                                     Write-LogMessage -Type INFO -Message "Node '$node' has started successfully" -Colour Green
                                 }
                             }
-                            else {
-                                Write-LogMessage -Type ERROR -Message "Unable to find $node in inventory of server $server" -Colour Red
-                            }
+                        }
+                        else {
+                            Write-LogMessage -Type ERROR -Message "Unable to find $node in inventory of server $server" -Colour Red
                         }
                     }
                 }
+            
 
                 if ($PSCmdlet.ParameterSetName -eq "Pattern") {
                     Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to startup nodes with pattern '$pattern'"
@@ -241,22 +243,22 @@ Function Start-CloudComponent {
                             $vm_obj = Get-VMGuest -server $server -VM $node.Name | Where-Object VmUid -match $server
                             if ($vm_obj.State -eq 'Running') {
                                 Write-LogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered On state" -Colour Green
-                                Continue
-                            }
-                
-                            Start-VM -VM $node.Name | Out-Null
-                            $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
-                            Write-LogMessage -Type INFO -Message "Attempting to startup node '$($node.name)'"
-                            While (($vm_obj.State -ne 'Running') -AND ($count -ne $timeout)) {
-                    	        Start-Sleep -Seconds 1
-                                $count = $count + 1
-                                $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
-                            }
-                            if ($count -eq $timeout) {
-                                Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not start up within the stipulated timeout: $timeout value"	-Colour Red
                             }
                             else {
-                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has started successfully" -Colour Green
+                                Start-VM -VM $node.Name | Out-Null
+                                $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
+                                Write-LogMessage -Type INFO -Message "Attempting to startup node '$($node.name)'"
+                                While (($vm_obj.State -ne 'Running') -AND ($count -ne $timeout)) {
+                                    Start-Sleep -Seconds 1
+                                    $count = $count + 1
+                                    $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
+                                }
+                                if ($count -eq $timeout) {
+                                    Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not start up within the stipulated timeout: $timeout value"	-Colour Red
+                                }
+                                else {
+                                    Write-LogMessage -Type INFO -Message "Node '$($node.name)' has started successfully" -Colour Green
+                                }
                             }
                         }
                     }
@@ -874,30 +876,34 @@ Function Set-VamiServiceStatus {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        if ((Test-Connection -ComputerName $server -Quiet -Count 1) -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
+            if ($action -eq "START") { $requestedState = "STARTED"} elseif ($action -eq "STOP") { $requestedState = "STOPPED" }
             if ($DefaultCisServers.Name -eq $server) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
                 $serviceStatus = $vMonAPI.Get($service,0)                
-                if ($serviceStatus.state -match $action) {
-                    Write-LogMessage -Type INFO -Message "The service $service is $action successfully" -Colour Yellow
-                }
-                if ($action -eq 'START') {
-                    Write-LogMessage -Type INFO -Message "Attempting to Start $service service ..." -Colour Yellow
-                    $vMonAPI.start($service)
-                }
-                elseif ($action -eq 'STOP') {
-                    Write-LogMessage -Type INFO -Message "Attempting to Stop $service service ..." -Colour Yellow
-                    $vMonAPI.stop($service)
-                }
-                Start-Sleep -s 10
-                if ($serviceStatus.state -match $action) {
-                    Write-LogMessage -Type INFO -Message "The service: $service status: $status is matching" -Colour Yellow
+                if ($serviceStatus.state -match $requestedState) {
+                    Write-LogMessage -Type INFO -Message "The service $service is already set to '$requestedState'" -Colour Cyan
                 }
                 else {
-                    Write-LogMessage -Type ERROR -Message "The service: $service status_expected: $action status_actual: $status is not matching" -Colour Red
+                    if ($action -eq "START") {
+                        Write-LogMessage -Type INFO -Message "Attempting to START the '$service' service"
+                        $vMonAPI.start($service)
+                    }
+                    elseif ($action -eq "STOP") {
+                        Write-LogMessage -Type INFO -Message "Attempting to STOP the '$service' service"
+                        $vMonAPI.stop($service)
+                    }
+                    Do {
+                        $serviceStatus = $vMonAPI.Get($service,0)
+                    } Until ($serviceStatus -match $requestedState)
+                    if ($serviceStatus.state -match $requestedState) {
+                        Write-LogMessage -Type INFO -Message "Service '$service' has been '$requestedState' Successfully" -Colour Green
+                    }
+                    else {
+                        Write-LogMessage -Type ERROR -Message "Service '$service' has NOT been '$requestedState'. Actual status: $($serviceStatus.state)" -Colour Red
+                    }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-CisServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
@@ -908,13 +914,11 @@ Function Set-VamiServiceStatus {
         }
         else {
             Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
-        } 
+        }
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
     } 
     Catch {
         Debug-CatchWriter -object $_
-    }
-    Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Set-VAMIServiceStatus
