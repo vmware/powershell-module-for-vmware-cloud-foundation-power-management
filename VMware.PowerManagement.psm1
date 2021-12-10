@@ -320,7 +320,7 @@ Function Set-MaintenanceMode {
                 if ($state -eq "ENABLE") {
                     if ($hostStatus.ConnectionState -eq "Connected") {
                         Write-LogMessage -Type INFO -Message "Attempting to place $server into Maintenance mode"
-                        Get-View -ViewType HostSystem -Filter @{"Name" = $server }| Where-Object {!$_.Runtime.InMaintenanceMode} | ForEach-Object {$_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode=(new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction=[VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction})}))}
+                        Get-View -ViewType HostSystem -Filter @{"Name" = $server }| Where-Object {!$_.Runtime.InMaintenanceMode} | ForEach-Object {$_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode=(new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction=[VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction})}))} | Out-Null
                         $hostStatus = (Get-VMHost -Server $server)
                         if ($hostStatus.ConnectionState -eq "Maintenance") {
                             Write-LogMessage -Type INFO -Message "The host $server has been placed in Maintenance mode successfully" -Colour Green
@@ -650,36 +650,55 @@ Function Test-VsanHealth {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
-                $vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
-                $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
-                $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
-                $healthCheckGroups = $results.groups
-                $health_status = 'GREEN'
-                $healthCheckResults = @()
-                foreach ($healthCheckGroup in $healthCheckGroups) {
-                    Switch ($healthCheckGroup.GroupHealth) {
-                        red {$healthStatus = "error"}
-                        yellow {$healthStatus = "warning"}
-                        green {$healthStatus = "passed"}
-                        info {$healthStatus = "passed"}
+                $count = 1
+                $flag = 0
+                Do {
+                    Try {
+                        Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"  | out-null
+                        $flag = 1
+                        break
                     }
-                    if ($healthStatus -eq "red") {
-                        $health_status = 'RED'
+                    catch {
+                        Write-LogMessage -Type INFO -Message "In CATCH BLOCK"
+                        Start-Sleep -s 60
+                        $count += 1
                     }
-                    $healtCheckGroupResult = [pscustomobject] @{
-                        HealthCHeck = $healthCheckGroup.GroupName
-                        Result = $healthStatus
+
+                } until ($count -ne 5)
+                if (-Not $flag) {
+                    Write-LogMessage -Type ERROR -Message "Unable to Execute Test-VsanHealth cmdlet because vSANHealth service is not up" -Colour Red
+                } else {
+                    $vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
+                    $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
+                    $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
+                    $healthCheckGroups = $results.groups
+                    $health_status = 'GREEN'
+                    $healthCheckResults = @()
+                    foreach ($healthCheckGroup in $healthCheckGroups) {
+                        Switch ($healthCheckGroup.GroupHealth) {
+                            red {$healthStatus = "error"}
+                            yellow {$healthStatus = "warning"}
+                            green {$healthStatus = "passed"}
+                            info {$healthStatus = "passed"}
                         }
-                        $healthCheckResults+=$healtCheckGroupResult
+                        if ($healthStatus -eq "red") {
+                            $health_status = 'RED'
                         }
-                if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){	
-                    Write-LogMessage -Type INFO -Message "The VSAN Health Status for $cluster is GOOD" -Colour Green
+                        $healtCheckGroupResult = [pscustomobject] @{
+                            HealthCHeck = $healthCheckGroup.GroupName
+                            Result = $healthStatus
+                            }
+                            $healthCheckResults+=$healtCheckGroupResult
+                            }
+                    if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){
+                        Write-LogMessage -Type INFO -Message "The VSAN Health Status for $cluster is GOOD" -Colour Green
+                    }
+                    else {
+                        Write-LogMessage -Type ERROR -Message "The VSAN Health Status for $cluster is BAD" -Colour Red
+                    }
+                    Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                    Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
-                else {
-                    Write-LogMessage -Type ERROR -Message "The VSAN Health Status for $cluster is BAD" -Colour Red
-                }
-                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -724,7 +743,7 @@ Function Test-VsanObjectResync {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check status of resync"
                 $no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster
                 Write-LogMessage -Type INFO -Message "The number of resyncing objects are $no_resyncing_objects"
                 if ($no_resyncing_objects.count -eq 0){
@@ -753,6 +772,67 @@ Function Test-VsanObjectResync {
 }
 Export-ModuleMember -Function Test-VsanObjectResync
 
+
+Function Get-PoweredOnVMsCount {
+    <#
+        .SYNOPSIS
+        Check how many VM's are in powered on state
+
+        .DESCRIPTION
+        The Get-PoweredOnVMsCount cmdlet checks how many VM's are powered-on on a given host
+
+        .EXAMPLE
+        Get-PoweredOnVMsCount -server sfo01-m01-esx01.sfo.rainpole.io -user root -pass VMw@re1!
+        This example connects to a esxi host and returns the count of powered on VM's on it
+    #>
+    Param(
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory=$false)] [ValidateNotNullOrEmpty()] [String]$pattern = $null
+    )
+
+    Try {
+        Write-LogMessage -Type INFO -Message "Starting Execution of Get-PoweredOnVMsCount cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to count number of VMs powered On"
+                if ($pattern) {
+                    $no_powered_on_vms =  get-vm -Server $server | Where-Object Name -match $pattern  | where PowerState -eq "PoweredOn"
+                } else {
+                    $no_powered_on_vms =  get-vm -Server $server | where PowerState -eq "PoweredOn"
+                }
+                Write-LogMessage -Type INFO -Message "The powered on VM's are $no_powered_on_vms"
+                if ($no_powered_on_vms.count -eq 0){
+                    Write-LogMessage -Type INFO -Message "No VMs in powered on state" -Colour Green
+                }
+                else {
+                    Write-LogMessage -Type ERROR -Message "There are some vms in powered on state" -Colour Yellow
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                return $no_powered_on_vms.count
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+        }
+        else {
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        }
+    }
+    Catch {
+        Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-PoweredOnVMsCount cmdlet" -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Get-PoweredOnVMsCount
+
 Function Test-WebUrl {
     <#
         .SYNOPSIS
@@ -773,12 +853,24 @@ Function Test-WebUrl {
     Try {
         Write-LogMessage -Type INFO -Message  "Starting Execution of Test-WebUrl cmdlet" -Colour Yellow
         Write-LogMessage -Type INFO -Message "Attempting connect to url '$url'"
-		$response = Invoke-WebRequest -uri $url -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
-		if ($response.StatusCode -eq 200) {
-            Write-LogMessage -Type INFO -Message "Response Code: $($response.StatusCode) for URL '$url' - SUCCESS" -Colour Green
+        $count = 1
+        While ($count -ne 6) {
+            Try {
+                $response = Invoke-WebRequest -uri $url
+                $StatusCode = $response.StatusCode
+                break
+            }
+            Catch {
+                $StatusCode = $_.Exception.Response.StatusCode.value__
+                start-sleep -s 20
+                $count += 1
+            }
+        }
+		if ($StatusCode -eq 200) {
+            Write-LogMessage -Type INFO -Message "Response Code: $($StatusCode) for URL '$url' - SUCCESS" -Colour Green
 		}
         else {
-            Write-LogMessage -Type ERROR -Message "Response Code: $($response.StatusCode) for URL '$url'" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Response Code: $($StatusCode) for URL '$url'" -Colour Red
 		}
     }
     Catch {
@@ -873,7 +965,7 @@ Function Set-VamiServiceStatus {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Set-VAMIServiceStatus cmdlet" -Colour Yellow
         if ((Test-Connection -ComputerName $server -Quiet -Count 1) -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
@@ -1186,10 +1278,77 @@ Function Start-EsxiUsingILO {
 }
 Export-ModuleMember -Function Start-EsxiUsingILO
 
+
+
+Function Restart-VsphereHA {
+<#
+    .SYNOPSIS
+    Restart vSphere HA
+
+    .DESCRIPTION
+    Restart vSphere HA to avoid triggering a "Cannot find vSphere HA master agent error".
+
+    .EXAMPLE
+    Restart-VsphereHA -server $server -user $user -pass $pass -cluster $cluster
+    This example restarts Vsphere HA if enabled
+
+#>
+
+	Param(
+	    [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $cluster
+    )
+
+	Try {
+	    Write-LogMessage -Type INFO -Message "Starting Execution of Restart-VsphereHA cmdlet" -Colour Yellow
+        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-LogMessage -Type INFO -Message "Connected to server '$server'"
+                $HAStatus = Get-Cluster -Name $cluster | Select HAEnabled
+                if ($HAStatus)  {
+                     Write-LogMessage -Type INFO -Message "The HA is enabled on the VSAN cluster, restarting the same"
+                     Set-Cluster -Cluster $cluster -HAEnabled:$false -Confirm:$false
+                     $var1 = get-cluster -Name $cluster | select HAEnabled
+                     if (-Not  $var1) {
+                         Write-LogMessage -Type INFO -Message "The HA is disabled"
+                     }
+                     Start-Sleep -s 5
+                     Set-Cluster -Cluster $cluster -HAEnabled:$true -Confirm:$false
+                     if (get-cluster -Name $cluster | select HAEnabled) {
+                         Write-LogMessage -Type INFO -Message "The HA is enabled. Vsphere HA is restarted"
+                     }
+                }
+                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+
+            }
+            else {
+                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            }
+
+        } else {
+            Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+        }
+	}
+    Catch {
+        Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Restart-VsphereHA cmdlet" -Colour Yellow
+    }
+
+}
+Export-ModuleMember -Function Restart-VsphereHA
+
 Function Set-Retreatmode {
 <#
     .SYNOPSIS
-    Enable/Disable retreat mode for vSphere Cluster 
+    Enable/Disable retreat mode for vSphere Cluster
 
     .DESCRIPTION
     The Set-Retreatmode cmdlet enables or disables retreat mode for the vSphere Cluster virtual machines
@@ -1226,24 +1385,28 @@ Function Set-Retreatmode {
                 if (Get-AdvancedSetting -Entity $server -Name  $advanced_setting) {
                     Write-LogMessage -Type INFO -Message "The advanced setting $advanced_setting is present"
                     if ($mode -eq 'enable') {
-                        Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'false' -Confirm:$false
-                        Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false"
+                        Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'false' -Confirm:$false  | Out-Null
+                        Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false"  -Colour Green
+                        Start-sleep -s 120
+
                     }
                     else {
-                        Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'true' -Confirm:$false
-                        Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true"
+                        Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'true' -Confirm:$false  | Out-Null
+                        Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true" -Colour Green
                     }
                 }
                 else {
                     if ($mode -eq 'enable') {
-                       New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'false' -Confirm:$false
-                       Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false"
+                       New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'false' -Confirm:$false  | Out-Null
+                       Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false" -Colour Green
+                       Start-sleep -s 120
                     }
                     else {
-                       New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'true' -Confirm:$false
-                       Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true"
+                       New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'true' -Confirm:$false  | Out-Null
+                       Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true" -Colour Green
                     }
                 }
+
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
 
@@ -1265,6 +1428,7 @@ Function Set-Retreatmode {
 
 }
 Export-ModuleMember -Function Set-Retreatmode
+
 
 Function Get-NsxtClusterStatus {
 <#
@@ -1291,8 +1455,23 @@ Function Get-NsxtClusterStatus {
 		$uri = "https://$server/api/v1/cluster/status"
 		$nsxHeaders = createHeader $user $pass
 
-		$response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json 
-		if ($response.mgmt_cluster_status.status -eq 'STABLE') {
+		$count = 1
+        While ($count -ne 6) {
+            Try {
+                $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
+                Write-Output "$response"
+                $StatusCode = $response.StatusCode
+                break
+            }
+            Catch {
+                $StatusCode = $_.Exception.Response.StatusCode.value__
+                start-sleep -s 20
+                $count += 1
+            }
+        }
+
+		#$response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
+		if (($StatusCode -eq 200) -and $response.mgmt_cluster_status.status -eq 'STABLE') {
 			Write-Output "NSX Management Cluster '$server' reporting as STABLE"
 		}
         else {
