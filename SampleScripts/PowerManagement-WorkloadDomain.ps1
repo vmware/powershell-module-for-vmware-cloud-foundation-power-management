@@ -221,12 +221,17 @@ Try {
         else {
             Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping shutdown of $nsxtEdgeNodes" -Colour Cyan
         }
+
+
+
+
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-
         # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode 'disable'
+        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
+
+        Start-Sleep -s 60
 
         # Check the health and sync status of the VSAN cluster
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
@@ -245,7 +250,13 @@ Try {
 
         # Disable vSAN cluster member updates and place host in maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
+            $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+            if (-Not $count ) {
+                Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
+            } else {
+                Write-LogMessage -Type WARNING -Message "Looks like there are some VM's still in powered On state. Hence unable to proceed with putting host in  maintenence mode" -Colour Cyan
+                Write-LogMessage -Type WARNING -Message "use cmdlet:  Stop-CloudComponent -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -pattern .* -timeout 100" -Colour Cyan
+            }
         }
     }
 }
@@ -256,6 +267,8 @@ Catch {
 # Execute the Statup procedures
 Try {
     if ($powerState -eq "Startup") {
+
+
 
         # Take hosts out of maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -274,6 +287,7 @@ Try {
         Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
         Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
 
+
         # Check the health and sync status of the VSAN cluster
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
@@ -285,27 +299,19 @@ Try {
             Exit
         }
 
-        $HAStatus = Get-Cluster -Name $cluster.name | Select HAEnabled
-        if ($HAStatus)  {
-             Write-LogMessage -Type INFO -Message "The HA is enabled on the VSAN cluster, restarting the same"
-             Set-Cluster -Name $cluster.name -HAEnabled:$false
-             if (-Not get-cluster -Name $cluster.name | select HAEnabled) {
-                 Write-LogMessage -Type INFO -Message "The HA is disabled"
-             }
-             Start-Sleep -s 5
-             Set-Cluster -Name $cluster.name -HAEnabled:$true
-             if (get-cluster -Name $cluster.name | select HAEnabled) {
-                 Write-LogMessage -Type INFO -Message "The HA is enabled. Vsphere HA is restarted"
-             }
-        }
+
+        #restart vSphere HA to avoid triggering a Cannot find vSphere HA master agent error.
+        Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+
+        # Startup the vSphere with Tanzu Virtual Machines
+        Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action START
 
         #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
-        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode 'enable'
+        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
 
         # Startup the NSX Manager Nodes in the Virtual Infrastructure Workload Domain
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
         Test-WebUrl -url $nsxt_local_url
-        Start-Sleep -Seconds 120
         Get-NsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
 
         # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain
