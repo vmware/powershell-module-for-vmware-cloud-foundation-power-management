@@ -1458,28 +1458,9 @@ Function Get-NsxtClusterStatus {
 		$uri = "https://$server/api/v1/cluster/status"
 		$nsxHeaders = createHeader $user $pass
 
-		$count = 1
-        While ($count -ne 6) {
-            Try {
-                $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
-                #Write-Output "$response"
-                $StatusCode = $response.StatusCode
-                if($StatusCode -eq 200) {
-                    break
-                } else {
-                    start-sleep -s 20
-                    $count += 1
-                }
-            }
-            Catch {
-                $StatusCode = $_.Exception.Response.StatusCode.value__
-                start-sleep -s 20
-                $count += 1
-            }
-        }
+        $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
 
-		#$response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
-		if (($StatusCode -eq 200) -and $response.mgmt_cluster_status.status -eq 'STABLE') {
+		if ($response.mgmt_cluster_status.status -eq 'STABLE') {
 			Write-LogMessage -Type INFO -Message "NSX Management Cluster state is STABLE"
 		}
         else {
