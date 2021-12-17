@@ -1,6 +1,7 @@
 {
     "Domain": {
-        "name": "sfo-m01"
+        "name": "sfo-m01",
+        "type": "MANAGEMENT"
     },
     "Cluster": {
         "name": "sfo-m01-cl01"
@@ -9,38 +10,62 @@
         "name": "sfo-m01-vc01",
         "fqdn" : "sfo-m01-vc01.sfo.rainpole.io",
         "user" : "administrator@vsphere.local",
-        "password" : "VMw@re1!"
+        "password" : "VMw@re123!",
+        "host": "sfo01-m01-esx02.sfo.rainpole.io"
+    },
+    "NsxtManager": {
+        "vipfqdn": "sfo-m01-nsx01.sfo.rainpole.io",
+        "user": "admin",
+        "password": "VMw@re123!VMw@re123!",
+        "nodes": {
+            "fqdn": [
+                    "sfo-m01-nsx01a.sfo.rainpole.io",
+                    "sfo-m01-nsx01b.sfo.rainpole.io",
+                    "sfo-m01-nsx01c.sfo.rainpole.io"
+            ]
+        }
+    },
+    "NsxEdge": {
+            "edgenodes": {
+                "hostname": [
+                            "sfo-m01-en01.sfo.rainpole.io",
+                            "sfo-m01-en02.sfo.rainpole.io"
+                ]
+            }
+    },
+    "Wsa": {
+        "name": "sfo-wsa01"
     },
     "SDDC": {
         "name": "sfo-vcf01",
         "fqdn": "sfo-vcf01.sfo.rainpole.io",
         "user": "vcfadmin@local",
-        "password": "VMw@re1!"
+        "password": "VMw@re123!"
     },
     "Hosts" : [
         {
             "name": "sfo01-m01-esx01",
             "fqdn": "sfo01-m01-esx01.sfo.rainpole.io",
             "user": "root",
-            "password": "VMw@re1!"
+            "password": "VMw@re123!"
         },
         {
             "name": "sfo01-m01-esx02",
             "fqdn": "sfo01-m01-esx02.sfo.rainpole.io",
             "user": "root",
-            "password": "VMw@re1!"
+            "password": "VMw@re123!"
         },
         {
             "name": "sfo01-m01-esx03",
             "fqdn": "sfo01-m01-esx03.sfo.rainpole.io",
             "user": "root",
-            "password": "VMw@re1!"
+            "password": "VMw@re123!"
         },
         {
             "name": "sfo01-m01-esx04",
             "fqdn": "sfo01-m01-esx04.sfo.rainpole.io",
             "user": "root",
-            "password": "VMw@re1!"
+            "password": "VMw@re123!"
         }
     ]
 
