@@ -251,13 +251,18 @@ Try {
         # Disable vSAN cluster member updates and place host in maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
             $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-            if (-Not $count ) {
-                Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
-            } else {
+            if ( $count) {
                 Write-LogMessage -Type WARNING -Message "Looks like there are some VM's still in powered On state. Hence unable to proceed with putting host in  maintenence mode" -Colour Cyan
                 Write-LogMessage -Type WARNING -Message "use cmdlet:  Stop-CloudComponent -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -pattern .* -timeout 100" -Colour Cyan
+                Write-LogMessage -Type WARNING -Message "use cmdlet:  Set-MaintenanceMode -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -state ENABLE" -Colour Cyan
             }
         }
+        if (-Not $count ) {
+            foreach ($esxiNode in $esxiWorkloadDomain) {
+                Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
+            }
+        }
+
     }
 }
 Catch {
