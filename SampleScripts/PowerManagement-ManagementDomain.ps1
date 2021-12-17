@@ -64,14 +64,8 @@ Try {
         if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
         if ($accessToken) {
             Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
-            # Gather Details from SDDC Manager
-            #$managementDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
-            #$mgmtCluster = Get-VCFCluster | Where-Object { $_.id -eq ($managementDomain.clusters.id) }
             $workloadDomain = Get-VCFWorkloadDomain | Where-Object {  $_.type -eq "MANAGEMENT" }
             $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
-            #$members = (Get-VCFHost | Where-Object {$_.cluster.id -eq $cluster.id} | Select-Object fqdn).fqdn
-
-            Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
 
             # Gather vCenter Server Details and Credentials
             $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id)})
@@ -79,7 +73,6 @@ Try {
             $vcUser = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).username
             $vcPass = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).password
 
-            Write-LogMessage -Type INFO -Message "workloadDomain ::   $workloadDomain "
 
             # Gather ESXi Host Details for the Management Workload Domain
             $esxiWorkloadDomain = @()
@@ -91,7 +84,6 @@ Try {
                 $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).password
                 $esxiWorkloadDomain += $esxDetails
             }
-            Write-LogMessage -Type INFO -Message "esxiWorkloadDomain ::   $esxiWorkloadDomain"
 
             # Gather NSX Manager Cluster Details
             $nsxtCluster = Get-VCFNsxtCluster | Where-Object {$_.id -eq $workloadDomain.nsxtCluster.id}
@@ -110,58 +102,61 @@ Try {
             }
 
 
-        # Gather vRealize Suite Details
-        $vrslcm = New-Object -TypeName PSCustomObject
-        $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
-        $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
-        $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
-        $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
-        $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
-        $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
+            # Gather vRealize Suite Details
+            $vrslcm = New-Object -TypeName PSCustomObject
+            $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
+            $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
+            $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
+            $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
+            $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
+            $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
 
-        $wsa = New-Object -TypeName PSCustomObject
-        $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).elements.status
-        $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).elements.loadBalancerFqdn
-        $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
-        $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
-        $wsaNodes = @()
-        foreach ($node in (Get-VCFWSA).elements.nodes.fqdn | Sort-Object) {
-            [Array]$wsaNodes += $node.Split(".")[0]
-        }
+            $wsa = New-Object -TypeName PSCustomObject
+            $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).status
+            $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).loadBalancerFqdn
+            $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
+            $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
+            $wsaNodes = @()
+            foreach ($node in (Get-VCFWSA).nodes.fqdn | Sort-Object) {
+                [Array]$wsaNodes += $node.Split(".")[0]
+            }
 
-        $vrops = New-Object -TypeName PSCustomObject
-        $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).elements.status
-        $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).elements.loadBalancerFqdn
-        $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
-        $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
-        $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).elements.nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
-        $vropsNodes = @()
-        foreach ($node in (Get-VCFvROPS).elements.nodes.fqdn | Sort-Object) {
-            [Array]$vropsNodes += $node.Split(".")[0]
-        }
+            $vrops = New-Object -TypeName PSCustomObject
+            $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).status
+            $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).loadBalancerFqdn
+            $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
+            $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
+            $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
+            $vropsNodes = @()
+            foreach ($node in (Get-VCFvROPS).nodes.fqdn | Sort-Object) {
+                [Array]$vropsNodes += $node.Split(".")[0]
+            }
 
-        $vra = New-Object -TypeName PSCustomObject
-        $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).elements.status
-        $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).elements.loadBalancerFqdn
-        $vraNodes = @()
-        foreach ($node in (Get-VCFvRA).elements.nodes.fqdn | Sort-Object) {
-            [Array]$vraNodes += $node.Split(".")[0]
-        }
+            $vra = New-Object -TypeName PSCustomObject
+            $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).status
+            $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).loadBalancerFqdn
+            $vraNodes = @()
+            foreach ($node in (Get-VCFvRA).nodes.fqdn | Sort-Object) {
+                [Array]$vraNodes += $node.Split(".")[0]
+            }
 
-        $vrli = New-Object -TypeName PSCustomObject
-        $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).elements.status
-        $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).elements.loadBalancerFqdn
-        $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
-        $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
-        $vrliNodes = @()
-        foreach ($node in (Get-VCFvRLI).elements.nodes.fqdn | Sort-Object) {
-            [Array]$vrliNodes += $node.Split(".")[0]
-        }
+            $vrli = New-Object -TypeName PSCustomObject
+            $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).status
+            $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).loadBalancerFqdn
+            $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
+            $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
+            $vrliNodes = @()
+            foreach ($node in (Get-VCFvRLI).nodes.fqdn | Sort-Object) {
+                [Array]$vrliNodes += $node.Split(".")[0]
+            }
+
+            $MgmtInput = Get-Content -Path "./ManagementStartupInput.json" | ConvertFrom-JSON
+            $regionalWSA =  $MgmtInput.Wsa.name
 
             #get SDDC VM name from Vcenter server
             $Global:sddcmVMName
             if ($vcServer.fqdn) {
-                Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name : $($vcServer.fqdn)"
+                Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name "
                 Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
                 $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
             }
@@ -199,6 +194,8 @@ Try {
         # Shutdown the NSX Edge Nodes
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
+            #shutdown regionalWSA node
+            Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $regionalWSA -timeout 600
             if ($nsxtEdgeNodes) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
             }
@@ -212,7 +209,6 @@ Try {
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-        # Check the health and sync status of the VSAN cluster
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
@@ -226,7 +222,7 @@ Try {
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600
 
         #Shut Down the vSphere Cluster Services Virtual Machines
-        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode 'disable'
+        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
 
         #Shut Down the vCenter Server Instance in the Management Domain
         Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level Manual
@@ -239,7 +235,17 @@ Try {
 
         # Disable vSAN cluster member updates and place host in maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
+            $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+            if ( $count) {
+                Write-LogMessage -Type WARNING -Message "Looks like there are some VM's still in powered On state. Hence unable to proceed with putting host in  maintenence mode" -Colour Cyan
+                Write-LogMessage -Type WARNING -Message "use cmdlet:  Stop-CloudComponent -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -pattern .* -timeout 100" -Colour Cyan
+                Write-LogMessage -Type WARNING -Message "use cmdlet:  Set-MaintenanceMode -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -state ENABLE" -Colour Cyan
+            }
+        }
+        if (-Not $count ) {
+            foreach ($esxiNode in $esxiWorkloadDomain) {
+                Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
+            }
         }
     }
 }
@@ -260,11 +266,13 @@ Try {
         #$managementDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
         #$mgmtCluster = Get-VCFCluster | Where-Object { $_.id -eq ($managementDomain.clusters.id) }
         $workloadDomain = $MgmtInput.Domain.name
+        $workloadDomainType = $MgmtInput.Domain.type
         $cluster = New-Object -TypeName PSCustomObject
         $cluster | Add-Member -Type NoteProperty -Name Name -Value $MgmtInput.Cluster.name
 
         #Getting SDDC manager VM name
         $sddcmVMName =  $MgmtInput.SDDC.name
+        $regionalWSA =  $MgmtInput.Wsa.name
 
         # Gather vCenter Server Details and Credentials
         $vcServer = New-Object -TypeName PSCustomObject
@@ -272,6 +280,9 @@ Try {
         $vcServer | Add-Member -Type NoteProperty -Name fqdn -Value $MgmtInput.Server.fqdn
         $vcUser = $MgmtInput.Server.user
         $vcPass = $MgmtInput.Server.password
+        $vcHost = $MgmtInput.Server.host
+        $vcHostUser = ""
+        $vcHostPass = ""
 
         # Gather ESXi Host Details for the Management Workload Domain
         $esxiWorkloadDomain = @()
@@ -284,7 +295,36 @@ Try {
             $esxDetails | Add-Member -Type NoteProperty -Name username -Value $esxiHost.user
             $esxDetails | Add-Member -Type NoteProperty -Name password -Value $esxiHost.password
             $esxiWorkloadDomain += $esxDetails
+            if ($esxiHost.fqdn -eq $vcHost) {
+                $vcHostUser = $esxiHost.user
+                $vcHostPass = $esxiHost.password
+            }
         }
+
+        # Gather NSX Manager Cluster Details
+        $nsxtCluster = $MgmtInput.NsxtManager
+        $nsxtMgrfqdn = $MgmtInput.NsxtManager.vipfqdn
+        $nsxMgrVIP = New-Object -TypeName PSCustomObject
+        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value $MgmtInput.nsxtManager.user
+        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value $MgmtInput.nsxtManager.password
+
+        $nsxtNodesfqdn = $MgmtInput.NsxtManager.nodes.fqdn
+        $nsxtNodes = @()
+        foreach ($node in $nsxtNodesfqdn) {
+            [Array]$nsxtNodes += $node.Split(".")[0]
+        }
+
+        $nsxtEdgeCluster = $MgmtInput.NsxEdge
+
+
+        # Gather NSX Edge Node Details
+        $nsxtEdgeCluster =  $MgmtInput.NsxEdge
+        $nsxtEdgeNodesfqdn = $nsxtEdgeCluster.edgenodes.hostname
+        $nsxtEdgeNodes = @()
+        foreach ($node in $nsxtEdgeNodesfqdn) {
+            [Array]$nsxtEdgeNodes += $node.Split(".")[0]
+        }
+        $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
 
         # Take hosts out of maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -299,7 +339,7 @@ Try {
         }
 
         # Startup the Management Domain vCenter Server
-        Start-CloudComponent -server $esxiWorkloadDomain.fqdn[3] -user $esxiWorkloadDomain.username[3] -pass $esxiWorkloadDomain.password[3] -pattern $vcServer.Name -timeout 600
+        Start-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.Name -timeout 600
         Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
         Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
 
@@ -307,7 +347,7 @@ Try {
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
 
-            Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode 'enable'
+            Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
 
         }
         else {
@@ -317,127 +357,6 @@ Try {
 
         #Startup the SDDC Manager Virtual Machine in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600
-
-        #Now that SDDC is up now, will get all other inputs from SDDC manager
-        Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
-        $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-        if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
-        if ($accessToken) {
-            Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
-            # Gather Details from SDDC Manager
-            #$managementDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
-            #$mgmtCluster = Get-VCFCluster | Where-Object { $_.id -eq ($managementDomain.clusters.id) }
-            $workloadDomain = Get-VCFWorkloadDomain | Where-Object {  $_.type -eq "MANAGEMENT" }
-            $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
-            #$members = (Get-VCFHost | Where-Object {$_.cluster.id -eq $cluster.id} | Select-Object fqdn).fqdn
-
-            Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
-
-            # Gather vCenter Server Details and Credentials
-            $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id)})
-            #$mgmtVcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($managementDomain.id)})
-            $vcUser = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).username
-            $vcPass = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).password
-
-
-            # Gather ESXi Host Details for the Management Workload Domain
-            $esxiWorkloadDomain = @()
-            foreach ($esxiHost in (Get-VCFHost | Where-Object {$_.domain.id -eq $workloadDomain.id}).fqdn)
-            {
-                $esxDetails = New-Object -TypeName PSCustomObject
-                $esxDetails | Add-Member -Type NoteProperty -Name fqdn -Value $esxiHost
-                $esxDetails | Add-Member -Type NoteProperty -Name username -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).username
-                $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).password
-                $esxiWorkloadDomain += $esxDetails
-            }
-
-
-            # Gather NSX Manager Cluster Details
-            $nsxtCluster = Get-VCFNsxtCluster | Where-Object {$_.id -eq $workloadDomain.nsxtCluster.id}
-            $nsxtMgrfqdn = $nsxtCluster.vipFqdn
-            $nsxMgrVIP = New-Object -TypeName PSCustomObject
-            $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).username
-            $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).password
-
-            $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
-            $nsxtNodes = @()
-            foreach ($node in $nsxtNodesfqdn) {
-                [Array]$nsxtNodes += $node.Split(".")[0]
-            }
-
-            # Gather NSX Edge Node Details
-            $nsxtEdgeCluster = (Get-VCFEdgeCluster | Where-Object {$_.nsxtCluster.id -eq $workloadDomain.nsxtCluster.id})
-            $nsxtEdgeNodesfqdn = $nsxtEdgeCluster.edgeNodes.hostname
-            $nsxtEdgeNodes = @()
-            foreach ($node in $nsxtEdgeNodesfqdn) {
-                [Array]$nsxtEdgeNodes += $node.Split(".")[0]
-            }
-
-
-            # Gather vRealize Suite Details
-            $vrslcm = New-Object -TypeName PSCustomObject
-            $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
-            $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
-            $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
-            $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
-            $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
-            $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
-
-            $wsa = New-Object -TypeName PSCustomObject
-            $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).elements.status
-            $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).elements.loadBalancerFqdn
-            $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
-            $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
-            $wsaNodes = @()
-            foreach ($node in (Get-VCFWSA).elements.nodes.fqdn | Sort-Object) {
-                [Array]$wsaNodes += $node.Split(".")[0]
-            }
-
-            $vrops = New-Object -TypeName PSCustomObject
-            $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).elements.status
-            $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).elements.loadBalancerFqdn
-            $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
-            $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
-            $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).elements.nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
-            $vropsNodes = @()
-            foreach ($node in (Get-VCFvROPS).elements.nodes.fqdn | Sort-Object) {
-                [Array]$vropsNodes += $node.Split(".")[0]
-            }
-
-            $vra = New-Object -TypeName PSCustomObject
-            $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).elements.status
-            $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).elements.loadBalancerFqdn
-            $vraNodes = @()
-            foreach ($node in (Get-VCFvRA).elements.nodes.fqdn | Sort-Object) {
-                [Array]$vraNodes += $node.Split(".")[0]
-            }
-
-            $vrli = New-Object -TypeName PSCustomObject
-            $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).elements.status
-            $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).elements.loadBalancerFqdn
-            $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
-            $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
-            $vrliNodes = @()
-            foreach ($node in (Get-VCFvRLI).elements.nodes.fqdn | Sort-Object) {
-                [Array]$vrliNodes += $node.Split(".")[0]
-            }
-
-
-            #get SDDC VM name from Vcenter server
-            Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name : $vcServer.fqdn"
-            $Global:sddcmVMName
-            if ($vcServer.fqdn) {
-                Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name : $vcServer.fqdn"
-                Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
-                $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
-            }
-
-            $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
-        }
-        else {
-            Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
-            Exit
-        }
 
         # Startup the NSX Manager Nodes in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
@@ -453,11 +372,86 @@ Try {
         }
 
         # Startup the single region WSA in the Management Domain
-        Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
+        Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $regionalWSA -timeout 600
+
+        #Now that SDDC is up now, will get all other inputs from SDDC manager
+        Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
+        $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
+        if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+        if ($accessToken) {
+            Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
+            #sleep 600
+
+            # Gather vRealize Suite Details
+            $vrslcm = New-Object -TypeName PSCustomObject
+            $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
+            $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
+            $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
+            $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
+            $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
+            $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
+
+            $wsa = New-Object -TypeName PSCustomObject
+            $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).status
+            $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).loadBalancerFqdn
+            $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
+            $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
+            $wsaNodes = @()
+            foreach ($node in (Get-VCFWSA).nodes.fqdn | Sort-Object) {
+                [Array]$wsaNodes += $node.Split(".")[0]
+            }
+
+            $vrops = New-Object -TypeName PSCustomObject
+            $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).status
+            $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).loadBalancerFqdn
+            $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
+            $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
+            $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
+            $vropsNodes = @()
+            foreach ($node in (Get-VCFvROPS).nodes.fqdn | Sort-Object) {
+                [Array]$vropsNodes += $node.Split(".")[0]
+            }
+
+            $vra = New-Object -TypeName PSCustomObject
+            $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).status
+            $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).loadBalancerFqdn
+            $vraNodes = @()
+            foreach ($node in (Get-VCFvRA).nodes.fqdn | Sort-Object) {
+                [Array]$vraNodes += $node.Split(".")[0]
+            }
+
+            $vrli = New-Object -TypeName PSCustomObject
+            $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).status
+            $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).loadBalancerFqdn
+            $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
+            $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
+            $vrliNodes = @()
+            foreach ($node in (Get-VCFvRLI).nodes.fqdn | Sort-Object) {
+                [Array]$vrliNodes += $node.Split(".")[0]
+            }
+
+
+            #get SDDC VM name from Vcenter server
+            Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name"
+            $Global:sddcmVMName
+            if ($vcServer.fqdn) {
+                Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name "
+                Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
+                $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
+            }
+
+            $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
+        }
+        else {
+            Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
+            Exit
+        }
+
+
 
         # Startup vRealize Suite
-        if ($($WorkloadDomain.type) -eq "MANAGEMENT") {
-            if ($($vrslcm.status -eq "ACTIVE")) {
+        if ($($WorkloadDomainType) -eq "MANAGEMENT") {
+          if ($($vrslcm.status -eq "ACTIVE")) {
                 Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrslcm.fqdn.Split(".")[0] -timeout 600
             }
             if ($($vrli.status -eq "ACTIVE")) {
