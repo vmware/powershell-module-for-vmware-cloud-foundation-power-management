@@ -22,33 +22,60 @@
 
     .EXAMPLE
     PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!  -powerState Shutdown
-    Initiaites a shutdown of the Management Workload Domain 'sfo-m01'
+    Initiates a shutdown of the Management Workload Domain 'sfo-m01'
 
     .EXAMPLE
     PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!  -powerState Startup
-    Initiaites the startup of the Management Workload Domain 'sfo-m01'
+    Initiates the startup of the Management Workload Domain 'sfo-m01'
 #>
 
 Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$force,
         [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
 )
 
 Clear-Host; Write-Host ""
 
 # Check that the FQDN of the SDDC Manager is valid
+
 if ($powerState -eq "shutdown") {
-    Try {
+   Try {
         if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
             Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
             Break
         }
-    }
-    Catch {
+        else {
+            if (-Not $force) {
+                 Write-LogMessage -Type INFO -Message "Please confirm whether Non VCF management VM's to be shutdown while host enters maintainence mode"   -Colour Magenta
+                 Write-LogMessage -Type INFO -Message "If set to yes, will forcefully shutdown Non VCF management VM's"   -Colour Magenta
+                 $proceed_force = Read-Host  "Please say [yes or no] to proceed, default is no"
+                 if ($proceed_force -match "yes") {
+                    Write-LogMessage -Type INFO -Message "true"
+                    $force = $true
+                } else {
+                    Write-LogMessage -Type INFO -Message "false"
+                    $force = $false
+                }
+
+            }
+        }
+   }
+   Catch {
         Debug-CatchWriter -object $_
+   }
+} else {
+    Write-LogMessage -Type INFO -Message "Ensure ManagementStartupInput.json file is updated before proceeding....."   -Colour Magenta
+    #Write-LogMessage -Type INFO -Message "Once update is completed. Press [yes or no]:"   -Colour Magenta
+    $proceed = Read-Host "Once update is completed. Press [yes or no], default is no"
+    if ($proceed -match "no" -or (-not $proceed)) {
+        Write-LogMessage -Type INFO -Message "false"
+        Write-LogMessage -Type WARNING -Message "Exiting script execution as the input is No"   -Colour Magenta
+        Exit
     }
+    Write-LogMessage -Type INFO -Message "true"
 }
 
 # Setup a log file and gather details from SDDC Manager
@@ -86,7 +113,8 @@ Try {
             }
 
             # Gather NSX Manager Cluster Details
-            $nsxtCluster = Get-VCFNsxtCluster | Where-Object {$_.id -eq $workloadDomain.nsxtCluster.id}
+            $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id
+            #$nsxtCluster = Get-VCFNsxtCluster | Where-Object {$_.id -eq $workloadDomain.nsxtCluster.id}
             $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
             $nsxtNodes = @()
             foreach ($node in $nsxtNodesfqdn) {
@@ -155,10 +183,17 @@ Try {
 
             #get SDDC VM name from Vcenter server
             $Global:sddcmVMName
+            $Global:vcHost
+            $vcHostUser = ""
+            $vcHostPass = ""
             if ($vcServer.fqdn) {
                 Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name "
                 Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
                 $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
+                $vcHost = (get-vm | where Name -eq $vcServer.fqdn.Split(".")[0] | select VMHost).VMHost.Name
+                $vcHostUser = (Get-VCFCredential -resourceType ESXI -resourceName $vcHost | Where-Object {$_.accountType -eq "USER"}).username
+                $vcHostPass = (Get-VCFCredential -resourceType ESXI -resourceName $vcHost | Where-Object {$_.accountType -eq "USER"}).password
+
             }
         }
         else {
@@ -224,25 +259,35 @@ Try {
         #Shut Down the vSphere Cluster Services Virtual Machines
         Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
 
-        #Shut Down the vCenter Server Instance in the Management Domain
+        #set DRS automationlevel to manual in the Management Domain
         Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level Manual
 
-        # Shutdown vCenter Server
-        Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
+         # Shutdown vCenter Server
+        Stop-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -timeout 600
 
         # Prepare the vSAN cluster for shutdown - Performed on a single host only
         Invoke-EsxCommand -server $esxiWorkloadDomain.fqdn[0] -user $esxiWorkloadDomain.username[0] -pass $esxiWorkloadDomain.password[0] -expected "Cluster preparation is done" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py prepare"
 
         # Disable vSAN cluster member updates and place host in maintenance mode
+        $count = 0
+        $flag = 0
         foreach ($esxiNode in $esxiWorkloadDomain) {
             $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
             if ( $count) {
-                Write-LogMessage -Type WARNING -Message "Looks like there are some VM's still in powered On state. Hence unable to proceed with putting host in  maintenence mode" -Colour Cyan
-                Write-LogMessage -Type WARNING -Message "use cmdlet:  Stop-CloudComponent -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -pattern .* -timeout 100" -Colour Cyan
-                Write-LogMessage -Type WARNING -Message "use cmdlet:  Set-MaintenanceMode -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -state ENABLE" -Colour Cyan
+                if ($force) {
+                    Write-LogMessage -Type WARNING -Message "Looks like there are some VM's still in powered On state. Force option is set to true" -Colour Cyan
+                    Write-LogMessage -Type WARNING -Message "Hence shutting down Non VCF management vm's to put host in  maintenence mode" -Colour Cyan
+                    Stop-CloudComponent -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -pattern .$count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                } else {
+                    $flag = 1
+                    Write-LogMessage -Type WARNING -Message "Looks like there are some VM's still in powered On state. Force option is set to false" -Colour Cyan
+                    Write-LogMessage -Type WARNING -Message "So not shutting down Non VCF management vm's. Hence unable to proceed with putting host in  maintenence mode" -Colour Cyan
+                    Write-LogMessage -Type WARNING -Message "use cmdlet:  Stop-CloudComponent -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -pattern .* -timeout 100" -Colour Cyan
+                    Write-LogMessage -Type WARNING -Message "use cmdlet:  Set-MaintenanceMode -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -state ENABLE" -Colour Cyan
+                }
             }
         }
-        if (-Not $count ) {
+        if (-Not $flag) {
             foreach ($esxiNode in $esxiWorkloadDomain) {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
             }
@@ -324,7 +369,7 @@ Try {
         foreach ($node in $nsxtEdgeNodesfqdn) {
             [Array]$nsxtEdgeNodes += $node.Split(".")[0]
         }
-        $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
+        $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"=
 
         # Take hosts out of maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -360,7 +405,7 @@ Try {
 
         # Startup the NSX Manager Nodes in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
-        Test-WebUrl -url  $nsxt_local_url
+        #Test-WebUrl -url  $nsxt_local_url
         Get-NsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
 
          # Startup the NSX Edge Nodes in the Management Workload Domain
@@ -429,18 +474,6 @@ Try {
             foreach ($node in (Get-VCFvRLI).nodes.fqdn | Sort-Object) {
                 [Array]$vrliNodes += $node.Split(".")[0]
             }
-
-
-            #get SDDC VM name from Vcenter server
-            Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name"
-            $Global:sddcmVMName
-            if ($vcServer.fqdn) {
-                Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name "
-                Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
-                $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
-            }
-
-            $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
         }
         else {
             Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
