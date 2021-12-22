@@ -95,7 +95,7 @@ Try {
         } 
 
         # Gather NSX Manager Cluster Details
-        $nsxtCluster = Get-VCFNsxtCluster | Where-Object {$_.id -eq $workloadDomain.nsxtCluster.id}
+        $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id
         $nsxtMgrfqdn = $nsxtCluster.vipFqdn
         $nsxMgrVIP = New-Object -TypeName PSCustomObject
         $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).username
