@@ -842,7 +842,7 @@ Function Test-WebUrl {
         The Test-WebUrl cmdlet tests the connection to the provided url
     
         .EXAMPLE
-        Test-WebUrl -url "https://sfo-w01-nsx01.sfo.rainpole.io/login.jsp?local=true"
+        Test-WebUrl -url "https://sfo-m01-nsx01.sfo.rainpole.io/login.jsp?local=true"
         This example tests a connection to the login page for NSX Manager
     #>
           
@@ -854,6 +854,7 @@ Function Test-WebUrl {
         Write-LogMessage -Type INFO -Message  "Starting Execution of Test-WebUrl cmdlet" -Colour Yellow
         Write-LogMessage -Type INFO -Message "Attempting connect to url '$url'"
         $count = 1
+        $StatusCode = ""
         While ($count -ne 6) {
             Try {
                 $response = Invoke-WebRequest -uri $url
@@ -861,7 +862,6 @@ Function Test-WebUrl {
                 break
             }
             Catch {
-                $StatusCode = $_.Exception.Response.StatusCode.value__
                 start-sleep -s 20
                 $count += 1
             }
@@ -891,7 +891,7 @@ Function Get-VamiServiceStatus {
         The Get-VamiServiceStatus cmdlet gets the current status of the service on a given vCenter Server. The status can be STARTED/STOPPED
     
         .EXAMPLE
-        Get-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -checkStatus STARTED
+        Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -checkStatus STARTED
         This example connects to a vCenter Server and checks the wcp service is STARTED
     #>
 	Param (
@@ -947,11 +947,11 @@ Function Set-VamiServiceStatus {
         The Set-VamiServiceStatus cmdlet starts or stops the service on a given vCenter Server.
     
         .EXAMPLE
-        Set-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -action STOP
+        Set-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -action STOP
         This example connects to a vCenter Server and attempts to STOP the wcp service
 
         .EXAMPLE
-        Set-VAMIServiceStatus -server sfo-w01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -action START
+        Set-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -action START
         This example connects to a vCenter Server and attempts to START the wcp service
 
     #>
@@ -1045,7 +1045,7 @@ Function Set-vROPSClusterState {
 
             $vropsHeader = createHeader $user $pass
             $statusUri = "https://$server/casa/deployment/cluster/info"
-            $clusterStatus = Invoke-RestMethod -Method GET -URI $statusUri -Headers $vropsHeader -ContentType application/json 
+            $clusterStatus = Invoke-RestMethod -Method GET -URI $statusUri -Headers $vropsHeader -ContentType application/json
             if ($clusterStatus) {
                 if ($clusterStatus.online_state -eq $mode ) {
                     Write-LogMessage -Type INFO -Message "The vRealize Operations Manager cluster is already in the $mode state"
@@ -1100,7 +1100,7 @@ Function Get-vROPSClusterDetail {
 
     $vropsHeader = createHeader $user $pass
     $uri = "https://$server/casa/cluster/status"
-    $response = Invoke-RestMethod -URI $uri -Headers $vropsHeader -ContentType application/json 
+    $response = Invoke-RestMethod -URI $uri -Headers $vropsHeader -ContentType application/json
     $response.'nodes_states'
 }
 Export-ModuleMember -Function Get-vROPSClusterDetail 
@@ -1458,18 +1458,40 @@ Function Get-NsxtClusterStatus {
 		$uri = "https://$server/api/v1/cluster/status"
 		$nsxHeaders = createHeader $user $pass
 
-        $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
+		###########
+        $retryCount = 0
+        $completed = $false
+        $response = $null
+        $SecondsDelay = 30
+        $Retries = 3
 
-		if ($response.mgmt_cluster_status.status -eq 'STABLE') {
-			Write-LogMessage -Type INFO -Message "NSX Management Cluster state is STABLE"
-		}
-        else {
-			Write-LogMessage -Type INFO -Message "NSX Management Cluster state is NOT STABLE"
-		}
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-NsxtClusterStatus" -Colour Yellow
+        while (-not $completed) {
+            Try {
+                $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
+                if ($response.mgmt_cluster_status.status -ne 'STABLE') {
+                    throw "Expecting NSX Management Cluster state as STABLE, was: $($response.mgmt_cluster_status.status)"
+                }
+                $completed = $true
+            } Catch {
+                if ($retrycount -ge $Retries) {
+                    Write-LogMessage -Type Warning -Message "Request to $uri failed the maximum number of $retryCount times."
+                    Write-LogMessage -Type Warning -Message "NSX Management Cluster state is NOT STABLE"
+                    throw
+                } else {
+                    Write-LogMessage -Type Warning -Message "Request to $uri failed. Retrying in $SecondsDelay seconds."
+                    Start-Sleep $SecondsDelay
+                    $retrycount++
+                }
+            }
+        }
+        Write-LogMessage -Type INFO -Message "The cluster state is stable" -Colour GREEN
+
 	} 
     Catch {
         Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-NsxtClusterStatus" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Get-NsxtClusterStatus
