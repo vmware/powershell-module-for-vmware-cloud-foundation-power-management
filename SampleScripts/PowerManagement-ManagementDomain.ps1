@@ -369,7 +369,7 @@ Try {
         foreach ($node in $nsxtEdgeNodesfqdn) {
             [Array]$nsxtEdgeNodes += $node.Split(".")[0]
         }
-        $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"=
+        $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
 
         # Take hosts out of maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
