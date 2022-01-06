@@ -50,13 +50,14 @@ Try {
          Write-LogMessage -Type INFO -Message "Please confirm whether Non VCF management VM's to be shutdown while host enters maintainence mode"   -Colour Magenta
          Write-LogMessage -Type INFO -Message "If set to yes, will forcefully shutdown Non VCF management VM's"   -Colour Magenta
          $proceed_force = Read-Host  "Please say [yes or no] to proceed, default is no"
-         if ($proceed_force -match "yes") {
-            Write-LogMessage -Type INFO -Message "true"
-            $force = $true
-        } else {
-            Write-LogMessage -Type INFO -Message "false"
-            $force = $false
-        }
+             if ($proceed_force -match "yes") {
+                Write-LogMessage -Type INFO -Message "true"
+                $force = $true
+            } else {
+                Write-LogMessage -Type INFO -Message "false"
+                $force = $false
+            }
+         }
     }
 }
 Catch {
