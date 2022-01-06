@@ -296,6 +296,7 @@ Try {
         # Check the health and sync status of the VSAN cluster
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
+            Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
         }
@@ -316,7 +317,6 @@ Try {
 
         # Startup the NSX Manager Nodes in the Virtual Infrastructure Workload Domain
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
-        Test-WebUrl -url $nsxt_local_url
         Get-NsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
 
         # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain
