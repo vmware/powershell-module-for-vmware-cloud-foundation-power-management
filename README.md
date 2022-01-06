@@ -33,12 +33,14 @@ In the Powershell script files, you see some options, listed below are the usage
 
 **Options used are:**
 ```
- -Server <=> refers to Management or Workload VC or Esxi host on which we are initiating shutdown/startup of components . 
- -Nodes <=> refers to list of comma separated VM's to be shutdown on the VC or host . 
- -User <=> Username to login to the server . 
- -Pass <=> Password to login to the server . 
+ -server <=> refers to Management or Workload VC or Esxi host on which we are initiating shutdown/startup of components . 
+ -nodes <=> refers to list of comma separated VM's to be shutdown on the VC or host . 
+ -user <=> Username to login to the server . 
+ -pass <=> Password to login to the server . 
+ -force <=> The Foce parameter is used as a consent to shutdown non VCF management vm's automatically while putting host 
+            in maintenence mode
  -timeout <=> Max time to wait for shutdown/startup to complete. Default is 120 . 
- -pattern <=> Patten to search list of VMs.  
+ -pattern <=> Pattern to search list of VMs.  
  -command <=> command to be executed on esxi host . 
  -expected <=> Any string to be matched in the received output, if not given status=0 signifies pass case.  
  ```
