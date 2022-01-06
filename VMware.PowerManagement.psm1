@@ -652,23 +652,28 @@ Function Test-VsanHealth {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
                 $count = 1
                 $flag = 0
-                Do {
+                while ($count -ne 5) {
                     Try {
-                        Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"  | out-null
-                        $flag = 1
-                        break
+                        $Error.clear()
+                        Get-VSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system" -erroraction stop | Out-Null
+                        if(-Not $Error) {
+                            $flag = 1
+                            break
+                        }
                     }
                     catch {
-                        Write-LogMessage -Type INFO -Message "In CATCH BLOCK"
+                        Write-LogMessage -Type INFO -Message "VSAN Cluster health service is yet to come up, kindly wait"
                         Start-Sleep -s 60
                         $count += 1
                     }
 
-                } until ($count -ne 5)
+                }
+
+
                 if (-Not $flag) {
                     Write-LogMessage -Type ERROR -Message "Unable to Execute Test-VsanHealth cmdlet because vSANHealth service is not up" -Colour Red
                 } else {
-                    $vchs = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
+                  $vchs = Get-VSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
                     $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
                     $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
                     $healthCheckGroups = $results.groups
@@ -698,7 +703,7 @@ Function Test-VsanHealth {
                     }
                     Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                     Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-                }
+               }
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -1432,11 +1437,10 @@ Function Set-Retreatmode {
 }
 Export-ModuleMember -Function Set-Retreatmode
 
-
 Function Get-NsxtClusterStatus {
 <#
     .SYNOPSIS
-    Fetch cluster status of NSX Manager 
+    Fetch cluster status of NSX Manager
 
     .DESCRIPTION
     The Get-NsxtClusterStatus cmdlet fetches the cluster status of NSX manager after a restart
@@ -1451,7 +1455,7 @@ Function Get-NsxtClusterStatus {
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass
     )
-    
+
 	Try {
         Write-LogMessage -Type INFO -Message "Starting Execution of Get-NsxtClusterStatus" -Colour Yellow
         Write-LogMessage -Type INFO -Message "Checking the cluster status for NSX Management Cluster '$server'"
@@ -1463,7 +1467,7 @@ Function Get-NsxtClusterStatus {
         $completed = $false
         $response = $null
         $SecondsDelay = 30
-        $Retries = 3
+        $Retries = 20
 
         while (-not $completed) {
             Try {
@@ -1478,7 +1482,6 @@ Function Get-NsxtClusterStatus {
                     Write-LogMessage -Type Warning -Message "NSX Management Cluster state is NOT STABLE"
                     throw
                 } else {
-                    Write-LogMessage -Type Warning -Message "Request to $uri failed. Retrying in $SecondsDelay seconds."
                     Start-Sleep $SecondsDelay
                     $retrycount++
                 }
@@ -1486,7 +1489,7 @@ Function Get-NsxtClusterStatus {
         }
         Write-LogMessage -Type INFO -Message "The cluster state is stable" -Colour GREEN
 
-	} 
+	}
     Catch {
         Debug-CatchWriter -object $_
     }
