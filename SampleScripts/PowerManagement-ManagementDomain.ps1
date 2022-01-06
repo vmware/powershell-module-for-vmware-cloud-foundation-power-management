@@ -391,8 +391,9 @@ Try {
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
-
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
+            Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+            Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
 
         }
         else {
@@ -405,7 +406,6 @@ Try {
 
         # Startup the NSX Manager Nodes in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
-        #Test-WebUrl -url  $nsxt_local_url
         Get-NsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
 
          # Startup the NSX Edge Nodes in the Management Workload Domain
