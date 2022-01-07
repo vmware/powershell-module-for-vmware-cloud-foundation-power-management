@@ -1326,7 +1326,7 @@ Function Restart-VsphereHA {
                      Set-Cluster -Cluster $cluster -HAEnabled:$true -Confirm:$false | Out-Null
                      $var2 = get-cluster -Name $cluster | select HAEnabled
                      if ($var2) {
-                         Write-LogMessage -Type INFO -Message "The HA is enabled. Vsphere HA is restarted"
+                         Write-LogMessage -Type INFO -Message "The HA is enabled. Vsphere HA is restarted"  -Colour GREEN
                      }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
@@ -1391,27 +1391,24 @@ Function Set-Retreatmode {
                 if (Get-AdvancedSetting -Entity $server -Name  $advanced_setting) {
                     Write-LogMessage -Type INFO -Message "The advanced setting $advanced_setting is present"
                     if ($mode -eq 'enable') {
-                        Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'false' -Confirm:$false  | Out-Null
+                        Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'false' -Confirm:$false | out-null
                         Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false"  -Colour Green
-                        Start-sleep -s 120
+                        #Start-sleep -s 120
 
                     }
                     else {
                         Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'true' -Confirm:$false  | Out-Null
                         Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true" -Colour Green
-                        Start-sleep -s 120 #Not sure how many VCLS vm's, which all esx to check to ensure, all are started
                     }
                 }
                 else {
                     if ($mode -eq 'enable') {
                        New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'false' -Confirm:$false  | Out-Null
                        Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false" -Colour Green
-                       Start-sleep -s 120
                     }
                     else {
                        New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'true' -Confirm:$false  | Out-Null
                        Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true" -Colour Green
-                       Start-sleep -s 120
                     }
                 }
 
@@ -1458,7 +1455,7 @@ Function Get-NsxtClusterStatus {
 
 	Try {
         Write-LogMessage -Type INFO -Message "Starting Execution of Get-NsxtClusterStatus" -Colour Yellow
-        Write-LogMessage -Type INFO -Message "Checking the cluster status for NSX Management Cluster '$server'"
+        Write-LogMessage -Type INFO -Message "Checking the cluster status for NSX, (may take longer time), kindly wait '$server'"
 		$uri = "https://$server/api/v1/cluster/status"
 		$nsxHeaders = createHeader $user $pass
 
@@ -1487,7 +1484,7 @@ Function Get-NsxtClusterStatus {
                 }
             }
         }
-        Write-LogMessage -Type INFO -Message "The cluster state is stable" -Colour GREEN
+        Write-LogMessage -Type INFO -Message "The NSX Management Cluster '$server' state is 'STABLE'" -Colour GREEN
 
 	}
     Catch {
