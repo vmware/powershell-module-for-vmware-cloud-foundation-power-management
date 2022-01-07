@@ -48,15 +48,13 @@ Try {
     } else {
         if ($powerState -eq "Shutdown") {
             if (-Not $force) {
-             Write-LogMessage -Type INFO -Message "Please confirm whether Non VCF management VM's to be shutdown while host enters maintainence mode"   -Colour Magenta
-             Write-LogMessage -Type INFO -Message "If set to yes, will forcefully shutdown Non VCF management VM's"   -Colour Magenta
-             $proceed_force = Read-Host  "Please say [yes or no] to proceed, default is no"
+                 $proceed_force = Write-Host ""; Read-Host "Would you like to gracefully shutdown Non-VCF Management Workloads (Yes/No)? [No]"
                  if ($proceed_force -match "yes") {
                     $force = $true
                     Write-LogMessage -Type INFO -Message "Process WILL gracefully shutdown all Non-VCF Management Virtual Machines running within the Workload Domain"
                 } else {
                     $force = $false
-                    Write-LogMessage -Type INFO -Message "Process WILL gracefully shutdown all Non-VCF Management Virtual Machines running within the Workload Domain"
+                    Write-LogMessage -Type INFO -Message "Process WILL NOT gracefully shutdown all Non-VCF Management Virtual Machines running within the Workload Domain"
                 }
              }
          }
