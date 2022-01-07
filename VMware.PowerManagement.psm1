@@ -341,7 +341,7 @@ Function Set-MaintenanceMode {
                     if ($hostStatus.ConnectionState -eq "Maintenance") {
                         Write-LogMessage -Type INFO -Message "Attempting to take $server out of Maintenance mode"
                         $task = Set-VMHost -VMHost $server -State "Connected" -RunAsync -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
-                        Wait-Task $task
+                        Wait-Task $task | out-null
                         $hostStatus = (Get-VMHost -Server $server)
                         if ($hostStatus.ConnectionState -eq "Connected") {
                             Write-LogMessage -Type INFO -Message "The host $server has been taken out of Maintenance mode successfully" -Colour Green
