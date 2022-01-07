@@ -46,17 +46,19 @@ Try {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
     } else {
-        if (-Not $force) {
-         Write-LogMessage -Type INFO -Message "Please confirm whether Non VCF management VM's to be shutdown while host enters maintainence mode"   -Colour Magenta
-         Write-LogMessage -Type INFO -Message "If set to yes, will forcefully shutdown Non VCF management VM's"   -Colour Magenta
-         $proceed_force = Read-Host  "Please say [yes or no] to proceed, default is no"
-             if ($proceed_force -match "yes") {
-                Write-LogMessage -Type INFO -Message "true"
-                $force = $true
-            } else {
-                Write-LogMessage -Type INFO -Message "false"
-                $force = $false
-            }
+        if ($powerState -eq "Shutdown") {
+            if (-Not $force) {
+             Write-LogMessage -Type INFO -Message "Please confirm whether Non VCF management VM's to be shutdown while host enters maintainence mode"   -Colour Magenta
+             Write-LogMessage -Type INFO -Message "If set to yes, will forcefully shutdown Non VCF management VM's"   -Colour Magenta
+             $proceed_force = Read-Host  "Please say [yes or no] to proceed, default is no"
+                 if ($proceed_force -match "yes") {
+                    $force = $true
+                    Write-LogMessage -Type INFO -Message "Process WILL gracefully shutdown all Non-VCF Management Virtual Machines running within the Workload Domain"
+                } else {
+                    $force = $false
+                    Write-LogMessage -Type INFO -Message "Process WILL gracefully shutdown all Non-VCF Management Virtual Machines running within the Workload Domain"
+                }
+             }
          }
     }
 }
@@ -205,6 +207,29 @@ Try {
             }
         }
 
+        # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
+        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
+
+        Write-LogMessage -Type INFO -Message "RetreatMode has been set, VCLS vm's getting shutdown will take time...please wait"
+
+        $counter = 0
+        $retries = 30
+
+        foreach ($esxiNode in $esxiWorkloadDomain) {
+            while ($counter -ne $retries) {
+                $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "vcls"
+                if ( $count ) {
+                    start-sleep 10
+                    $count += 1
+                } else {
+                    break
+                }
+            }
+        }
+        if ($counter -eq 30) {
+            Write-LogMessage -Type WARNING -Message "The VCLS vms didnot get shutdown within stipulated timeout value" -Colour Cyan
+        }
+
         # Shut Down the vSphere with Tanzu Virtual Machines
         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action STOP
         $clusterPattern = "^SupervisorControlPlaneVM.*"
@@ -238,10 +263,10 @@ Try {
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-        # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
 
-        Start-Sleep -s 300
+
+
+
 
         # Check the health and sync status of the VSAN cluster
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
