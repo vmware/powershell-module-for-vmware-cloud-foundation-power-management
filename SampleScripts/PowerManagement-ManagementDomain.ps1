@@ -66,6 +66,15 @@ if ($powerState -eq "shutdown") {
                 Write-LogMessage -Type WARNING -Message "Regional WSA information is null, hence Exiting"   -Colour Magenta
                 Exit
             }
+            Write-Host "";
+            $edgenodesList  = @()
+            $edgenodesList = Read-Host "Kindly provide space separated list of nsxt edge nodes fqdn"
+            if(([string]::IsNullOrEmpty($regionalWSA))) {
+                Write-LogMessage -Type WARNING -Message "Edge nodes fqdn info is null, hence Exiting"   -Colour Magenta
+                Exit
+            } else {
+                $edgenodesList = $edgenodesList.split()
+            }
         }
    }
    Catch {
@@ -157,8 +166,9 @@ Try {
 
 
             # Gather NSX Edge Node Details
-            $nsxtEdgeCluster = (Get-VCFEdgeCluster | Where-Object {$_.nsxtCluster.id -eq $workloadDomain.nsxtCluster.id})
-            $nsxtEdgeNodesfqdn = $nsxtEdgeCluster.edgeNodes.hostname
+            #$nsxtEdgeCluster = (Get-VCFEdgeCluster | Where-Object {$_.nsxtCluster.id -eq $workloadDomain.nsxtCluster.id})
+            #$nsxtEdgeNodesfqdn = $nsxtEdgeCluster.edgeNodes.hostname
+            $nsxtEdgeNodesfqdn = $edgenodesList
             $nsxtEdgeNodes = @()
             foreach ($node in $nsxtEdgeNodesfqdn) {
                 [Array]$nsxtEdgeNodes += $node.Split(".")[0]
@@ -167,6 +177,7 @@ Try {
             $var["NsxEdge"] = @{}
             $var["NsxEdge"]["edgenodes"] = @{}
             $var["NsxEdge"]["edgenodes"]["hostname"] = $nsxtEdgeNodesfqdn
+
 
 
 
