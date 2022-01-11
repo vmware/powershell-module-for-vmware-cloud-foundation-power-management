@@ -225,7 +225,7 @@ Try {
             }
         }
         if ($counter -eq 30) {
-            Write-LogMessage -Type WARNING -Message "The VCLS vms didnot get shutdown within stipulated timeout value" -Colour Cyan
+            Write-LogMessage -Type WARNING -Message "The vCLS vms did't get shutdown within stipulated timeout value" -Colour Cyan
         }
 
         # Shut Down the vSphere with Tanzu Virtual Machines
