@@ -48,7 +48,7 @@ if ($powerState -eq "shutdown") {
             Break
         }
         else {
-            $log = @()
+            $log = ""
             if (-Not $force) {
                  Write-Host "";
                  $proceed_force =  Read-Host "Would you like to gracefully shutdown Non-VCF Management Workloads (Yes/No)? [No]"
