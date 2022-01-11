@@ -48,15 +48,16 @@ if ($powerState -eq "shutdown") {
             Break
         }
         else {
+            $log = @()
             if (-Not $force) {
                  Write-Host "";
                  $proceed_force =  Read-Host "Would you like to gracefully shutdown Non-VCF Management Workloads (Yes/No)? [No]"
                  if ($proceed_force -match "yes") {
                     $force = $true
-                    Write-LogMessage -Type INFO -Message "Process WILL gracefully shutdown all Non-VCF Management Virtual Machines running within the Management Domain"
+                    $log = "Process WILL gracefully shutdown all Non-VCF Management Virtual Machines running within the Management Domain"
                 } else {
                     $force = $false
-                    Write-LogMessage -Type INFO -Message "Process WILL NOT gracefully shutdown all Non-VCF Management Virtual Machines running within the Management Domain"
+                    $log =  "Process WILL NOT gracefully shutdown all Non-VCF Management Virtual Machines running within the Management Domain"
                 }
 
             }
@@ -68,13 +69,14 @@ if ($powerState -eq "shutdown") {
             }
             Write-Host "";
             $edgenodesList  = @()
-            $edgenodesList = Read-Host "Kindly provide space separated list of nsxt edge nodes fqdn"
+            $edgenodesList = Read-Host "Kindly provide space separated list of NSX edge nodes fqdn"
             if(([string]::IsNullOrEmpty($regionalWSA))) {
                 Write-LogMessage -Type WARNING -Message "Edge nodes fqdn info is null, hence Exiting"   -Colour Magenta
                 Exit
             } else {
                 $edgenodesList = $edgenodesList.split()
             }
+            Write-LogMessage -Type INFO -Message $log
         }
    }
    Catch {
