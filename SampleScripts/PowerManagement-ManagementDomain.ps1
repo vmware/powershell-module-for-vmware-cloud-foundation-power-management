@@ -34,6 +34,7 @@ Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$force,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$json,
         [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
 )
 
@@ -62,15 +63,19 @@ if ($powerState -eq "shutdown") {
 
             }
             Write-Host "";
-            $regionalWSA = Read-Host "Kindly provide regional WSA VM name to proceed"
-            if(([string]::IsNullOrEmpty($regionalWSA))) {
-                Write-LogMessage -Type WARNING -Message "Regional WSA information is null, hence Exiting"   -Colour Magenta
-                Exit
+            $regionalWSAYesOrNo = Read-Host "Have you deployed a Standalone Workspace ONE Access instance (Yes/No)"
+            if ($regionalWSAYesOrNo -eq "yes") {
+                 $regionalWSA = Read-Host "Enter the Virtual Machine name for the Standalone Workspace ONE Access instance"
+                 if(([string]::IsNullOrEmpty($regionalWSA))) {
+                    Write-LogMessage -Type WARNING -Message "Regional WSA information is null, hence Exiting"   -Colour Magenta
+                    Exit
+                }
             }
+
             Write-Host "";
             $edgenodesList  = @()
             $edgenodesList = Read-Host "Kindly provide space separated list of NSX edge nodes fqdn"
-            if(([string]::IsNullOrEmpty($regionalWSA))) {
+            if(([string]::IsNullOrEmpty($edgenodesList))) {
                 Write-LogMessage -Type WARNING -Message "Edge nodes fqdn info is null, hence Exiting"   -Colour Magenta
                 Exit
             } else {
@@ -83,14 +88,25 @@ if ($powerState -eq "shutdown") {
         Debug-CatchWriter -object $_
    }
 } else {
-    Write-LogMessage -Type INFO -Message "There is a sample template in ManagementStartupInput.json file, please check details, if not auto populated during shutdown, kindly update to proceed"
+    $file = "./ManagementStartupInput.json"
+    if ($json) {
+        Write-LogMessage -Type INFO -Message "User has provided the input json file" -Colour Green
+        $inputFile = $json
+    } elseif (Test-Path -Path $file -PathType Leaf) {
+        Write-LogMessage -Type INFO -Message "No path to json provided on the command line so script is using for auto created input json file ManagementStartupInput.json" -Colour Magenta
+        $inputFile =  $file
+    } else {
+        Write-LogMessage -Type INFO -Message "No Automatically Created Startup Input JSON File Found, Using Template Startup Input JSON File (template-managementDomainStartup.json) to Start the Management Domain" -Colour Magenta
+        $inputFile =  "./template-managementDomainStartup.json"
+    }
+
     Write-Host "";
-    $proceed =  Read-Host "Did you check the file ManagementStartupInput.json for its correctness and shall we proceed"
+    $proceed =  Read-Host "Did you check the file $inputFile for its correctness and shall we proceed"
     if ($proceed -match "no" -or (-not $proceed)) {
         Write-LogMessage -Type WARNING -Message "Exiting script execution as the input is No"   -Colour Magenta
         Exit
     }
-    Write-LogMessage -Type INFO -Message "ManagementStartupInput.json is checked for its correctness, moving on with execution"
+    Write-LogMessage -Type INFO -Message "$inputFile is checked for its correctness, moving on with execution"
 }
 
 # Setup a log file and gather details from SDDC Manager
@@ -117,8 +133,6 @@ Try {
             $var["Cluster"] = @{}
             $var["Cluster"]["name"] = $cluster.name
 
-
-
             # Gather vCenter Server Details and Credentials
             $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id)})
             #$mgmtVcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($managementDomain.id)})
@@ -144,10 +158,8 @@ Try {
                 $esxiWorkloadDomain += $esxDetails
             }
 
-
             $var["Hosts"] = @()
             $var["Hosts"] = $esxiWorkloadDomain
-
 
             # Gather NSX Manager Cluster Details
             $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id
@@ -178,10 +190,10 @@ Try {
 
             $var["NsxEdge"] = @{}
             $var["NsxEdge"]["edgenodes"] = @{}
-            $var["NsxEdge"]["edgenodes"]["hostname"] = $nsxtEdgeNodesfqdn
-
-
-
+            $var["NsxEdge"]["edgenodes"]["hostname"] = @()
+            foreach ($val in $nsxtEdgeNodes) {
+                 $var["NsxEdge"]["edgenodes"]["hostname"] += $val
+            }
 
             # Gather vRealize Suite Details
             $vrslcm = New-Object -TypeName PSCustomObject
@@ -193,7 +205,11 @@ Try {
             $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
 
             $var["Vrslcm"] = @{}
-            $var["Vrslcm"]["name"] = $vrslcm.fqdn.Split(".")[0]
+            if ($vrslcm.fqdn) {
+                $var["Vrslcm"]["name"] = $vrslcm.fqdn.Split(".")[0]
+            } else {
+                $var["Vrslcm"]["name"] = $null
+            }
             $var["Vrslcm"]["fqdn"] = $vrslcm.fqdn
             $var["Vrslcm"]["status"] = $vrslcm.status
             $var["Vrslcm"]["adminUser"] = $vrslcm.adminUser
@@ -212,7 +228,11 @@ Try {
             }
 
             $var["Wsa"] = @{}
-            $var["Wsa"]["name"] = $wsa.fqdn.Split(".")[0]
+            if ($wsa.fqdn) {
+                $var["Wsa"]["name"] = $wsa.fqdn.Split(".")[0]
+            } else {
+                $var["Wsa"]["name"] = $null
+            }
             $var["Wsa"]["fqdn"] = $wsa.fqdn
             $var["Wsa"]["status"] = $wsa.status
             $var["Wsa"]["adminUser"] = $wsa.adminUser
@@ -233,7 +253,11 @@ Try {
 
 
             $var["Vrops"] = @{}
-            $var["Vrops"]["name"] = $vrops.fqdn.Split(".")[0]
+            if ($vrops.fqdn) {
+                $var["Vrops"]["name"] = $vrops.fqdn.Split(".")[0]
+            } else {
+                $var["Vrops"]["name"] = $null
+            }
             $var["Vrops"]["fqdn"] = $vrops.fqdn
             $var["Vrops"]["status"] = $vrops.status
             $var["Vrops"]["adminUser"] = $vrops.adminUser
@@ -251,7 +275,11 @@ Try {
 
 
             $var["Vra"] = @{}
-            $var["Vra"]["name"] = $vra.fqdn.Split(".")[0]
+            if ($vra.fqdn) {
+                $var["Vra"]["name"] = $vra.fqdn.Split(".")[0]
+            } else {
+                $var["Vra"]["name"] = $null
+            }
             $var["Vra"]["fqdn"] = $vra.fqdn
             $var["Vra"]["status"] = $vra.status
             $var["Vra"]["nodes"] = $vraNodes
@@ -337,7 +365,7 @@ Try {
             if ($($vrslcm.status -eq "ACTIVE")) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrslcm.fqdn.Split(".")[0] -timeout 600
             }
-            if ($($vrli.status -eq "ACTIVE")) {
+            if ($($vrli.status -eq "ACTIVE") -and $vrliNodes) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrliNodes -timeout 600
             }
         }
@@ -346,7 +374,11 @@ Try {
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
             #shutdown regionalWSA node
-            Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $regionalWSA -timeout 600
+            if ($regionalWSA) {
+                Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $regionalWSA -timeout 600
+            } else {
+                Write-LogMessage -Type WARNING -Message "No Standalone Workspace ONE Access instance present, skipping shutdown" -Colour Cyan
+            }
             if ($nsxtEdgeNodes) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
             }
@@ -435,7 +467,7 @@ Catch {
 # Execute the Startup procedures
 Try {
     if ($powerState -eq "Startup") {
-        $MgmtInput = Get-Content -Path "./ManagementStartupInput.json" | ConvertFrom-JSON
+        $MgmtInput = Get-Content -Path $inputFile | ConvertFrom-JSON
 
         Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
         Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
@@ -492,15 +524,15 @@ Try {
         $vra = New-Object -TypeName PSCustomObject
         $vra | Add-Member -Type NoteProperty -Name status -Value $MgmtInput.Vra.status
         $vra | Add-Member -Type NoteProperty -Name fqdn -Value $MgmtInput.Vra.fqdn
-        $vraNodes = $MgmtInput.Vrs.nodes
+        $vraNodes = $MgmtInput.Vra.nodes
 
 
         $vrli = New-Object -TypeName PSCustomObject
         $vrli | Add-Member -Type NoteProperty -Name status -Value $MgmtInput.Vrli.status
         $vrli | Add-Member -Type NoteProperty -Name fqdn -Value $MgmtInput.Vrli.fqdn
-        $vrli | Add-Member -Type NoteProperty -Name adminUser -Value  $MgmtInput.Vrs.adminUser
-        $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value $MgmtInput.Vrs.adminPassword
-        $vrliNodes =$MgmtInput.Vrs.nodes
+        $vrli | Add-Member -Type NoteProperty -Name adminUser -Value  $MgmtInput.Vrli.adminUser
+        $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value $MgmtInput.Vrli.adminPassword
+        $vrliNodes =$MgmtInput.Vrli.nodes
 
 
 
@@ -590,80 +622,22 @@ Try {
         }
 
         # Startup the single region WSA in the Management Domain
-        Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $regionalWSA -timeout 600
-<#
-        #Now that SDDC is up now, will get all other inputs from SDDC manager
-        Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
-        $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-        if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
-        if ($accessToken) {
-            Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
-            #sleep 600
-
-            # Gather vRealize Suite Details
-            $vrslcm = New-Object -TypeName PSCustomObject
-            $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
-            $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
-            $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
-            $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
-            $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
-            $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
-
-            $wsa = New-Object -TypeName PSCustomObject
-            $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).status
-            $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).loadBalancerFqdn
-            $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
-            $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
-            $wsaNodes = @()
-            foreach ($node in (Get-VCFWSA).nodes.fqdn | Sort-Object) {
-                [Array]$wsaNodes += $node.Split(".")[0]
-            }
-
-            $vrops = New-Object -TypeName PSCustomObject
-            $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).status
-            $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).loadBalancerFqdn
-            $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
-            $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
-            $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
-            $vropsNodes = @()
-            foreach ($node in (Get-VCFvROPS).nodes.fqdn | Sort-Object) {
-                [Array]$vropsNodes += $node.Split(".")[0]
-            }
-
-            $vra = New-Object -TypeName PSCustomObject
-            $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).status
-            $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).loadBalancerFqdn
-            $vraNodes = @()
-            foreach ($node in (Get-VCFvRA).nodes.fqdn | Sort-Object) {
-                [Array]$vraNodes += $node.Split(".")[0]
-            }
-
-            $vrli = New-Object -TypeName PSCustomObject
-            $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).status
-            $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).loadBalancerFqdn
-            $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
-            $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
-            $vrliNodes = @()
-            foreach ($node in (Get-VCFvRLI).nodes.fqdn | Sort-Object) {
-                [Array]$vrliNodes += $node.Split(".")[0]
-            }
-        }
-        else {
-            Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
-            Exit
+        if($regionalWSA) {
+            Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $regionalWSA -timeout 600
+        } else {
+            Write-LogMessage -Type WARNING -Message "No Standalone Workspace ONE Access instance is present, skipping startup" -Colour Cyan
         }
 
-#>
 
         # Startup vRealize Suite
         if ($($WorkloadDomainType) -eq "MANAGEMENT") {
           if ($($vrslcm.status -eq "ACTIVE")) {
                 Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrslcm.fqdn.Split(".")[0] -timeout 600
             }
-            if ($($vrli.status -eq "ACTIVE")) {
+            if ($($vrli.status -eq "ACTIVE") -and $vrliNodes) {
                 Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrliNodes -timeout 600
             }
-            if ($($vrops.status -eq "ACTIVE")) {
+            if ($($vrops.status -eq "ACTIVE") -and $vropsNodes) {
                 Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsNodes -timeout 600
                 $vropsCollectorNodes = @()
                 foreach ($node in (Get-vROPSClusterDetail -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword | Where-Object {$_.role -eq "REMOTE_COLLECTOR"} | Select-Object name)) {
