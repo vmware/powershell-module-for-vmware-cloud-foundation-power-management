@@ -73,13 +73,13 @@ if ($powerState -eq "shutdown") {
             }
 
             Write-Host "";
-            $edgenodesList  = @()
+            $edgenodes  = @()
             $edgenodesList = Read-Host "Kindly provide space separated list of NSX edge nodes fqdn"
             if(([string]::IsNullOrEmpty($edgenodesList))) {
                 Write-LogMessage -Type WARNING -Message "Edge nodes fqdn info is null, hence Exiting"   -Colour Magenta
                 Exit
             } else {
-                $edgenodesList = $edgenodesList.split()
+                $edgenodes = $edgenodesList.split()
             }
             Write-LogMessage -Type INFO -Message $log
         }
@@ -182,17 +182,16 @@ Try {
             # Gather NSX Edge Node Details
             #$nsxtEdgeCluster = (Get-VCFEdgeCluster | Where-Object {$_.nsxtCluster.id -eq $workloadDomain.nsxtCluster.id})
             #$nsxtEdgeNodesfqdn = $nsxtEdgeCluster.edgeNodes.hostname
-            $nsxtEdgeNodesfqdn = $edgenodesList
+            $nsxtEdgeNodesfqdn = $edgenodes
             $nsxtEdgeNodes = @()
             foreach ($node in $nsxtEdgeNodesfqdn) {
                 [Array]$nsxtEdgeNodes += $node.Split(".")[0]
             }
 
             $var["NsxEdge"] = @{}
-            $var["NsxEdge"]["edgenodes"] = @{}
-            $var["NsxEdge"]["edgenodes"]["hostname"] = @()
+            $var["NsxEdge"]["nodes"]= New-Object System.Collections.ArrayList
             foreach ($val in $nsxtEdgeNodes) {
-                 $var["NsxEdge"]["edgenodes"]["hostname"] += $val
+                 $var["NsxEdge"]["nodes"].add($val)
             }
 
             # Gather vRealize Suite Details
@@ -567,11 +566,7 @@ Try {
 
         # Gather NSX Edge Node Details
         $nsxtEdgeCluster =  $MgmtInput.NsxEdge
-        $nsxtEdgeNodesfqdn = $nsxtEdgeCluster.edgenodes.hostname
-        $nsxtEdgeNodes = @()
-        foreach ($node in $nsxtEdgeNodesfqdn) {
-            [Array]$nsxtEdgeNodes += $node.Split(".")[0]
-        }
+        $nsxtEdgeNodes = $nsxtEdgeCluster.nodes
         $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
 
 
