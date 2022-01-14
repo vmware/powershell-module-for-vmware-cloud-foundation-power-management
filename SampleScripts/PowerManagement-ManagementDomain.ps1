@@ -74,7 +74,7 @@ if ($powerState -eq "shutdown") {
 
             Write-Host "";
             $edgenodes  = @()
-            $edgenodesList = Read-Host "Kindly provide space separated list of NSX edge nodes fqdn"
+            $edgenodesList = Read-Host "Kindly provide space separated list of Virtual Machine name for NSX edge nodes"
             if(([string]::IsNullOrEmpty($edgenodesList))) {
                 Write-LogMessage -Type WARNING -Message "Edge nodes fqdn info is null, hence Exiting"   -Colour Magenta
                 Exit
@@ -182,16 +182,16 @@ Try {
             # Gather NSX Edge Node Details
             #$nsxtEdgeCluster = (Get-VCFEdgeCluster | Where-Object {$_.nsxtCluster.id -eq $workloadDomain.nsxtCluster.id})
             #$nsxtEdgeNodesfqdn = $nsxtEdgeCluster.edgeNodes.hostname
-            $nsxtEdgeNodesfqdn = $edgenodes
-            $nsxtEdgeNodes = @()
-            foreach ($node in $nsxtEdgeNodesfqdn) {
-                [Array]$nsxtEdgeNodes += $node.Split(".")[0]
-            }
+            #$nsxtEdgeNodesfqdn = $edgenodes
+            #$nsxtEdgeNodes = @()
+            #foreach ($node in $nsxtEdgeNodesfqdn) {
+            #    [Array]$nsxtEdgeNodes += $node.Split(".")[0]
+            #}
 
             $var["NsxEdge"] = @{}
             $var["NsxEdge"]["nodes"]= New-Object System.Collections.ArrayList
-            foreach ($val in $nsxtEdgeNodes) {
-                 $var["NsxEdge"]["nodes"].add($val)
+            foreach ($val in $edgenodes) {
+                 $var["NsxEdge"]["nodes"].add($val) | out-null
             }
 
             # Gather vRealize Suite Details
