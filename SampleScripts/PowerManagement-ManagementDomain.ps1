@@ -47,6 +47,7 @@ if ($powerState -eq "shutdown") {
         if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
             Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
             Break
+
         }
         else {
             $log = ""
@@ -114,6 +115,7 @@ if ($powerState -eq "shutdown") {
 # Execute the Shutdown procedures
 Try {
     if ($powerState -eq "Shutdown") {
+
         Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
         Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
 
@@ -138,35 +140,58 @@ Try {
             #$mgmtVcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($managementDomain.id)})
             $vcUser = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).username
             $vcPass = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).password
+            if($vcPass) {
+                $vcPass_encrypted = $vcPass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+            } else {
+                $vcPass_encrypted = $null
+            }
+
 
             $var["Server"] = @{}
             $var["Server"]["name"] = $vcServer.fqdn.Split(".")[0]
             $var["Server"]["fqdn"] = $vcServer.fqdn
             $var["Server"]["user"] = $vcUser
-            $var["Server"]["password"] = $vcPass
+            $var["Server"]["password"] = $vcPass_encrypted
 
-
+            $var["Hosts"] = @()
             # Gather ESXi Host Details for the Management Workload Domain
             $esxiWorkloadDomain = @()
             foreach ($esxiHost in (Get-VCFHost | Where-Object {$_.domain.id -eq $workloadDomain.id}).fqdn)
             {
+
                 $esxDetails = New-Object -TypeName PSCustomObject
                 $esxDetails | Add-Member -Type NoteProperty -Name name -Value $esxiHost.Split(".")[0]
                 $esxDetails | Add-Member -Type NoteProperty -Name fqdn -Value $esxiHost
                 $esxDetails | Add-Member -Type NoteProperty -Name username -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).username
                 $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).password
                 $esxiWorkloadDomain += $esxDetails
+                $esxi_block = @{}
+                $esxi_block["name"] = $esxDetails.name
+                $esxi_block["fqdn"] = $esxDetails.fqdn
+                $esxi_block["user"] = $esxDetails.username
+                $Pass = $esxDetails.password
+                if($Pass){
+                    $Pass_encrypted = $Pass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+                } else {
+                    $Pass_encrypted = $null
+                }
+                $esxi_block["password"] = $Pass_encrypted
+                $var["Hosts"] += $esxi_block
             }
 
-            $var["Hosts"] = @()
-            $var["Hosts"] = $esxiWorkloadDomain
 
             # Gather NSX Manager Cluster Details
             $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id
             $nsxtMgrfqdn = $nsxtCluster.vipFqdn
             $nsxMgrVIP = New-Object -TypeName PSCustomObject
             $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).username
-            $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).password
+            $Pass = (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).password
+            if($Pass){
+                $Pass_encrypted = $Pass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+            } else {
+                $Pass_encrypted = $null
+            }
+            $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value $Pass
             $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
             $nsxtNodes = @()
             foreach ($node in $nsxtNodesfqdn) {
@@ -176,7 +201,7 @@ Try {
             $var["NsxtManager"]["vipfqdn"] = $nsxtMgrfqdn
             $var["NsxtManager"]["nodes"] = $nsxtNodesfqdn
             $var["NsxtManager"]["user"] = $nsxMgrVIP.adminUser
-            $var["NsxtManager"]["password"] = $nsxMgrVIP.adminPassword
+            $var["NsxtManager"]["password"] = $Pass_encrypted
 
 
             # Gather NSX Edge Node Details
@@ -188,6 +213,7 @@ Try {
             #    [Array]$nsxtEdgeNodes += $node.Split(".")[0]
             #}
 
+            $nsxtEdgeNodes = $edgenodes
             $var["NsxEdge"] = @{}
             $var["NsxEdge"]["nodes"]= New-Object System.Collections.ArrayList
             foreach ($val in $edgenodes) {
@@ -199,9 +225,21 @@ Try {
             $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
             $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
             $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
-            $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
+            $adminPassword =  (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
+            if($adminPassword){
+                $adminPassword_encrypted = $adminPassword | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+            } else {
+                $adminPassword_encrypted = $null
+            }
+            $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value $adminPassword
             $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
-            $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
+            $rootPassword = (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
+            if ($rootPassword) {
+                $rootPassword_encrypted = $rootPassword | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+            } else {
+                $rootPassword_encrypted = $null
+            }
+            $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value $vrslcm.adminPassword
 
             $var["Vrslcm"] = @{}
             if ($vrslcm.fqdn) {
@@ -212,15 +250,21 @@ Try {
             $var["Vrslcm"]["fqdn"] = $vrslcm.fqdn
             $var["Vrslcm"]["status"] = $vrslcm.status
             $var["Vrslcm"]["adminUser"] = $vrslcm.adminUser
-            $var["Vrslcm"]["adminPassword"] = $vrslcm.adminPassword
+            $var["Vrslcm"]["adminPassword"] = $adminPassword_encrypted
             $var["Vrslcm"]["rootUser"] = $vrslcm.rootUser
-            $var["Vrslcm"]["rootPassword"] = $vrslcm.rootPassword
+            $var["Vrslcm"]["rootPassword"] = $rootPassword_encrypted
 
             $wsa = New-Object -TypeName PSCustomObject
             $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).status
             $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).loadBalancerFqdn
             $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
-            $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
+            $wsaPassword = (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
+            if($wsaPassword) {
+                $wsaPassword_encrypted = $wsaPassword | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+            } else {
+                $wsaPassword_encrypted = $null
+            }
+            $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value $wsaPassword
             $wsaNodes = @()
             foreach ($node in (Get-VCFWSA).nodes.fqdn | Sort-Object) {
                 [Array]$wsaNodes += $node.Split(".")[0]
@@ -235,7 +279,7 @@ Try {
             $var["Wsa"]["fqdn"] = $wsa.fqdn
             $var["Wsa"]["status"] = $wsa.status
             $var["Wsa"]["adminUser"] = $wsa.adminUser
-            $var["Wsa"]["adminPassword"] = $wsa.adminPassword
+            $var["Wsa"]["adminPassword"] = $wsaPassword_encrypted
             $var["Wsa"]["nodes"] = $wsaNodes
 
 
@@ -243,7 +287,14 @@ Try {
             $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).status
             $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).loadBalancerFqdn
             $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
-            $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
+            $vropsPassword = (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
+            if ($vropsPassword) {
+                $vropsPassword_encrypted = $vropsPassword | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+            } else {
+                $vropsPassword_encrypted = $null
+            }
+
+            $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value $vropsPassword
             $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
             $vropsNodes = @()
             foreach ($node in (Get-VCFvROPS).nodes.fqdn | Sort-Object) {
@@ -260,7 +311,7 @@ Try {
             $var["Vrops"]["fqdn"] = $vrops.fqdn
             $var["Vrops"]["status"] = $vrops.status
             $var["Vrops"]["adminUser"] = $vrops.adminUser
-            $var["Vrops"]["adminPassword"] = $vrops.adminPassword
+            $var["Vrops"]["adminPassword"] = $vropsPassword_encrypted
             $var["Vrops"]["master"] = $vrops.master
             $var["Vrops"]["nodes"] = $vropsNodes
 
@@ -288,7 +339,12 @@ Try {
             $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).status
             $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).loadBalancerFqdn
             $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
-            $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
+            $vrliPassword = (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
+            $vrliPassword_encrypted = $null
+            if($vrliPassword){
+                $vrliPassword_encrypted = $vrliPassword | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+            }
+            $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value $vrliPassword
             $vrliNodes = @()
             foreach ($node in (Get-VCFvRLI).nodes.fqdn | Sort-Object) {
                 [Array]$vrliNodes += $node.Split(".")[0]
@@ -303,7 +359,7 @@ Try {
             $var["Vrli"]["fqdn"] = $vrli.fqdn
             $var["Vrli"]["status"] = $vrli.status
             $var["Vrli"]["adminUser"] = $vrli.adminUser
-            $var["Vrli"]["adminPassword"] = $vrli.adminPassword
+            $var["Vrli"]["adminPassword"] = $vrliPassword_encrypted
             $var["Vrli"]["nodes"] = $vrliNodes
 
 
@@ -325,17 +381,18 @@ Try {
                 $vcHost = (get-vm | where Name -eq $vcServer.fqdn.Split(".")[0] | select VMHost).VMHost.Name
                 $vcHostUser = (Get-VCFCredential -resourceType ESXI -resourceName $vcHost | Where-Object {$_.accountType -eq "USER"}).username
                 $vcHostPass = (Get-VCFCredential -resourceType ESXI -resourceName $vcHost | Where-Object {$_.accountType -eq "USER"}).password
+                $vcHostPass_encrypted = $vcHostPass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
 
             }
             $var["Server"]["host"] = $vcHost
             $var["Server"]["vchostuser"] = $vcHostUser
-            $var["Server"]["vchostpassword"] = $vcHostPass
+            $var["Server"]["vchostpassword"] = $vcHostPass_encrypted
 
             $var["SDDC"] = @{}
             $var["SDDC"]["name"] = $sddcmVMName
             $var["SDDC"]["fqdn"] = $server
             $var["SDDC"]["user"] = $user
-            $var["SDDC"]["password"] = $pass
+            $var["SDDC"]["password"] = $pass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
 
             $var | ConvertTo-Json > ManagementStartupInput.json
         }
@@ -489,25 +546,51 @@ Try {
         $vcServer | Add-Member -Type NoteProperty -Name Name -Value $MgmtInput.Server.name
         $vcServer | Add-Member -Type NoteProperty -Name fqdn -Value $MgmtInput.Server.fqdn
         $vcUser = $MgmtInput.Server.user
-        $vcPass = $MgmtInput.Server.password
+        $temp_pass = convertto-securestring -string $MgmtInput.Server.password
+        $temp_pass = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($temp_pass))))
+        $vcPass = $temp_pass
         $vcHost = $MgmtInput.Server.host
         $vcHostUser = $MgmtInput.Server.vchostuser
-        $vcHostPass = $MgmtInput.Server.vchostpassword
+        if ($MgmtInput.Server.vchostpassword) {
+            $vchostpassword = convertto-securestring -string $MgmtInput.Server.vchostpassword
+            $vchostpassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($vchostpassword))))
+        } else {
+            $vchostpassword = $null
+        }
+        $vcHostPass = $vchostpassword
 
         # Gather vRealize Suite Details
         $vrslcm = New-Object -TypeName PSCustomObject
         $vrslcm | Add-Member -Type NoteProperty -Name status -Value $MgmtInput.Vrslcm.status
         $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value $MgmtInput.Vrslcm.fqdn
         $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value $MgmtInput.Vrslcm.adminUser
-        $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value $MgmtInput.Vrslcm.adminPassword
+        if($MgmtInput.Vrslcm.adminPassword){
+            $vrslcmadminpassword = convertto-securestring -string $MgmtInput.Vrslcm.adminPassword
+            $vrslcmadminpassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($vrslcmadminpassword))))
+        } else {
+            $vrslcmadminpassword = $null
+        }
+        $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value $vrslcmadminpassword
         $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value $MgmtInput.Vrslcm.rootUser
-        $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value  $MgmtInput.Vrslcm.rootPassword
+        if($MgmtInput.Vrslcm.rootPassword){
+           $vrslcmrootpassword = convertto-securestring -string $MgmtInput.Vrslcm.rootPassword
+           $vrslcmrootpassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($vrslcmrootpassword))))
+        } else {
+           $vrslcmrootpassword = $null
+        }
+        $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value  $vrslcmrootpassword
 
         $wsa = New-Object -TypeName PSCustomObject
         $wsa | Add-Member -Type NoteProperty -Name status -Value $MgmtInput.Wsa.status
         $wsa | Add-Member -Type NoteProperty -Name fqdn -Value $MgmtInput.Wsa.fqdn
         $wsa | Add-Member -Type NoteProperty -Name adminUser -Value $MgmtInput.Wsa.username
-        $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value $MgmtInput.Wsa.password
+        if($MgmtInput.Wsa.password){
+           $wsapassword = convertto-securestring -string $MgmtInput.Wsa.password
+           $wsapassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($wsapassword))))
+        } else {
+           $wsapassword = $null
+        }
+        $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value $wsapassword
         $wsaNodes = $MgmtInput.Wsa.nodes
 
 
@@ -515,7 +598,13 @@ Try {
         $vrops | Add-Member -Type NoteProperty -Name status -Value $MgmtInput.Vrops.status
         $vrops | Add-Member -Type NoteProperty -Name fqdn -Value $MgmtInput.Vrops.fqdn
         $vrops | Add-Member -Type NoteProperty -Name adminUser -Value $MgmtInput.Vrops.adminUser
-        $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value $MgmtInput.Vrops.adminPassword
+        if($MgmtInput.Vrops.adminPassword){
+           $vropspassword = convertto-securestring -string $MgmtInput.Vrops.adminPassword
+           $vropspassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($vropspassword))))
+        } else {
+           $vropspassword = $null
+        }
+        $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value $vropspassword
         $vrops | Add-Member -Type NoteProperty -Name master -Value  $MgmtInput.Vrops.master
         $vropsNodes = $MgmtInput.Vrops.nodes
 
@@ -530,7 +619,13 @@ Try {
         $vrli | Add-Member -Type NoteProperty -Name status -Value $MgmtInput.Vrli.status
         $vrli | Add-Member -Type NoteProperty -Name fqdn -Value $MgmtInput.Vrli.fqdn
         $vrli | Add-Member -Type NoteProperty -Name adminUser -Value  $MgmtInput.Vrli.adminUser
-        $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value $MgmtInput.Vrli.adminPassword
+        if($MgmtInput.Vrli.adminPassword){
+            $vrlipassword = convertto-securestring -string $MgmtInput.Vrli.adminPassword
+           $vrlipassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($vrlipassword))))
+        } else {
+           $vrlipassword = $null
+        }
+        $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value $vrlipassword
         $vrliNodes =$MgmtInput.Vrli.nodes
 
 
@@ -545,7 +640,13 @@ Try {
             $esxDetails = New-Object -TypeName PSCustomObject
             $esxDetails | Add-Member -Type NoteProperty -Name fqdn -Value $esxiHost.fqdn
             $esxDetails | Add-Member -Type NoteProperty -Name username -Value $esxiHost.username
-            $esxDetails | Add-Member -Type NoteProperty -Name password -Value $esxiHost.password
+            if($esxiHost.password){
+                $esxpassword = convertto-securestring -string $esxiHost.password
+               $esxpassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($esxpassword))))
+            } else {
+               $esxpassword = $null
+            }
+            $esxDetails | Add-Member -Type NoteProperty -Name password -Value $esxpassword
             $esxiWorkloadDomain += $esxDetails
         }
 
@@ -555,7 +656,13 @@ Try {
         $nsxtMgrfqdn = $MgmtInput.NsxtManager.vipfqdn
         $nsxMgrVIP = New-Object -TypeName PSCustomObject
         $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value $MgmtInput.NsxtManager.user
-        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value $MgmtInput.NsxtManager.password
+        if($MgmtInput.NsxtManager.password){
+            $nsxpassword = convertto-securestring -string $MgmtInput.NsxtManager.password
+           $nsxpassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($nsxpassword))))
+        } else {
+           $nsxpassword = $null
+        }
+        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value $nsxpassword
         $nsxtNodesfqdn = $MgmtInput.NsxtManager.nodes
         $nsxtNodes = @()
         foreach ($node in $nsxtNodesfqdn) {
