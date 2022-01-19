@@ -641,7 +641,7 @@ Try {
         {
             $esxDetails = New-Object -TypeName PSCustomObject
             $esxDetails | Add-Member -Type NoteProperty -Name fqdn -Value $esxiHost.fqdn
-            $esxDetails | Add-Member -Type NoteProperty -Name username -Value $esxiHost.username
+            $esxDetails | Add-Member -Type NoteProperty -Name username -Value $esxiHost.user
             if($esxiHost.password){
                 $esxpassword = convertto-securestring -string $esxiHost.password
                $esxpassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($esxpassword))))
