@@ -21,11 +21,11 @@
     This script connects to the specified SDDC Manager and either shutdowns or startups a Management Workload Domain
 
     .EXAMPLE
-    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!  -powerState Shutdown
+    PowerManagement-ManagementDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!  -powerState Shutdown
     Initiates a shutdown of the Management Workload Domain 'sfo-m01'
 
     .EXAMPLE
-    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!  -powerState Startup
+    PowerManagement-ManagementDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!  -powerState Startup
     Initiates the startup of the Management Workload Domain 'sfo-m01'
 #>
 
@@ -43,6 +43,7 @@ Clear-Host; Write-Host ""
 # Check that the FQDN of the SDDC Manager is valid
 
 if ($powerState -eq "shutdown") {
+   Write-LogMessage -Type INFO -Message "We are trying to connect to the server $server to check connectivity"
    Try {
         if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
             Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
@@ -123,7 +124,7 @@ Try {
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
         if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
         if ($accessToken) {
-            Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
+            Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory (May take little time)"
             $workloadDomain = Get-VCFWorkloadDomain | Where-Object {  $_.type -eq "MANAGEMENT" }
             $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
 
@@ -447,6 +448,7 @@ Try {
         }
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
+
 
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
