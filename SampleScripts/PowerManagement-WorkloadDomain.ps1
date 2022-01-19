@@ -73,7 +73,7 @@ Try {
     $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
     if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
     if ($accessToken) {
-        Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
+        Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory (May take little time)"
         # Gather Details from SDDC Manager
         $managementDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
         $mgmtCluster = Get-VCFCluster | Where-Object { $_.id -eq ($managementDomain.clusters.id) }
