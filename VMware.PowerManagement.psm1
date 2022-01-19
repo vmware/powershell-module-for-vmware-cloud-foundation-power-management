@@ -810,12 +810,11 @@ Function Get-PoweredOnVMsCount {
                 } else {
                     $no_powered_on_vms =  get-vm -Server $server | where PowerState -eq "PoweredOn"
                 }
-                Write-LogMessage -Type INFO -Message "The powered on VM's are $no_powered_on_vms"
                 if ($no_powered_on_vms.count -eq 0){
-                    Write-LogMessage -Type INFO -Message "No VMs in powered on state" -Colour Green
+                    Write-LogMessage -Type INFO -Message "No VMs in powered on state"
                 }
                 else {
-                    Write-LogMessage -Type ERROR -Message "There are some vms in powered on state" -Colour Yellow
+                    Write-LogMessage -Type INFO -Message "There are some vms in powered on state $no_powered_on_vms"
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
