@@ -177,9 +177,7 @@ Try {
         foreach ($node in (Get-VCFvRLI).nodes.fqdn | Sort-Object) {
             [Array]$vrliNodes += $node.Split(".")[0]
         }
-
         $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
-
     }
     else {
         Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
@@ -261,11 +259,6 @@ Try {
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-
-
-
-
-
         # Check the health and sync status of the VSAN cluster
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
@@ -305,21 +298,6 @@ Try {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
             }
         }
- <#       # Disable vSAN cluster member updates and place host in maintenance mode
-        foreach ($esxiNode in $esxiWorkloadDomain) {
-            $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-            if ( $count) {
-                Write-LogMessage -Type WARNING -Message "Looks like there are some VM's still in powered On state. Hence unable to proceed with putting host in  maintenence mode" -Colour Cyan
-                Write-LogMessage -Type WARNING -Message "use cmdlet:  Stop-CloudComponent -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -pattern .* -timeout 100" -Colour Cyan
-                Write-LogMessage -Type WARNING -Message "use cmdlet:  Set-MaintenanceMode -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -state ENABLE" -Colour Cyan
-            }
-        }
-        if (-Not $count ) {
-            foreach ($esxiNode in $esxiWorkloadDomain) {
-                Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
-            }
-        }
-#>
     }
 }
 Catch {
@@ -329,9 +307,6 @@ Catch {
 # Execute the Statup procedures
 Try {
     if ($powerState -eq "Startup") {
-
-
-
         # Take hosts out of maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
@@ -361,7 +336,6 @@ Try {
             Write-LogMessage -Type ERROR -Message "The VC is still not up" -Colour RED
             Exit
         }
-
 
         #restart vSphere HA to avoid triggering a Cannot find vSphere HA master agent error.
         Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
