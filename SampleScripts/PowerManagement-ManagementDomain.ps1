@@ -205,15 +205,6 @@ Try {
             $var["NsxtManager"]["password"] = $Pass_encrypted
 
 
-            # Gather NSX Edge Node Details
-            #$nsxtEdgeCluster = (Get-VCFEdgeCluster | Where-Object {$_.nsxtCluster.id -eq $workloadDomain.nsxtCluster.id})
-            #$nsxtEdgeNodesfqdn = $nsxtEdgeCluster.edgeNodes.hostname
-            #$nsxtEdgeNodesfqdn = $edgenodes
-            #$nsxtEdgeNodes = @()
-            #foreach ($node in $nsxtEdgeNodesfqdn) {
-            #    [Array]$nsxtEdgeNodes += $node.Split(".")[0]
-            #}
-
             $nsxtEdgeNodes = $edgenodes
             $var["NsxEdge"] = @{}
             $var["NsxEdge"]["nodes"]= New-Object System.Collections.ArrayList
@@ -532,8 +523,6 @@ Try {
 
         Write-LogMessage -Type INFO -Message "Gathering System Details from json file"
         # Gather Details from SDDC Manager
-        #$managementDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
-        #$mgmtCluster = Get-VCFCluster | Where-Object { $_.id -eq ($managementDomain.clusters.id) }
         $workloadDomain = $MgmtInput.Domain.name
         $workloadDomainType = $MgmtInput.Domain.type
         $cluster = New-Object -TypeName PSCustomObject
@@ -595,7 +584,6 @@ Try {
         $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value $wsapassword
         $wsaNodes = $MgmtInput.Wsa.nodes
 
-
         $vrops = New-Object -TypeName PSCustomObject
         $vrops | Add-Member -Type NoteProperty -Name status -Value $MgmtInput.Vrops.status
         $vrops | Add-Member -Type NoteProperty -Name fqdn -Value $MgmtInput.Vrops.fqdn
@@ -610,12 +598,10 @@ Try {
         $vrops | Add-Member -Type NoteProperty -Name master -Value  $MgmtInput.Vrops.master
         $vropsNodes = $MgmtInput.Vrops.nodes
 
-
         $vra = New-Object -TypeName PSCustomObject
         $vra | Add-Member -Type NoteProperty -Name status -Value $MgmtInput.Vra.status
         $vra | Add-Member -Type NoteProperty -Name fqdn -Value $MgmtInput.Vra.fqdn
         $vraNodes = $MgmtInput.Vra.nodes
-
 
         $vrli = New-Object -TypeName PSCustomObject
         $vrli | Add-Member -Type NoteProperty -Name status -Value $MgmtInput.Vrli.status
@@ -630,12 +616,9 @@ Try {
         $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value $vrlipassword
         $vrliNodes =$MgmtInput.Vrli.nodes
 
-
-
         # Gather ESXi Host Details for the Management Workload Domain
         $esxiWorkloadDomain = @()
         $workloadDomainArray = $MgmtInput.Hosts
-
 
         foreach ($esxiHost in $workloadDomainArray)
         {
@@ -651,7 +634,6 @@ Try {
             $esxDetails | Add-Member -Type NoteProperty -Name password -Value $esxpassword
             $esxiWorkloadDomain += $esxDetails
         }
-
 
         # Gather NSX Manager Cluster Details
         $nsxtCluster = $MgmtInput.NsxtManager
@@ -670,8 +652,6 @@ Try {
         foreach ($node in $nsxtNodesfqdn) {
             [Array]$nsxtNodes += $node.Split(".")[0]
         }
-
-
 
         # Gather NSX Edge Node Details
         $nsxtEdgeCluster =  $MgmtInput.NsxEdge
@@ -730,7 +710,6 @@ Try {
             Write-LogMessage -Type WARNING -Message "No Standalone Workspace ONE Access instance is present, skipping startup" -Colour Cyan
         }
 
-
         # Startup vRealize Suite
         if ($($WorkloadDomainType) -eq "MANAGEMENT") {
           if ($($vrslcm.status -eq "ACTIVE")) {
@@ -763,7 +742,6 @@ Try {
         if ($checkServer -eq "True") {
             Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
         }
-
     }
 }
 Catch {
