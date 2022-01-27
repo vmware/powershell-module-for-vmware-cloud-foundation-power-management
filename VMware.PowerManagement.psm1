@@ -243,12 +243,12 @@ Function Start-CloudComponent {
                                 Write-LogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered On state" -Colour Green
                                 Continue
                             }
-                
+
                             Start-VM -VM $node.Name | Out-Null
                             $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             Write-LogMessage -Type INFO -Message "Attempting to startup node '$($node.name)'"
                             While (($vm_obj.State -ne 'Running') -AND ($count -ne $timeout)) {
-                    	        Start-Sleep -Seconds 1
+                                Start-Sleep -Seconds 1
                                 $count = $count + 1
                                 $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             }
@@ -296,7 +296,7 @@ Function Set-MaintenanceMode {
         Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state ENABLE
         This example places an ESXi host in maintenance mode
 
-       .EXAMPLE
+        .EXAMPLE
         Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state DISABLE
         This example takes an ESXi host out of maintenance mode
     #>
@@ -537,7 +537,6 @@ Function Invoke-EsxCommand {
         if ($session) {
             Write-LogMessage -Type INFO -Message "Attempting to execute command '$cmd' on server '$server'"
             $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd
-            #$timeoutValue = 0
             if ($expected) {
                 Write-LogMessage -Type INFO -Message "Command '$cmd' executed with expected output on server '$server' successfully" -Colour Green
             }
@@ -584,7 +583,7 @@ Function Get-VsanClusterMember {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$members
     )
 
-     Try {
+    Try {
         Write-LogMessage -Type INFO -Message "Starting Execution of Get-VsanClusterMember cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
@@ -666,14 +665,13 @@ Function Test-VsanHealth {
                         Start-Sleep -s 60
                         $count += 1
                     }
-
                 }
-
 
                 if (-Not $flag) {
                     Write-LogMessage -Type ERROR -Message "Unable to Execute Test-VsanHealth cmdlet because vSANHealth service is not up" -Colour Red
-                } else {
-                  $vchs = Get-VSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
+                }
+                else {
+                    $vchs = Get-VSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
                     $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
                     $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
                     $healthCheckGroups = $results.groups
@@ -703,7 +701,7 @@ Function Test-VsanHealth {
                     }
                     Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                     Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-               }
+                }
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -721,7 +719,7 @@ Function Test-VsanHealth {
     }
 }
 Export-ModuleMember -Function Test-VsanHealth
-    
+
 Function Test-VsanObjectResync {
     <#
         .SYNOPSIS
@@ -734,6 +732,7 @@ Function Test-VsanObjectResync {
         Test-VsanObjectResync -cluster sfo-m01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
         This example connects to a vCenter Server and checks the status of object syncing for the VSAN cluster
     #>
+
     Param(
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
@@ -790,6 +789,7 @@ Function Get-PoweredOnVMsCount {
         Get-PoweredOnVMsCount -server sfo01-m01-esx01.sfo.rainpole.io -user root -pass VMw@re1!
         This example connects to a esxi host and returns the count of powered on VM's on it
     #>
+
     Param(
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
@@ -849,7 +849,7 @@ Function Test-WebUrl {
         Test-WebUrl -url "https://sfo-m01-nsx01.sfo.rainpole.io/login.jsp?local=true"
         This example tests a connection to the login page for NSX Manager
     #>
-          
+
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$url
     )
@@ -898,6 +898,7 @@ Function Get-VamiServiceStatus {
         Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -checkStatus STARTED
         This example connects to a vCenter Server and checks the wcp service is STARTED
     #>
+
 	Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
@@ -957,7 +958,6 @@ Function Set-VamiServiceStatus {
         .EXAMPLE
         Set-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -action START
         This example connects to a vCenter Server and attempts to START the wcp service
-
     #>
 
 	Param (
@@ -1096,6 +1096,7 @@ Function Get-vROPSClusterDetail {
         Get-vROPSClusterDetail -server xint-vrops01.rainpole.io -user root -pass VMw@re1!
         This example gets the details of the vRealize Operations Manager cluster
     #>
+
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
@@ -1110,26 +1111,26 @@ Function Get-vROPSClusterDetail {
 Export-ModuleMember -Function Get-vROPSClusterDetail 
 
 Function Get-EnvironmentId {
- <#
-    .SYNOPSIS
-    Obtain the Environment ID from vRealize Suite Lifecycle Manager
+    <#
+        .SYNOPSIS
+        Obtain the Environment ID from vRealize Suite Lifecycle Manager
 
-    .DESCRIPTION
-    The Get-EnvironmentId cmdlet obtains the Environment ID from vRealize Suite Lifecycle Manager
+        .DESCRIPTION
+        The Get-EnvironmentId cmdlet obtains the Environment ID from vRealize Suite Lifecycle Manager
 
-    .EXAMPLE
-    Get-EnvironmentId server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -all
-    This example shows how to obtain all Environment IDs
+        .EXAMPLE
+        Get-EnvironmentId server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -all
+        This example shows how to obtain all Environment IDs
 
-    .EXAMPLE
-    Get-EnvironmentId server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product vra
-    This example shows how to obtain the Environment ID for vRealize Automation 
+        .EXAMPLE
+        Get-EnvironmentId server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product vra
+        This example shows how to obtain the Environment ID for vRealize Automation 
 
-    .EXAMPLE
-    Get-EnvironmentId server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -name xint-env
-    This example shows how to obtain the Environment ID based on the environemnt name 
-#>
-          
+        .EXAMPLE
+        Get-EnvironmentId server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -name xint-env
+        This example shows how to obtain the Environment ID based on the environemnt name 
+    #>
+
     Param (
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
@@ -1145,7 +1146,7 @@ Function Get-EnvironmentId {
         $response = Invoke-RestMethod -Method GET -URI $uri -headers $vrslcmHeaders -ContentType application/json
         if ($PsBoundParameters.ContainsKey("name")) {
             $envId = $response | foreach-object -process { if($_.environmentName -match $name) { $_.environmentId }} 
-		    Return $envId
+            Return $envId
         }
         if ($PsBoundParameters.ContainsKey("product")){
             $envId = $response | foreach-object -process { if($_.products.id -match $product) { $_.environmentId }}
@@ -1162,30 +1163,30 @@ Function Get-EnvironmentId {
 Export-ModuleMember -Function Get-EnvironmentId
 
 Function Request-PowerStateViaVRSLCM {
-<#
-    .SYNOPSIS
-    Power On/Off via vRealize Suite Lifecycle Manager
+    <#
+        .SYNOPSIS
+        Power On/Off via vRealize Suite Lifecycle Manager
 
-    .DESCRIPTION
-    The Request-PowerStateViaVRSLCM cmdlet is used to shutdown or startup vRealize Automation or Workspace ONE Access via vRealize Suite Lifecycle Manager
+        .DESCRIPTION
+        The Request-PowerStateViaVRSLCM cmdlet is used to shutdown or startup vRealize Automation or Workspace ONE Access via vRealize Suite Lifecycle Manager
 
-    .EXAMPLE
-    Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VRA -mode power-off
-    In this example we are stopping vRealize Automation
+        .EXAMPLE
+        Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VRA -mode power-off
+        In this example we are stopping vRealize Automation
 
-    .EXAMPLE
-    Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VRA -mode power-on
-    In this example we are starting vRealize Automation
+        .EXAMPLE
+        Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VRA -mode power-on
+        In this example we are starting vRealize Automation
 
-    .EXAMPLE
-    Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VIDM -mode power-off
-    In this example we are stopping Workspace ONE Access
+        .EXAMPLE
+        Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VIDM -mode power-off
+        In this example we are stopping Workspace ONE Access
 
-    .EXAMPLE
-    Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VIDM -mode power-on
-    In this example we are starting Workspace ONE Access
-#>
-          
+        .EXAMPLE
+        Request-PowerStateViaVRSLCM -server xint-vrslcm01.rainpole.io -user vcfadmin@local -pass VMw@re1! -product VIDM -mode power-on
+        In this example we are starting Workspace ONE Access
+    #>
+
     Param (
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
@@ -1199,7 +1200,7 @@ Function Request-PowerStateViaVRSLCM {
         Write-LogMessage -Type INFO -Message "Starting Execution of Request-PowerStateViaVRSLCM" -Colour Yellow
 		Write-LogMessage -Type INFO -Message "Obtaining the vRealize Suite Lifecycle Manager Environment ID for '$product'"
         $environmentId = Get-EnvironmentId -server $server -user $user -pass $pass -product $product
-		
+
 		$vrslcmHeaders = createHeader $user $pass
 		$uri = "https://$server/lcm/lcops/api/v2/environments/$environmentId/products/$product/$mode"
         $json = {}
@@ -1211,10 +1212,8 @@ Function Request-PowerStateViaVRSLCM {
         else {
             Write-LogMessage -Type ERROR -Message "Unable to $mode for $product due to response" -Colour Red
         }
-
 		$id = $response.requestId
 		$uri = "https://$server/lcm/request/api/v2/requests/$id"
-
         Do {
             $requestStatus = (Invoke-RestMethod -Method GET -URI $uri -headers $vrslcmHeaders -ContentType application/json | Where-Object {$_.vmid -eq $id}).state
         } 
@@ -1228,23 +1227,23 @@ Function Request-PowerStateViaVRSLCM {
         Write-LogMessage -Type INFO -Message "Finishing Execution of Request-PowerStateViaVRSLCM" -Colour Yellow
     }
     Catch {
-	   Debug-CatchWriter -object $_
+        Debug-CatchWriter -object $_
     }
 }
 Export-ModuleMember -Function Request-PowerStateViaVRSLCM
 
 Function Start-EsxiUsingILO {
-<#
-    .SYNOPSIS
-    Power On/Off via DELL ESXi Server
+    <#
+        .SYNOPSIS
+        Power On/Off via DELL ESXi Server
 
-    .DESCRIPTION
-    This method is used to poweron the DELL ESXi server using ILO ip address using racadm cli. This is cli equivalent of admin console for DELL servers
+        .DESCRIPTION
+        This method is used to poweron the DELL ESXi server using ILO ip address using racadm cli. This is cli equivalent of admin console for DELL servers
 
-    .EXAMPLE
-    PowerOn-EsxiUsingILO -ilo_ip $ilo_ip -ilo_user <drac_console_user> -ilo_pass <drac_console_pass>
-    This example connects to out of band ip address powers on the ESXi host
-#>
+        .EXAMPLE
+        PowerOn-EsxiUsingILO -ilo_ip $ilo_ip -ilo_user <drac_console_user> -ilo_pass <drac_console_pass>
+        This example connects to out of band ip address powers on the ESXi host
+    #>
 
     Param (
 		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_ip,
@@ -1282,31 +1281,28 @@ Function Start-EsxiUsingILO {
 }
 Export-ModuleMember -Function Start-EsxiUsingILO
 
-
-
 Function Restart-VsphereHA {
-<#
-    .SYNOPSIS
-    Restart vSphere HA
+    <#
+        .SYNOPSIS
+        Restart vSphere HA
 
-    .DESCRIPTION
-    Restart vSphere HA to avoid triggering a "Cannot find vSphere HA master agent error".
+        .DESCRIPTION
+        Restart vSphere HA to avoid triggering a "Cannot find vSphere HA master agent error".
 
-    .EXAMPLE
-    Restart-VsphereHA -server $server -user $user -pass $pass -cluster $cluster
-    This example restarts Vsphere HA if enabled
-
-#>
+        .EXAMPLE
+        Restart-VsphereHA -server $server -user $user -pass $pass -cluster $cluster
+        This example restarts Vsphere HA if enabled
+    #>
 
 	Param(
-	    [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $cluster
     )
 
 	Try {
-	    Write-LogMessage -Type INFO -Message "Starting Execution of Restart-VsphereHA cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Restart-VsphereHA cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -1315,27 +1311,25 @@ Function Restart-VsphereHA {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server'"
                 $HAStatus = Get-Cluster -Name $cluster | Select HAEnabled
                 if ($HAStatus)  {
-                     Write-LogMessage -Type INFO -Message "The HA is enabled on the VSAN cluster, restarting the same"
-                     Set-Cluster -Cluster $cluster -HAEnabled:$false -Confirm:$false | Out-Null
-                     $var1 = get-cluster -Name $cluster | select HAEnabled
-                     if (-Not  $var1) {
-                         Write-LogMessage -Type INFO -Message "The HA is disabled"
-                     }
-                     Start-Sleep -s 5
-                     Set-Cluster -Cluster $cluster -HAEnabled:$true -Confirm:$false | Out-Null
-                     $var2 = get-cluster -Name $cluster | select HAEnabled
-                     if ($var2) {
-                         Write-LogMessage -Type INFO -Message "The HA is enabled. Vsphere HA is restarted"  -Colour GREEN
-                     }
+                    Write-LogMessage -Type INFO -Message "The HA is enabled on the VSAN cluster, restarting the same"
+                    Set-Cluster -Cluster $cluster -HAEnabled:$false -Confirm:$false | Out-Null
+                    $var1 = get-cluster -Name $cluster | select HAEnabled
+                    if (-Not  $var1) {
+                        Write-LogMessage -Type INFO -Message "The HA is disabled"
+                    }
+                    Start-Sleep -s 5
+                    Set-Cluster -Cluster $cluster -HAEnabled:$true -Confirm:$false | Out-Null
+                    $var2 = get-cluster -Name $cluster | select HAEnabled
+                    if ($var2) {
+                        Write-LogMessage -Type INFO -Message "The HA is enabled. Vsphere HA is restarted"  -Colour GREEN
+                    }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
-
         } else {
             Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
@@ -1351,24 +1345,24 @@ Function Restart-VsphereHA {
 Export-ModuleMember -Function Restart-VsphereHA
 
 Function Set-Retreatmode {
-<#
-    .SYNOPSIS
-    Enable/Disable retreat mode for vSphere Cluster
+    <#
+        .SYNOPSIS
+        Enable/Disable retreat mode for vSphere Cluster
 
-    .DESCRIPTION
-    The Set-Retreatmode cmdlet enables or disables retreat mode for the vSphere Cluster virtual machines
+        .DESCRIPTION
+        The Set-Retreatmode cmdlet enables or disables retreat mode for the vSphere Cluster virtual machines
 
-    .EXAMPLE
-    Set-Retreatmode -server $server -user $user -pass $pass -cluster $cluster -mode enable
-    This example places the vSphere Cluster virtual machines (vCLS) in the retreat mode
+        .EXAMPLE
+        Set-Retreatmode -server $server -user $user -pass $pass -cluster $cluster -mode enable
+        This example places the vSphere Cluster virtual machines (vCLS) in the retreat mode
 
-    .EXAMPLE
-    Set-Retreatmode -server $server -user $user -pass $pass -cluster $cluster -mode disable
-    This example takes places the vSphere Cluster virtual machines (vCLS) out of retreat mode
-#>
+        .EXAMPLE
+        Set-Retreatmode -server $server -user $user -pass $pass -cluster $cluster -mode disable
+        This example takes places the vSphere Cluster virtual machines (vCLS) out of retreat mode
+    #>
 
 	Param(
-	    [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $cluster,
@@ -1376,7 +1370,7 @@ Function Set-Retreatmode {
     )
 
 	Try {
-	    Write-LogMessage -Type INFO -Message "Starting Execution of Set-Retreatmode cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting Execution of Set-Retreatmode cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -1392,8 +1386,6 @@ Function Set-Retreatmode {
                     if ($mode -eq 'enable') {
                         Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'false' -Confirm:$false | out-null
                         Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false"  -Colour Green
-                        #Start-sleep -s 120
-
                     }
                     else {
                         Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'true' -Confirm:$false  | Out-Null
@@ -1402,23 +1394,20 @@ Function Set-Retreatmode {
                 }
                 else {
                     if ($mode -eq 'enable') {
-                       New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'false' -Confirm:$false  | Out-Null
-                       Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false" -Colour Green
+                    New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'false' -Confirm:$false  | Out-Null
+                    Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false" -Colour Green
                     }
                     else {
-                       New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'true' -Confirm:$false  | Out-Null
-                       Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true" -Colour Green
+                    New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'true' -Confirm:$false  | Out-Null
+                    Write-LogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true" -Colour Green
                     }
                 }
-
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
-
         } else {
             Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
@@ -1434,20 +1423,20 @@ Function Set-Retreatmode {
 Export-ModuleMember -Function Set-Retreatmode
 
 Function Get-NsxtClusterStatus {
-<#
-    .SYNOPSIS
-    Fetch cluster status of NSX Manager
+    <#
+        .SYNOPSIS
+        Fetch cluster status of NSX Manager
 
-    .DESCRIPTION
-    The Get-NsxtClusterStatus cmdlet fetches the cluster status of NSX manager after a restart
+        .DESCRIPTION
+        The Get-NsxtClusterStatus cmdlet fetches the cluster status of NSX manager after a restart
 
-    .EXAMPLE
-    Get-NsxtClusterStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re1!VMw@re1!
-    This example gets the Cluster Status of the sfo-m01-nsx01.sfo.rainpole.io NSX Management Cluster
-#>
+        .EXAMPLE
+        Get-NsxtClusterStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re1!VMw@re1!
+        This example gets the Cluster Status of the sfo-m01-nsx01.sfo.rainpole.io NSX Management Cluster
+    #>
 
-	Param(
-	    [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
+	Param (
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass
     )
@@ -1457,15 +1446,13 @@ Function Get-NsxtClusterStatus {
         Write-LogMessage -Type INFO -Message "Checking the cluster status for NSX, (may take longer time), kindly wait '$server'"
 		$uri = "https://$server/api/v1/cluster/status"
 		$nsxHeaders = createHeader $user $pass
-
-		###########
         $retryCount = 0
         $completed = $false
         $response = $null
         $SecondsDelay = 30
         $Retries = 20
 
-        while (-not $completed) {
+        While (-not $completed) {
             Try {
                 $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
                 if ($response.mgmt_cluster_status.status -ne 'STABLE') {
@@ -1484,7 +1471,6 @@ Function Get-NsxtClusterStatus {
             }
         }
         Write-LogMessage -Type INFO -Message "The NSX Management Cluster '$server' state is 'STABLE'" -Colour GREEN
-
 	}
     Catch {
         Debug-CatchWriter -object $_
