@@ -43,6 +43,10 @@ $str1 = "$PSCommandPath -server $server -user $user -pass $pass -powerState $pow
 if ($force) {$str1 = $str1 + " -force $force"}
 Write-LogMessage -Message "The execution command is:  $str1" -colour "Yellow"
 
+if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0)) {
+    Write-Error "The Posh-SSH module with version 2.3.0 or greater is not found. Please install it before proceeding. The command is Install-Module Posh-SSH -MinimumVersion 2.3.0"
+    Break
+}
 # Check that the FQDN of the SDDC Manager is valid 
 Try {
     if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
