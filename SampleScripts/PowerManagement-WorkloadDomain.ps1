@@ -39,6 +39,9 @@ Param (
 )
 
 Clear-Host; Write-Host ""
+$str1 = "$PSCommandPath -server $server -user $user -pass $pass -powerState $powerState -sddcDomain $sddcDomain"
+if ($force) {$str1 = $str1 + " -force $force"}
+Write-LogMessage -Message "The execution command is:  $str1" -colour "Yellow"
 
 # Check that the FQDN of the SDDC Manager is valid 
 Try {
@@ -48,13 +51,13 @@ Try {
     } else {
         if ($powerState -eq "Shutdown") {
             if (-Not $force) {
-                 $proceed_force = Write-Host ""; Read-Host "Would you like to gracefully shutdown Non-VCF Management Workloads (Yes/No)? [No]"
+                 $proceed_force = Write-Host ""; Read-Host "Would you like to gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF Workloads (Yes/No)? [No]"
                  if ($proceed_force -match "yes") {
                     $force = $true
-                    Write-LogMessage -Type INFO -Message "Process WILL gracefully shutdown all Non-VCF Management Virtual Machines running within the Workload Domain"
+                    Write-LogMessage -Type INFO -Message "Process WILL gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF running within the Workload Domain"
                 } else {
                     $force = $false
-                    Write-LogMessage -Type INFO -Message "Process WILL NOT gracefully shutdown all Non-VCF Management Virtual Machines running within the Workload Domain"
+                    Write-LogMessage -Type INFO -Message "Process WILL NOT gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF running within the Workload Domain"
                 }
              }
          }
@@ -323,7 +326,6 @@ Try {
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
         Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
         Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
-
 
         # Check the health and sync status of the VSAN cluster
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
