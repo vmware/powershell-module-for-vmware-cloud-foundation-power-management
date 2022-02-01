@@ -98,17 +98,6 @@ Try {
         $vcUser = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).username
         $vcPass = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).password
 
-        # Gather ESXi Host Details for the Managment Domain
-        $esxiManagementDomain = @()
-        foreach ($esxiHost in (Get-VCFHost | Where-Object {$_.domain.id -eq $managementDomain.id}).fqdn)
-        {
-            $esxDetails = New-Object -TypeName PSCustomObject
-            $esxDetails | Add-Member -Type NoteProperty -Name fqdn -Value $esxiHost
-            $esxDetails | Add-Member -Type NoteProperty -Name username -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).username
-            $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).password 
-            $esxiManagementDomain += $esxDetails
-        } 
-
         # Gather ESXi Host Details for the VI Workload Domain
         $esxiWorkloadDomain = @()
         foreach ($esxiHost in (Get-VCFHost | Where-Object {$_.domain.id -eq $workloadDomain.id}).fqdn)
@@ -140,55 +129,6 @@ Try {
             [Array]$nsxtEdgeNodes += $node.Split(".")[0]
         }
 
-        # Gather vRealize Suite Details
-        $vrslcm = New-Object -TypeName PSCustomObject
-        $vrslcm | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRSLCM).status
-        $vrslcm | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRSLCM).fqdn
-        $vrslcm | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).username
-        $vrslcm | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "API"})).password
-        $vrslcm | Add-Member -Type NoteProperty -Name rootUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).username
-        $vrslcm | Add-Member -Type NoteProperty -Name rootPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrslcm.fqdn -and $_.credentialType -eq "SSH"})).password
-
-        $wsa = New-Object -TypeName PSCustomObject
-        $wsa | Add-Member -Type NoteProperty -Name status -Value (Get-VCFWSA).status
-        $wsa | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFWSA).loadBalancerFqdn
-        $wsa | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).username
-        $wsa | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $wsa.fqdn -and $_.credentialType -eq "API"})).password
-        $wsaNodes = @()
-        foreach ($node in (Get-VCFWSA).nodes.fqdn | Sort-Object) {
-            [Array]$wsaNodes += $node.Split(".")[0]
-        }
-
-        $vrops = New-Object -TypeName PSCustomObject
-        $vrops | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvROPS).status
-        $vrops | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvROPS).loadBalancerFqdn
-        $vrops | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).username
-        $vrops | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrops.fqdn -and $_.credentialType -eq "API"})).password
-        $vrops | Add-Member -Type NoteProperty -Name master -Value  ((Get-VCFvROPs).nodes | Where-Object {$_.type -eq "MASTER"}).fqdn
-        $vropsNodes = @()
-        foreach ($node in (Get-VCFvROPS).nodes.fqdn | Sort-Object) {
-            [Array]$vropsNodes += $node.Split(".")[0]
-        }
-
-        $vra = New-Object -TypeName PSCustomObject
-        $vra | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRA).status
-        $vra | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRA).loadBalancerFqdn
-        $vra | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vra.fqdn -and $_.credentialType -eq "API"})).username
-        $vra | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vra.fqdn -and $_.credentialType -eq "API"})).password
-        $vraNodes = @()
-        foreach ($node in (Get-VCFvRA).nodes.fqdn | Sort-Object) {
-            [Array]$vraNodes += $node.Split(".")[0]
-        }
-
-        $vrli = New-Object -TypeName PSCustomObject
-        $vrli | Add-Member -Type NoteProperty -Name status -Value (Get-VCFvRLI).status
-        $vrli | Add-Member -Type NoteProperty -Name fqdn -Value (Get-VCFvRLI).loadBalancerFqdn
-        $vrli | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).username
-        $vrli | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $vrli.fqdn -and $_.credentialType -eq "API"})).password
-        $vrliNodes = @()
-        foreach ($node in (Get-VCFvRLI).nodes.fqdn | Sort-Object) {
-            [Array]$vrliNodes += $node.Split(".")[0]
-        }
         $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
     }
     else {
@@ -203,11 +143,7 @@ Catch {
 # Execute the Shutdown procedures
 Try {
     if ($powerState -eq "Shutdown") {
-        # Change the DRS Automation Level to Partially Automated for both the Management Domain and VI Workload Domain Clusters
-        $checkServer = Test-Connection -ComputerName $mgmtVcServer.fqdn -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            Set-DrsAutomationLevel -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -cluster $mgmtCluster.name -level PartiallyAutomated
-        }
+        # Change the DRS Automation Level to Partially Automated for both the VI Workload Domain Clusters
         if (!$($WorkloadDomain.type) -eq "MANAGEMENT") {
             $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
             if ($checkServer -eq "True") {
@@ -376,12 +312,7 @@ Try {
             Exit
         }
 
-        # Change the DRS Automation Level to Fully Automated for both the Management Domain and VI Workload Domain Clusters
-        $checkServer = Test-Connection -ComputerName $mgmtVcServer.fqdn -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            Set-DrsAutomationLevel -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -cluster $mgmtCluster.name -level FullyAutomated
-        }
-
+        # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
         if (!$($WorkloadDomain.type) -eq "MANAGEMENT") {
             $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
             if ($checkServer -eq "True") {
