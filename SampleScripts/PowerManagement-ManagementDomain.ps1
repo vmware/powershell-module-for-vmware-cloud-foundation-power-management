@@ -131,7 +131,7 @@ if ($powerState -eq "shutdown") {
 
 # Execute the Shutdown procedures
 Try {
-    if ($powerState -eq "Shutdown" or $genjson) {
+    if ($powerState -eq "Shutdown" -or $genjson) {
 
         Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
         Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
@@ -403,7 +403,7 @@ Try {
                 if (Test-Path -Path "ManagementStartupInput.json" -PathType Leaf) {
                     $location = Get-Location
                     Write-LogMessage -Type INFO -Message "The generation of JSON is successfull." 
-                    Write-LogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path. Please check."
+                    Write-LogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path."
                     Exit
                 } else {
                     Write-LogMessage -Type ERROR -Message "Json file is not created, check for permissions in the $location path" -Colour Red
