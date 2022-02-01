@@ -38,6 +38,8 @@ Param (
 )
 
 Clear-Host; Write-Host ""
+$str1 = "$PSCommandPath -server $server -user $user -pass $pass -powerState $powerState -sddcDomain $sddcDomain"
+Write-LogMessage -Message "The execution command is:  $str1" -colour "Yellow"
 
 # Check that the FQDN of the SDDC Manager is valid 
 Try {

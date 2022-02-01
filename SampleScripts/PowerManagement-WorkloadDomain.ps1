@@ -39,6 +39,9 @@ Param (
 )
 
 Clear-Host; Write-Host ""
+$str1 = "$PSCommandPath -server $server -user $user -pass $pass -powerState $powerState -sddcDomain $sddcDomain"
+if ($force) {$str1 = $str1 + " -force $force"}
+Write-LogMessage -Message "The execution command is:  $str1" -colour "Yellow"
 
 # Check that the FQDN of the SDDC Manager is valid 
 Try {
@@ -48,13 +51,13 @@ Try {
     } else {
         if ($powerState -eq "Shutdown") {
             if (-Not $force) {
-                 $proceed_force = Write-Host ""; Read-Host "Would you like to gracefully shutdown Non-VCF Management Workloads (Yes/No)? [No]"
+                 $proceed_force = Write-Host ""; Read-Host "Would you like to gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF Workloads (Yes/No)? [No]"
                  if ($proceed_force -match "yes") {
                     $force = $true
-                    Write-LogMessage -Type INFO -Message "Process WILL gracefully shutdown all Non-VCF Management Virtual Machines running within the Workload Domain"
+                    Write-LogMessage -Type INFO -Message "Process WILL gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF running within the Workload Domain"
                 } else {
                     $force = $false
-                    Write-LogMessage -Type INFO -Message "Process WILL NOT gracefully shutdown all Non-VCF Management Virtual Machines running within the Workload Domain"
+                    Write-LogMessage -Type INFO -Message "Process WILL NOT gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF running within the Workload Domain"
                 }
              }
          }
@@ -179,7 +182,6 @@ Try {
         }
 
         $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
-
     }
     else {
         Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
@@ -261,11 +263,6 @@ Try {
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-
-
-
-
-
         # Check the health and sync status of the VSAN cluster
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
@@ -305,21 +302,6 @@ Try {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
             }
         }
- <#       # Disable vSAN cluster member updates and place host in maintenance mode
-        foreach ($esxiNode in $esxiWorkloadDomain) {
-            $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-            if ( $count) {
-                Write-LogMessage -Type WARNING -Message "Looks like there are some VM's still in powered On state. Hence unable to proceed with putting host in  maintenence mode" -Colour Cyan
-                Write-LogMessage -Type WARNING -Message "use cmdlet:  Stop-CloudComponent -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -pattern .* -timeout 100" -Colour Cyan
-                Write-LogMessage -Type WARNING -Message "use cmdlet:  Set-MaintenanceMode -server $($esxiNode.fqdn) -user $($esxiNode.username) -pass $($esxiNode.password) -state ENABLE" -Colour Cyan
-            }
-        }
-        if (-Not $count ) {
-            foreach ($esxiNode in $esxiWorkloadDomain) {
-                Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
-            }
-        }
-#>
     }
 }
 Catch {
@@ -329,9 +311,6 @@ Catch {
 # Execute the Statup procedures
 Try {
     if ($powerState -eq "Startup") {
-
-
-
         # Take hosts out of maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
@@ -349,7 +328,6 @@ Try {
         Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
         Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
 
-
         # Check the health and sync status of the VSAN cluster
         $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
         if ($checkServer -eq "True") {
@@ -361,7 +339,6 @@ Try {
             Write-LogMessage -Type ERROR -Message "The VC is still not up" -Colour RED
             Exit
         }
-
 
         #restart vSphere HA to avoid triggering a Cannot find vSphere HA master agent error.
         Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name

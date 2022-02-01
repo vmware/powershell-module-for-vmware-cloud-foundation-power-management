@@ -35,10 +35,22 @@ Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$force,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$json,
-        [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
+        [Parameter (ParameterSetName = 'GenJson', Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$genjson,
+        [Parameter (ParameterSetName = 'PowerState', Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
 )
 
 Clear-Host; Write-Host ""
+$str1 = "$PSCommandPath -server $server -user $user -pass $pass"
+if ($powerState) {$str1 = $str1 + " -powerState $powerState"}
+if ($json) {$str1 = $str1 + " -json $json"}
+if ($force) {$str1 = $str1 + " -force $force"}
+if ($genjson) {$str1 = $str1 + " -genjson:$genjson"}
+Write-LogMessage -Message "The execution command is:  $str1" -colour "Yellow"
+
+if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0)) {
+    Write-Error "The Posh-SSH module with version 2.3.0 or greater is not found. Please install it before proceeding. The command is Install-Module Posh-SSH -MinimumVersion 2.3.0"
+    Break
+}
 
 # Check that the FQDN of the SDDC Manager is valid
 
@@ -54,13 +66,13 @@ if ($powerState -eq "shutdown") {
             $log = ""
             if (-Not $force) {
                  Write-Host "";
-                 $proceed_force =  Read-Host "Would you like to gracefully shutdown Non-VCF Management Workloads (Yes/No)? [No]"
+                 $proceed_force =  Read-Host "Would you like to gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF Management Workloads (Yes/No)? [No]"
                  if ($proceed_force -match "yes") {
                     $force = $true
-                    $log = "Process WILL gracefully shutdown all Non-VCF Management Virtual Machines running within the Management Domain"
+                    $log = "Process WILL gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF running within the Management Domain"
                 } else {
                     $force = $false
-                    $log =  "Process WILL NOT gracefully shutdown all Non-VCF Management Virtual Machines running within the Management Domain"
+                    $log =  "Process WILL NOT gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF running within the Management Domain"
                 }
 
             }
@@ -68,6 +80,7 @@ if ($powerState -eq "shutdown") {
             $regionalWSAYesOrNo = Read-Host "Have you deployed a Standalone Workspace ONE Access instance (Yes/No)"
             if ($regionalWSAYesOrNo -eq "yes") {
                  $regionalWSA = Read-Host "Enter the Virtual Machine name for the Standalone Workspace ONE Access instance"
+                 Write-LogMessage -Type INFO -Message "The Standlaone Workspace ONE Access instance Name is : $regionalWSA"
                  if(([string]::IsNullOrEmpty($regionalWSA))) {
                     Write-LogMessage -Type WARNING -Message "Regional WSA information is null, hence Exiting"   -Colour Magenta
                     Exit
@@ -77,6 +90,7 @@ if ($powerState -eq "shutdown") {
             Write-Host "";
             $edgenodes  = @()
             $edgenodesList = Read-Host "Kindly provide space separated list of Virtual Machine name for NSX edge nodes"
+            Write-LogMessage -Type INFO -Message "The list of edgenodes VM name passed are :$edgenodesList"
             if(([string]::IsNullOrEmpty($edgenodesList))) {
                 Write-LogMessage -Type WARNING -Message "Edge nodes fqdn info is null, hence Exiting"   -Colour Magenta
                 Exit
@@ -91,15 +105,17 @@ if ($powerState -eq "shutdown") {
    }
 } else {
     $file = "./ManagementStartupInput.json"
+    $inputFile = $null
     if ($json) {
         Write-LogMessage -Type INFO -Message "User has provided the input json file" -Colour Green
         $inputFile = $json
     } elseif (Test-Path -Path $file -PathType Leaf) {
         Write-LogMessage -Type INFO -Message "No path to json provided on the command line so script is using for auto created input json file ManagementStartupInput.json" -Colour Magenta
         $inputFile =  $file
-    } else {
-        Write-LogMessage -Type INFO -Message "No Automatically Created Startup Input JSON File Found, Using Template Startup Input JSON File (template-managementDomainStartup.json) to Start the Management Domain" -Colour Magenta
-        $inputFile =  "./template-managementDomainStartup.json"
+    } 
+    if ([string]::IsNullOrEmpty($inputFile)) {
+        Write-LogMessage -Type Warning -Message "JSON input file is not provided, unable to proceed, hence exiting" -Colour Magenta
+        Exit
     }
 
     Write-Host "";
@@ -203,16 +219,6 @@ Try {
             $var["NsxtManager"]["nodes"] = $nsxtNodesfqdn
             $var["NsxtManager"]["user"] = $nsxMgrVIP.adminUser
             $var["NsxtManager"]["password"] = $Pass_encrypted
-
-
-            # Gather NSX Edge Node Details
-            #$nsxtEdgeCluster = (Get-VCFEdgeCluster | Where-Object {$_.nsxtCluster.id -eq $workloadDomain.nsxtCluster.id})
-            #$nsxtEdgeNodesfqdn = $nsxtEdgeCluster.edgeNodes.hostname
-            #$nsxtEdgeNodesfqdn = $edgenodes
-            #$nsxtEdgeNodes = @()
-            #foreach ($node in $nsxtEdgeNodesfqdn) {
-            #    [Array]$nsxtEdgeNodes += $node.Split(".")[0]
-            #}
 
             $nsxtEdgeNodes = $edgenodes
             $var["NsxEdge"] = @{}
@@ -367,9 +373,6 @@ Try {
             $var["RegionalWSA"] =@{}
             $var["RegionalWSA"]["name"] = $regionalWSA
 
-            #$MgmtInput = Get-Content -Path "./ManagementStartupInput.json" | ConvertFrom-JSON
-            #$regionalWSA =  $MgmtInput.Wsa.name
-
             #get SDDC VM name from Vcenter server
             $Global:sddcmVMName
             $Global:vcHost
@@ -396,6 +399,17 @@ Try {
             $var["SDDC"]["password"] = $pass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
 
             $var | ConvertTo-Json > ManagementStartupInput.json
+            if ($genjson) {
+                if (Test-Path -Path "ManagementStartupInput.json" -PathType Leaf) {
+                    $location = Get-Location
+                    Write-LogMessage -Type INFO -Message "The generation of JSON is successfull." 
+                    Write-LogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path. Please check."
+                    Exit
+                } else {
+                    Write-LogMessage -Type ERROR -Message "Json file is not created, check for permissions in the $location path" -Colour Red
+                    Exit
+                }
+            }
         }
         else {
             Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
