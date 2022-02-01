@@ -403,7 +403,7 @@ Try {
                 if (Test-Path -Path "ManagementStartupInput.json" -PathType Leaf) {
                     $location = Get-Location
                     Write-LogMessage -Type INFO -Message "The generation of JSON is successfull." 
-                    Write-LogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path."
+                    Write-LogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path." -colour Green
                     Exit
                 } else {
                     Write-LogMessage -Type ERROR -Message "Json file is not created, check for permissions in the $location path" -Colour Red
