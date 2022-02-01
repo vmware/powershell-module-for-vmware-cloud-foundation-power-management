@@ -66,13 +66,13 @@ if ($powerState -eq "shutdown") {
             $log = ""
             if (-Not $force) {
                  Write-Host "";
-                 $proceed_force =  Read-Host "Would you like to gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF Management Workloads (Yes/No)? [No]"
+                 $proceed_force =  Read-Host "Would you like to gracefully shutdown customer deployed Virtual Machines not managed by VCF Management Workloads (Yes/No)? [No]"
                  if ($proceed_force -match "yes") {
                     $force = $true
-                    $log = "Process WILL gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF running within the Management Domain"
+                    $log = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running within the Management Domain"
                 } else {
                     $force = $false
-                    $log =  "Process WILL NOT gracefully shutdown cusotmer deployed Virtual Machines not managed by VCF running within the Management Domain"
+                    $log =  "Process WILL NOT gracefully shutdown customer deployed Virtual Machines not managed by VCF running within the Management Domain"
                 }
 
             }
