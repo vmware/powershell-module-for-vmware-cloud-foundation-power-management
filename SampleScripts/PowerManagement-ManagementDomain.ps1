@@ -103,7 +103,7 @@ if ($powerState -eq "shutdown") {
    Catch {
         Debug-CatchWriter -object $_
    }
-} else {
+} elseif ($powerState -eq "startup") {
     $file = "./ManagementStartupInput.json"
     $inputFile = $null
     if ($json) {
@@ -125,13 +125,13 @@ if ($powerState -eq "shutdown") {
         Exit
     }
     Write-LogMessage -Type INFO -Message "$inputFile is checked for its correctness, moving on with execution"
-}
+} 
 
 # Setup a log file and gather details from SDDC Manager
 
 # Execute the Shutdown procedures
 Try {
-    if ($powerState -eq "Shutdown") {
+    if ($powerState -eq "Shutdown" or $genjson) {
 
         Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
         Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
