@@ -651,16 +651,16 @@ Function Test-VsanHealth {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
                 $count = 1
                 $flag = 0
-                while ($count -ne 5) {
+                While ($count -ne 5) {
                     Try {
                         $Error.clear()
                         Get-VSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system" -erroraction stop | Out-Null
                         if(-Not $Error) {
                             $flag = 1
-                            break
+                            Break
                         }
                     }
-                    catch {
+                    Catch {
                         Write-LogMessage -Type INFO -Message "VSAN Cluster health service is yet to come up, kindly wait"
                         Start-Sleep -s 60
                         $count += 1
@@ -776,7 +776,6 @@ Function Test-VsanObjectResync {
 }
 Export-ModuleMember -Function Test-VsanObjectResync
 
-
 Function Get-PoweredOnVMsCount {
     <#
         .SYNOPSIS
@@ -807,7 +806,8 @@ Function Get-PoweredOnVMsCount {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to count number of VMs powered On"
                 if ($pattern) {
                     $no_powered_on_vms =  get-vm -Server $server | Where-Object Name -match $pattern  | where PowerState -eq "PoweredOn"
-                } else {
+                }
+                else {
                     $no_powered_on_vms =  get-vm -Server $server | where PowerState -eq "PoweredOn"
                 }
                 if ($no_powered_on_vms.count -eq 0){
@@ -818,7 +818,7 @@ Function Get-PoweredOnVMsCount {
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-                return $no_powered_on_vms.count
+                Return $no_powered_on_vms.count
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -863,7 +863,7 @@ Function Test-WebUrl {
             Try {
                 $response = Invoke-WebRequest -uri $url
                 $StatusCode = $response.StatusCode
-                break
+                Break
             }
             Catch {
                 start-sleep -s 20
@@ -1046,7 +1046,6 @@ Function Set-vROPSClusterState {
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-
             $vropsHeader = createHeader $user $pass
             $statusUri = "https://$server/casa/deployment/cluster/info"
             $clusterStatus = Invoke-RestMethod -Method GET -URI $statusUri -Headers $vropsHeader -ContentType application/json
@@ -1200,7 +1199,6 @@ Function Request-PowerStateViaVRSLCM {
         Write-LogMessage -Type INFO -Message "Starting Execution of Request-PowerStateViaVRSLCM" -Colour Yellow
 		Write-LogMessage -Type INFO -Message "Obtaining the vRealize Suite Lifecycle Manager Environment ID for '$product'"
         $environmentId = Get-EnvironmentId -server $server -user $user -pass $pass -product $product
-
 		$vrslcmHeaders = createHeader $user $pass
 		$uri = "https://$server/lcm/lcops/api/v2/environments/$environmentId/products/$product/$mode"
         $json = {}
@@ -1257,9 +1255,11 @@ Function Start-EsxiUsingILO {
         if (Test-path $exe_path) {
             Write-LogMessage -Type INFO -Message "The racadm.exe is present in $exe_path" -Colour Yellow
             $default_path = $exe_path
-        } elseif (Test-path  $default_path) {
+        }
+        elseif (Test-path  $default_path) {
             Write-LogMessage -Type INFO -Message "The racadm.exe is present in the default path" -Colour Yellow
-        } else {
+        }
+        else {
             Write-LogMessage -Type Error -Message "The racadm.exe is not present in $exe_path or the default path $default_path" -Colour Red
         }
 		$out = cmd /c $default_path -r $ilo_ip -u $ilo_user -p $ilo_pass  --nocertwarn serveraction powerup
@@ -1309,17 +1309,17 @@ Function Restart-VsphereHA {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server'"
-                $HAStatus = Get-Cluster -Name $cluster | Select HAEnabled
-                if ($HAStatus)  {
+                $HAStatus = Get-Cluster -Name $cluster | Select-Object HAEnabled
+                if ($HAStatus) {
                     Write-LogMessage -Type INFO -Message "The HA is enabled on the VSAN cluster, restarting the same"
                     Set-Cluster -Cluster $cluster -HAEnabled:$false -Confirm:$false | Out-Null
-                    $var1 = get-cluster -Name $cluster | select HAEnabled
+                    $var1 = get-cluster -Name $cluster | Select-Object HAEnabled
                     if (-Not  $var1) {
                         Write-LogMessage -Type INFO -Message "The HA is disabled"
                     }
                     Start-Sleep -s 5
                     Set-Cluster -Cluster $cluster -HAEnabled:$true -Confirm:$false | Out-Null
-                    $var2 = get-cluster -Name $cluster | select HAEnabled
+                    $var2 = get-cluster -Name $cluster | Select-Object HAEnabled
                     if ($var2) {
                         Write-LogMessage -Type INFO -Message "The HA is enabled. Vsphere HA is restarted"  -Colour GREEN
                     }
@@ -1330,7 +1330,8 @@ Function Restart-VsphereHA {
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
-        } else {
+        }
+        else {
             Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
 	}
@@ -1408,7 +1409,8 @@ Function Set-Retreatmode {
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
-        } else {
+        }
+        else {
             Write-LogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
 	}
@@ -1451,7 +1453,6 @@ Function Get-NsxtClusterStatus {
         $response = $null
         $SecondsDelay = 30
         $Retries = 20
-
         While (-not $completed) {
             Try {
                 $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
@@ -1459,12 +1460,14 @@ Function Get-NsxtClusterStatus {
                     throw "Expecting NSX Management Cluster state as STABLE, was: $($response.mgmt_cluster_status.status)"
                 }
                 $completed = $true
-            } Catch {
+            }
+            Catch {
                 if ($retrycount -ge $Retries) {
                     Write-LogMessage -Type Warning -Message "Request to $uri failed the maximum number of $retryCount times."
                     Write-LogMessage -Type Warning -Message "NSX Management Cluster state is NOT STABLE"
                     throw
-                } else {
+                }
+                else {
                     Start-Sleep $SecondsDelay
                     $retrycount++
                 }
