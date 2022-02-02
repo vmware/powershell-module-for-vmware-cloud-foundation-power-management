@@ -46,15 +46,18 @@ Try {
     if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
-    } else {
+    }
+    else {
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
         if ($StatusMsg) {
             Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
-        } elseif ( $ErrorMsg ) {
+        }
+        elseif ( $ErrorMsg ) {
             if ($ErrorMsg -match "4\d\d") {
                 Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
                 Break
-            } else {
+            }
+            else {
                 Write-Error $ErrorMsg
                 Break
             }
@@ -69,7 +72,6 @@ Catch {
 Try {
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     Write-LogMessage -Type INFO -Message "Setting up the log file to path ($logfile)"
-
     Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
     $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
     if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
@@ -109,7 +111,7 @@ Try {
     if ($powerState -eq "Shutdown") {
         # Change the DRS Automation Level to Partially Automated for the VI Workload Domain Clusters
         if ((Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) -eq "True") {
-                Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
+            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
         }
 
         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action STOP
@@ -137,25 +139,9 @@ Catch {
 # Execute the Statup procedures
 Try {
     if ($powerState -eq "Startup") {
-
         # Startup the vSphere with Tanzu Virtual Machines
         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action START
 
-        #$clusterPattern = "^harbor.*"
-        #foreach ($esxiNode in $esxiWorkloadDomain) {
-        #    Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
-        #}
-
-        #$clusterPattern = "^.*-tkc01-.*"
-        #foreach ($esxiNode in $esxiWorkloadDomain) {
-        #    Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
-        #}
-
-        #$clusterPattern = "^SupervisorControlPlaneVM.*"
-        #foreach ($esxiNode in $esxiWorkloadDomain) {
-        #    Start-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1000
-        #}
-        
         # Change the DRS Automation Level to Fully Automated for the VI Workload Domain Clusters
         if ((Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) -eq "True") {
             Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
