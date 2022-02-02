@@ -60,9 +60,20 @@ if ($powerState -eq "shutdown") {
         if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
             Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
             Break
-
         }
         else {
+            $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg | out-null
+            if ($StatusMsg) {
+                Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
+            } elseif ( $ErrorMsg ) {
+                if ($ErrorMsg -match "4\d\d") {
+                    Write-Error "The authentication/authorization failed, please check credentials once again and then retry"
+                    Break
+                } else {
+                    Write-Error $ErrorMsg
+                    Break
+                }
+            }
             $log = ""
             if (-Not $force) {
                  Write-Host "";
