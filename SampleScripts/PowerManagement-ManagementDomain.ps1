@@ -67,7 +67,7 @@ if ($powerState -eq "shutdown") {
                 Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
             } elseif ( $ErrorMsg ) {
                 if ($ErrorMsg -match "4\d\d") {
-                    Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
+                    Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -Colour Red
                     Break
                 } else {
                     Write-Error $ErrorMsg
@@ -498,7 +498,7 @@ Try {
                 $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "vcls"
                 if ( $count ) {
                     start-sleep 10
-                    $count += 1
+                    $counter += 1
                 } else {
                     break
                 }
