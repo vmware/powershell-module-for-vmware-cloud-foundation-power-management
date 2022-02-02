@@ -51,7 +51,7 @@ Try {
             Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
         } elseif ( $ErrorMsg ) {
             if ($ErrorMsg -match "4\d\d") {
-                Write-Error "The authentication/authorization failed, please check credentials once again and then retry"
+                Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
                 Break
             } else {
                 Write-Error $ErrorMsg
