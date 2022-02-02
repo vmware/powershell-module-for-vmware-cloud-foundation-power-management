@@ -53,6 +53,18 @@ Try {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
     } else {
+        $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
+        if ($StatusMsg) {
+            Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
+        } elseif ( $ErrorMsg ) {
+            if ($ErrorMsg -match "4\d\d") {
+                Write-Error "The authentication/authorization failed, please check credentials once again and then retry"
+                Break
+            } else {
+                Write-Error $ErrorMsg
+                Break
+            }
+        }
         if ($powerState -eq "Shutdown") {
             if (-Not $force) {
                  Write-Host "";
@@ -128,7 +140,6 @@ Try {
         foreach ($node in $nsxtEdgeNodesfqdn) {
             [Array]$nsxtEdgeNodes += $node.Split(".")[0]
         }
-
         $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
     }
     else {
