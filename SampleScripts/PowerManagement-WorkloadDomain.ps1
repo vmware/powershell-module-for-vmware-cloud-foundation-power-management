@@ -47,37 +47,42 @@ if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0)) {
     Write-Error "The Posh-SSH module with version 2.3.0 or greater is not found. Please install it before proceeding. The command is Install-Module Posh-SSH -MinimumVersion 2.3.0"
     Break
 }
+
 # Check that the FQDN of the SDDC Manager is valid 
 Try {
     if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
-    } else {
+    }
+    else {
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
         if ($StatusMsg) {
             Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
-        } elseif ( $ErrorMsg ) {
+        }
+        elseif ($ErrorMsg) {
             if ($ErrorMsg -match "4\d\d") {
                 Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
                 Break
-            } else {
+            }
+            else {
                 Write-Error $ErrorMsg
                 Break
             }
         }
         if ($powerState -eq "Shutdown") {
             if (-Not $force) {
-                 Write-Host "";
-                 $proceed_force = Read-Host "Would you like to gracefully shutdown customer deployed Virtual Machines not managed by VCF Workloads (Yes/No)? [No]"
-                 if ($proceed_force -match "yes") {
+                Write-Host "";
+                $proceed_force = Read-Host "Would you like to gracefully shutdown customer deployed Virtual Machines not managed by VCF Workloads (Yes/No)? [No]"
+                if ($proceed_force -match "yes") {
                     $force = $true
                     Write-LogMessage -Type INFO -Message "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running within the Workload Domain"
-                } else {
+                }
+                else {
                     $force = $false
                     Write-LogMessage -Type INFO -Message "Process WILL NOT gracefully shutdown customer deployed Virtual Machines not managed by VCF running within the Workload Domain"
                 }
-             }
-         }
+            }
+        }
     }
 }
 Catch {
@@ -91,7 +96,7 @@ Try {
 
     Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
     $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-    if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+    if ($StatusMsg) { Write-LogMessage -Type INFO -Message $StatusMsg } if ($WarnMsg) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ($ErrorMsg) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
     if ($accessToken) {
         Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory (May take little time)"
         # Gather Details from SDDC Manager
@@ -99,8 +104,8 @@ Try {
         $mgmtCluster = Get-VCFCluster | Where-Object { $_.id -eq ($managementDomain.clusters.id) }
         $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.Name -eq $sddcDomain }
         if ([string]::IsNullOrEmpty($workloadDomain)) {
-             Write-LogMessage -Type ERROR -Message "The domain $sddcDomain doesn't exist, check it and re-trigger" -Colour Red
-             Exit
+            Write-LogMessage -Type ERROR -Message "The domain $sddcDomain doesn't exist, check it and re-trigger" -Colour Red
+            Exit
         }
         $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
 
@@ -154,34 +159,38 @@ Catch {
 # Execute the Shutdown procedures
 Try {
     if ($powerState -eq "Shutdown") {
-        # Change the DRS Automation Level to Partially Automated for both the VI Workload Domain Clusters
-        if (!$($WorkloadDomain.type) -eq "MANAGEMENT") {
+        # Change the DRS Automation Level to Partially Automated for VI Workload Domain Clusters
+        if ($WorkloadDomain.type -ne "MANAGEMENT") {
             $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
             if ($checkServer -eq "True") {
                 Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
             }
+        } else {
+            Write-LogMessage -Type ERROR -Message "Provided Workload domain '$sddcDomain' is the Management Workload domain. This script handles Worload Domains. Exiting! " -Colour Red
+            Exit
         }
-
+        
         # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
         Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
 
         Write-LogMessage -Type INFO -Message "RetreatMode has been set, VCLS vm's getting shutdown will take time...please wait"
 
+        # Waiting for VCLS VMs to be stopped for ($retries*10) seconds
         $counter = 0
         $retries = 30
-
         foreach ($esxiNode in $esxiWorkloadDomain) {
             while ($counter -ne $retries) {
-                $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "vcls"
-                if ( $count ) {
+                $powerOnVMcount = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "vcls"
+                if ( $powerOnVMcount ) {
                     start-sleep 10
                     $counter += 1
-                } else {
-                    break
+                }
+                else {
+                    Break
                 }
             }
         }
-        if ($counter -eq 30) {
+        if ($counter -eq $retries) {
             Write-LogMessage -Type WARNING -Message "The vCLS vms did't get shutdown within stipulated timeout value" -Colour Cyan
         }
 
@@ -238,12 +247,13 @@ Try {
         $flag = 0
         foreach ($esxiNode in $esxiWorkloadDomain) {
             $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-            if ( $count) {
+            if ($count) {
                 if ($force) {
                     Write-LogMessage -Type WARNING -Message "Looks like there are some VM's still in powered On state. Force option is set to true" -Colour Cyan
                     Write-LogMessage -Type WARNING -Message "Hence shutting down Non VCF management vm's to put host in  maintenence mode" -Colour Cyan
                     Stop-CloudComponent -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern .* -timeout 100
-                } else {
+                }
+                else {
                     $flag = 1
                     Write-LogMessage -Type WARNING -Message "Looks like there are some VM's still in powered On state. Force option is set to false" -Colour Cyan
                     Write-LogMessage -Type WARNING -Message "So not shutting down Non VCF management vm's. Hence unable to proceed with putting host in  maintenence mode" -Colour Cyan
@@ -265,6 +275,10 @@ Catch {
 
 # Execute the Statup procedures
 Try {
+    if ($WorkloadDomain.type -eq "MANAGEMENT") {
+        Write-LogMessage -Type ERROR -Message "Provided Workload domain '$sddcDomain' is the Management Workload domain. This script handles Worload Domains. Exiting! " -Colour Red
+        Exit
+    }
     if ($powerState -eq "Startup") {
         # Take hosts out of maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -324,11 +338,9 @@ Try {
         }
 
         # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
-        if (!$($WorkloadDomain.type) -eq "MANAGEMENT") {
-            $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-            if ($checkServer -eq "True") {
-                Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
-            }
+        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
         }
     }
 }

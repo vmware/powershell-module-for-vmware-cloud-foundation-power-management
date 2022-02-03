@@ -45,15 +45,18 @@ Try {
     if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
-    } else {
+    }
+    else {
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
         if ($StatusMsg) {
             Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
-        } elseif ( $ErrorMsg ) {
+        }
+        elseif ($ErrorMsg) {
             if ($ErrorMsg -match "4\d\d") {
                 Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
                 Break
-            } else {
+            }
+            else {
                 Write-Error $ErrorMsg
                 Break
             }
@@ -68,10 +71,9 @@ Catch {
 Try {
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
-
     Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
     $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-    if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+    if ($StatusMsg) { Write-LogMessage -Type INFO -Message $StatusMsg } if ($WarnMsg) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ($ErrorMsg) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
     if ($accessToken) {
         Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
         # Gather Details from SDDC Manager
