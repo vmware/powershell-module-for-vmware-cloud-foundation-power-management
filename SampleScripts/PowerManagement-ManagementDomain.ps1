@@ -44,7 +44,7 @@ $str1 = "$PSCommandPath -server $server -user $user -pass $pass"
 if ($powerState) {$str1 = $str1 + " -powerState $powerState"}
 if ($json) {$str1 = $str1 + " -json $json"}
 if ($force) {$str1 = $str1 + " -force $force"}
-if ($genjson) {$str1 = $str1 + " -genjson:$genjson"}
+if ($genjson -ne $null) {$str1 = $str1 + " -genjson:$genjson"}
 Write-LogMessage -Message "The execution command is:  $str1" -colour "Yellow"
 
 if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0)) {
@@ -130,7 +130,7 @@ if ($powerState -eq "shutdown") {
     }
 
     Write-Host "";
-    $proceed =  Read-Host "Did you check the file $inputFile for its correctness and shall we proceed"
+    $proceed =  Read-Host "Have you checked the JSON file $inputFile for correctness? Please enter Yes or No: [No]"
     if ($proceed -match "no" -or (-not $proceed)) {
         Write-LogMessage -Type WARNING -Message "Exiting script execution as the input is No"   -Colour Magenta
         Exit
