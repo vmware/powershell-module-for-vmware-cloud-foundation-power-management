@@ -159,24 +159,29 @@ Catch {
 # Execute the Shutdown procedures
 Try {
     if ($powerState -eq "Shutdown") {
-        # Change the DRS Automation Level to Partially Automated for both the VI Workload Domain Clusters
-        if (!$($WorkloadDomain.type) -eq "MANAGEMENT") {
+        # Change the DRS Automation Level to Partially Automated for VI Workload Domain Clusters
+        if ($WorkloadDomain.type -ne "MANAGEMENT") {
             $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
             if ($checkServer -eq "True") {
                 Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
             }
+        } else {
+            Write-LogMessage -Type ERROR -Message "Provided Workload domain '$sddcDomain' is the Management Workload domain. This script handles Worload Domains. Exiting! " -Colour Red
+            Exit
         }
-
+        
         # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
         Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
 
         Write-LogMessage -Type INFO -Message "RetreatMode has been set, VCLS vm's getting shutdown will take time...please wait"
+
+        # Waiting for VCLS VMs to be stopped for ($retries*10) seconds
         $counter = 0
         $retries = 30
         foreach ($esxiNode in $esxiWorkloadDomain) {
             while ($counter -ne $retries) {
-                $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "vcls"
-                if ( $count ) {
+                $powerOnVMcount = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "vcls"
+                if ( $powerOnVMcount ) {
                     start-sleep 10
                     $counter += 1
                 }
@@ -185,7 +190,7 @@ Try {
                 }
             }
         }
-        if ($counter -eq 30) {
+        if ($counter -eq $retries) {
             Write-LogMessage -Type WARNING -Message "The vCLS vms did't get shutdown within stipulated timeout value" -Colour Cyan
         }
 
@@ -270,6 +275,10 @@ Catch {
 
 # Execute the Statup procedures
 Try {
+    if ($WorkloadDomain.type -eq "MANAGEMENT") {
+        Write-LogMessage -Type ERROR -Message "Provided Workload domain '$sddcDomain' is the Management Workload domain. This script handles Worload Domains. Exiting! " -Colour Red
+        Exit
+    }
     if ($powerState -eq "Startup") {
         # Take hosts out of maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -329,11 +338,9 @@ Try {
         }
 
         # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
-        if (!$($WorkloadDomain.type) -eq "MANAGEMENT") {
-            $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-            if ($checkServer -eq "True") {
-                Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
-            }
+        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
+        if ($checkServer -eq "True") {
+            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
         }
     }
 }
