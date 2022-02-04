@@ -759,7 +759,7 @@ Function Test-VsanObjectResync {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check status of resync"
-                $no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster
+                $no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster -ErrorAction Ignore
                 Write-LogMessage -Type INFO -Message "The number of resyncing objects are $no_resyncing_objects"
                 if ($no_resyncing_objects.count -eq 0){
                     Write-LogMessage -Type INFO -Message "No resyncing objects" -Colour Green

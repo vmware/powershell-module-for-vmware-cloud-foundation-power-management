@@ -37,12 +37,16 @@ Param (
         [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
 )
 
-Clear-Host; Write-Host ""
-$str1 = "$PSCommandPath -server $server -user $user -pass $pass -powerState $powerState -sddcDomain $sddcDomain"
-Write-LogMessage -Message "The execution command is:  $str1" -colour "Yellow"
 
-# Check that the FQDN of the SDDC Manager is valid 
 Try {
+    Clear-Host; Write-Host ""
+    Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
+    $str1 = "$PSCommandPath "
+    $str2 = "-server $server -user $user -pass $pass -sddcDomain $sddcDomain -powerState $powerState"
+    Write-LogMessage -Type INFO -Message "Script Executed: $str1" -Colour Yellow
+    Write-LogMessage -Type INFO -Message "Script Syntax: $str2" -Colour Yellow
+    Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
+
     if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
@@ -52,7 +56,7 @@ Try {
         if ($StatusMsg) {
             Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
         }
-        elseif ( $ErrorMsg ) {
+        elseif ($ErrorMsg) {
             if ($ErrorMsg -match "4\d\d") {
                 Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
                 Break
@@ -70,8 +74,6 @@ Catch {
 
 # Setup a log file and gather details from SDDC Manager
 Try {
-    Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
-    Write-LogMessage -Type INFO -Message "Setting up the log file to path ($logfile)"
     Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
     $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
     if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
@@ -114,18 +116,22 @@ Try {
             Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
         }
 
+        # Stop the WCP service
         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action STOP
 
+        # Stop the Supervisor Control Plane Virtual Machines
         $clusterPattern = "^SupervisorControlPlaneVM.*"
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 300
         }
 
+        # Stop the Tanzu Cluster Virtual Machines
         $clusterPattern = "^.*-tkc01-.*"
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 300
         }
 
+        # Stop the Harbour Registry Virtual Machines
         $clusterPattern = "^harbor.*"
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 300 -noWait
@@ -141,6 +147,7 @@ Try {
     if ($powerState -eq "Startup") {
         # Startup the vSphere with Tanzu Virtual Machines
         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action START
+        Write-LogMessage -Type INFO -Message "Workload Management will be started automatically by the WCP service, this will take some time"
 
         # Change the DRS Automation Level to Fully Automated for the VI Workload Domain Clusters
         if ((Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) -eq "True") {
