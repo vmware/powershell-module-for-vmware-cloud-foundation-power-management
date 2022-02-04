@@ -128,7 +128,7 @@ Try {
 
         $clusterPattern = "^harbor.*"
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 300
+            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 300 -noWait
         }
     }
 }

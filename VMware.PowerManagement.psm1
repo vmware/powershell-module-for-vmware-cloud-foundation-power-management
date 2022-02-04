@@ -59,6 +59,7 @@ Function Stop-CloudComponent {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
 		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$noWait,
         [Parameter (ParameterSetName = 'Node', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes,
         [Parameter (ParameterSetName = 'Pattern', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$pattern
     )
@@ -82,18 +83,23 @@ Function Stop-CloudComponent {
                                     Continue
                                 }
                                 Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$node'"
-                                Stop-VMGuest -Server $server -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
-                                Write-LogMessage -Type INFO -Message "Waiting for node '$node' to shut down"
-                                While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
-                                    Start-Sleep -Seconds 5
-                                    $count = $count + 1
-                                    $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
-                                }
-                                if ($count -eq $timeout) {
-                                    Write-LogMessage -Type ERROR -Message "Node '$node' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red			
+                                if ($PsBoundParameters.ContainsKey("noWait")) {
+                                    Stop-VM -Server $server -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
                                 }
                                 else {
-                                    Write-LogMessage -Type INFO -Message "Node '$node' has shutdown successfully" -Colour Green
+                                    Stop-VMGuest -Server $server -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+                                    Write-LogMessage -Type INFO -Message "Waiting for node '$node' to shut down"
+                                    While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
+                                        Start-Sleep -Seconds 5
+                                        $count = $count + 1
+                                        $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
+                                    }
+                                    if ($count -eq $timeout) {
+                                        Write-LogMessage -Type ERROR -Message "Node '$node' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red			
+                                    }
+                                    else {
+                                        Write-LogMessage -Type INFO -Message "Node '$node' has shutdown successfully" -Colour Green
+                                    }
                                 }
                             }
                             else {
@@ -120,18 +126,23 @@ Function Stop-CloudComponent {
                                 Continue
                             }
                             Write-LogMessage -Type INFO -Message "Attempting to shutdown node '$($node.name)'"
-                            Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server | Stop-VMGuest -Confirm:$false | Out-Null
-                            $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
-                            While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
-                                Start-Sleep -Seconds 1
-                                $count = $count + 1
-                                $vm_obj = Get-VMGuest -VM $node.Name | Where-Object VmUid -match $server
-                            }
-                            if ($count -eq $timeout) {
-                                Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red
+                            if ($PsBoundParameters.ContainsKey("noWait")) {
+                                Stop-VM -Server $server -VM $node.Name -Confirm:$false | Out-Null
                             }
                             else {
-                                Write-LogMessage -Type INFO -Message "Node '$($node.name)' has shutdown successfully" -Colour Green
+                                Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server | Stop-VMGuest -Confirm:$false | Out-Null
+                                $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
+                                While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
+                                    Start-Sleep -Seconds 1
+                                    $count = $count + 1
+                                    $vm_obj = Get-VMGuest -VM $node.Name | Where-Object VmUid -match $server
+                                }
+                                if ($count -eq $timeout) {
+                                    Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not shutdown within the stipulated timeout: $timeout value"	-Colour Red
+                                }
+                                else {
+                                    Write-LogMessage -Type INFO -Message "Node '$($node.name)' has shutdown successfully" -Colour Green
+                                }
                             }
                         }
                     }
