@@ -118,17 +118,17 @@ Try {
 
         $clusterPattern = "^SupervisorControlPlaneVM.*"
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1800
+            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 300
         }
 
         $clusterPattern = "^.*-tkc01-.*"
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1800
+            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 300
         }
 
         $clusterPattern = "^harbor.*"
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 1800
+            Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 300
         }
     }
 }
