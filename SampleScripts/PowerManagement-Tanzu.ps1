@@ -72,7 +72,7 @@ Catch {
     Debug-CatchWriter -object $_
 }
 
-# Setup a log file and gather details from SDDC Manager
+# Gather details from SDDC Manager
 Try {
     Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
     $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg

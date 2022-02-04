@@ -38,7 +38,6 @@ Param (
         [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
 )
 
-
 # Customer Questions Section 
 Try {
     Clear-Host; Write-Host ""
