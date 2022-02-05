@@ -261,10 +261,7 @@ Try {
             Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping checking VSAN health for cluster $($cluster.name)" -Colour Cyan
         }
 
-        # Prepare the vSAN cluster for shutdown - Performed on a single host only
-        Invoke-EsxCommand -server $esxiWorkloadDomain.fqdn[0] -user $esxiWorkloadDomain.username[0] -pass $esxiWorkloadDomain.password[0] -expected "Cluster preparation is done" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py prepare"
-
-        # Disable vSAN cluster member updates and place host in maintenance mode
+        # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
         $count = 0
         $flag = 0
         foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -288,6 +285,14 @@ Try {
             }
         }
         if (-Not $flag) {
+            # Actual vSAN and ESXi shutdown happens here - once we are sure that there are no VMs running on hosts
+            # Disable cluster member updates from vCenter Server
+            foreach ($esxiNode in $esxiWorkloadDomain) {
+                Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
+            }
+            # Run vSAN cluster preparation - should be done on one host per cluster
+            Invoke-EsxCommand -server $esxiWorkloadDomain.fqdn[0] -user $esxiWorkloadDomain.username[0] -pass $esxiWorkloadDomain.password[0] -expected "Cluster preparation is done" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py prepare"
+            # Putting hosts in maintenance mode
             foreach ($esxiNode in $esxiWorkloadDomain) {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
             }
