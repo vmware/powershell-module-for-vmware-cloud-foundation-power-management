@@ -116,7 +116,6 @@ Try {
         Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory (May take little time)"
         # Gather Details from SDDC Manager
         $managementDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
-        $mgmtCluster = Get-VCFCluster | Where-Object { $_.id -eq ($managementDomain.clusters.id) }
         $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.Name -eq $sddcDomain }
         if ([string]::IsNullOrEmpty($workloadDomain)) {
             Write-LogMessage -Type ERROR -Message "The domain $sddcDomain doesn't exist, check it and re-trigger" -Colour Red
@@ -160,7 +159,6 @@ Try {
         foreach ($node in $nsxtEdgeNodesfqdn) {
             [Array]$nsxtEdgeNodes += $node.Split(".")[0]
         }
-        $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
     }
     else {
         Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
