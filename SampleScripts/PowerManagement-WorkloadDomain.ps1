@@ -46,6 +46,7 @@ Try {
             Write-Host "";
             $proceed_force = Read-Host " Would you like to gracefully shutdown customer deployed Virtual Machines not managed by SDDC Manager (Yes/No)? [No]"; Write-Host ""
             if ($proceed_force -Match "yes") {
+                $PSBoundParameters.Add('shutdownCustomerVm','Yes')
                 $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running within the Workload Domain"
             }
             else {
