@@ -1435,16 +1435,16 @@ Function Set-Retreatmode {
 }
 Export-ModuleMember -Function Set-Retreatmode
 
-Function Get-NsxtClusterStatus {
+Function Wait-ForStableNsxtClusterStatus {
     <#
         .SYNOPSIS
         Fetch cluster status of NSX Manager
 
         .DESCRIPTION
-        The Get-NsxtClusterStatus cmdlet fetches the cluster status of NSX manager after a restart
+        The Wait-ForStableNsxtClusterStatus cmdlet fetches the cluster status of NSX manager after a restart
 
         .EXAMPLE
-        Get-NsxtClusterStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re1!VMw@re1!
+        Wait-ForStableNsxtClusterStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re1!VMw@re1!
         This example gets the Cluster Status of the sfo-m01-nsx01.sfo.rainpole.io NSX Management Cluster
     #>
 
@@ -1454,46 +1454,62 @@ Function Get-NsxtClusterStatus {
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass
     )
 
-	Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Get-NsxtClusterStatus" -Colour Yellow
-        Write-LogMessage -Type INFO -Message "Checking the cluster status for NSX, (may take longer time), kindly wait '$server'"
-		$uri = "https://$server/api/v1/cluster/status"
-		$nsxHeaders = createHeader $user $pass
+    Try {
+        Write-LogMessage -Type INFO -Message "Starting Execution of Wait-ForStableNsxtClusterStatus" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Waiting the cluster to become 'STABLE' for NSX-T '$server'. This could take up to 20 min, please be patient"
+        $uri = "https://$server/api/v1/cluster/status"
+        $nsxHeaders = createHeader $user $pass
         $retryCount = 0
         $completed = $false
         $response = $null
         $SecondsDelay = 30
         $Retries = 20
+        $aditionalWaitMultiplier = 3
+        $successfulConnecitons = 0
         While (-not $completed) {
+            # Check iteration number
+            if ($retrycount -ge $Retries) {
+                Write-LogMessage -Type Warning -Message "Request to $uri failed after $retryCount attempts." -Colour RED
+                return $false
+            }
+            $retrycount++
+            # Retry connection if NSX-T is not up
             Try {
                 $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
-                if ($response.mgmt_cluster_status.status -ne 'STABLE') {
-                    throw "Expecting NSX Management Cluster state as STABLE, was: $($response.mgmt_cluster_status.status)"
-                }
-                $completed = $true
+            } Catch {
+                Debug-CatchWriter -object $_
+                Write-LogMessage -Type INFO -Message "Could not connet to NSX-T '$server'. Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt"
+                Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
+                continue
             }
-            Catch {
-                if ($retrycount -ge $Retries) {
-                    Write-LogMessage -Type Warning -Message "Request to $uri failed the maximum number of $retryCount times."
-                    Write-LogMessage -Type Warning -Message "NSX Management Cluster state is NOT STABLE"
-                    throw
+            $successfulConnecitons++
+            if ($response.mgmt_cluster_status.status -ne 'STABLE') {
+                Write-LogMessage -Type INFO -Message "Expecting NSX Management Cluster state as 'STABLE', was: $($response.mgmt_cluster_status.status)"
+                # Add longer sleep during fiest several attempts to avoid locking the NSX-T account just after power-on
+                if ($successfulConnecitons -lt 4) {
+                    Write-LogMessage -Type INFO -Message "Sleeping for $($SecondsDelay * $aditionalWaitMultiplier) seconds before next check..."
+                    Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
                 }
                 else {
+                    Write-LogMessage -Type INFO -Message "Sleeping for $SecondsDelay seconds before next check..."
                     Start-Sleep $SecondsDelay
-                    $retrycount++
                 }
             }
+            else {
+                $completed = $true
+                Write-LogMessage -Type INFO -Message "The NSX Management Cluster '$server' state is 'STABLE'" -Colour GREEN
+                return $true
+            }
         }
-        Write-LogMessage -Type INFO -Message "The NSX Management Cluster '$server' state is 'STABLE'" -Colour GREEN
-	}
+    }
     Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-NsxtClusterStatus" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing Execution of Wait-ForStableNsxtClusterStatus" -Colour Yellow
     }
 }
-Export-ModuleMember -Function Get-NsxtClusterStatus
+Export-ModuleMember -Function Wait-ForStableNsxtClusterStatus
 
 ######### Start Useful Script Functions ##########
 

@@ -365,7 +365,14 @@ Try {
 
         # Startup the NSX Manager Nodes in the Virtual Infrastructure Workload Domain
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
-        Get-NsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
+        # Give NSX-T some time to get the services running
+        Write-LogMessage -Type INFO -Message "Sleeping 2 min to get NSX-T services started" -Colour Cyan
+        Start-Sleep -s 120
+        if (!(Wait-ForStableNsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword)) {
+            Write-LogMessage -Type ERROR -Message "NSX-T Cluster is not in 'STABLE' state. Exiting!" -Colour Red
+            Exit
+        }
+        
 
         # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain 
         if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
