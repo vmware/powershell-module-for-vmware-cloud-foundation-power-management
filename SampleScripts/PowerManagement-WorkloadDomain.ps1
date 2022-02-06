@@ -372,7 +372,6 @@ Try {
             Write-LogMessage -Type ERROR -Message "NSX-T Cluster is not in 'STABLE' state. Exiting!" -Colour Red
             Exit
         }
-        
 
         # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain 
         if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
