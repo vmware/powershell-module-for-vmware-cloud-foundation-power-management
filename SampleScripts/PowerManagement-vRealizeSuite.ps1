@@ -1,16 +1,16 @@
 <#
     .NOTES
     ===============================================================================================================
-    .Created By:    Gary Blake
+    .Created By:    Gary Blake / Sowjanya V
     .Group:         Cloud Infrastructure Business Group (CIBG)
     .Organization:  VMware
     .Version:       1.0 (Build 001)
-    .Date:          2021-11-23
+    .Date:          2022-02-22
     ===============================================================================================================
 
     .CHANGE_LOG
 
-    - 1.0.001   (Gary Blake / 2021-11-23) - Initial script creation
+    - 1.0.001   (Gary Blake / 2022-02-22) - Initial release
 
     ===============================================================================================================
 
@@ -22,11 +22,11 @@
 
     .EXAMPLE
     PowerManagement-vRealizeSuite.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerState Shutdown
-    Initiaites a shutdown of the the vRealize Suite components
+    Initiates a shutdown of the the vRealize Suite components
 
     .EXAMPLE
     PowerManagement-vRealizeSuite.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerState Startup
-    Initiaites the startup of the the vRealize Suite components
+    Initiates the startup of the the vRealize Suite components
 #>
 
 Param (
@@ -174,7 +174,7 @@ Catch {
     Debug-CatchWriter -object $_
 }
 
-# Execute the Statup procedures
+# Execute the Startup procedures
 Try {
     if ($powerState -eq "Startup") {
         # Startup vRealize Suite

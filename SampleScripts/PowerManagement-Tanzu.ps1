@@ -5,12 +5,12 @@
     .Group:         Cloud Infrastructure Business Group (CIBG)
     .Organization:  VMware
     .Version:       1.0 (Build 001)
-    .Date:          2021-11-30
+    .Date:          2022-02-22
     ===============================================================================================================
 
     .CHANGE_LOG
 
-    - 1.0.001   (Gary Blake / 2021-11-30) - Initial script creation
+    - 1.0.001   (Gary Blake / 2022-02-22) - Initial release
 
     ===============================================================================================================
 
@@ -142,7 +142,7 @@ Catch {
     Debug-CatchWriter -object $_
 }
 
-# Execute the Statup procedures
+# Execute the Startup procedures
 Try {
     if ($powerState -eq "Startup") {
         # Startup the vSphere with Tanzu Virtual Machines

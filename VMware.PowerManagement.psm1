@@ -1477,7 +1477,6 @@ Function Wait-ForStableNsxtClusterStatus {
             Try {
                 $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
             } Catch {
-                Debug-CatchWriter -object $_
                 Write-LogMessage -Type INFO -Message "Could not connet to NSX-T '$server'. Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt"
                 Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
                 continue
