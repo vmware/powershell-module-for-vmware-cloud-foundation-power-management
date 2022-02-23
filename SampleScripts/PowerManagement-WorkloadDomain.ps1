@@ -1,16 +1,16 @@
 <#
     .NOTES
     ===============================================================================================================
-    .Created By:    Gary Blake
+    .Created By:    Gary Blake / Sowjanya V
     .Group:         Cloud Infrastructure Business Group (CIBG)
     .Organization:  VMware
     .Version:       1.0 (Build 001)
-    .Date:          2021-11-23
+    .Date:          2022-02-22
     ===============================================================================================================
 
     .CHANGE_LOG
 
-    - 1.0.001   (Gary Blake / 2021-11-23) - Initial script creation
+    - 1.0.001   (Gary Blake / 2022-02-22) - Initial release
 
     ===============================================================================================================
     
@@ -18,15 +18,20 @@
     Connects to the specified SDDC Manager and shutdown/startup a VI Workload Domain
 
     .DESCRIPTION
-    This script connects to the specified SDDC Manager and either shutdowns or startups a Virual Infrastructure Workload Domain
+    This script connects to the specified SDDC Manager and either shutdowns or startups a Virtual Infrastructure Workload Domain
 
     .EXAMPLE
     PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Shutdown
-    Initiaites a shutdown of the Virual Infrastructure Workload Domain 'sfo-w01'
+    Initiates a shutdown of the Virtual Infrastructure Workload Domain 'sfo-w01'
+
+    .EXAMPLE
+    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Shutdown -shutdownCustomerVm
+    Initiates a shutdown of the Virtual Infrastructure Workload Domain 'sfo-w01' with shutdown of customer deployed VMs. 
+    Note: customer VMs will be stopped (Guest shutdown) only if they have VMware tools running and after NSX-T components, so they will loose networking before shutdown if they are running on overlay network.
 
     .EXAMPLE
     PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Startup
-    Initiaites the startup of the Virual Infrastructure Workload Domain 'sfo-w01'
+    Initiates the startup of the Virtual Infrastructure Workload Domain 'sfo-w01'
 #>
 
 Param (
@@ -365,9 +370,6 @@ Try {
 
         # Startup the NSX Manager Nodes in the Virtual Infrastructure Workload Domain
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
-        # Give NSX-T some time to get the services running
-        Write-LogMessage -Type INFO -Message "Sleeping 2 min to get NSX-T services started" -Colour Cyan
-        Start-Sleep -s 120
         if (!(Wait-ForStableNsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword)) {
             Write-LogMessage -Type ERROR -Message "NSX-T Cluster is not in 'STABLE' state. Exiting!" -Colour Red
             Exit
