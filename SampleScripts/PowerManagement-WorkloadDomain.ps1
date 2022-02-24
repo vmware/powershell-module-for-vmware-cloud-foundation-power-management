@@ -71,7 +71,7 @@ Catch {
 Try {
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     $str1 = "$PSCommandPath "
-    $str2 = "-server $server -user $user -pass $pass -sddcDomain $sddcDomain -powerState $powerState"
+    $str2 = "-server $server -user $user -pass ******* -sddcDomain $sddcDomain -powerState $powerState"
     if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $str2 = $str2 + " -shutdownCustomerVm" }
     Write-LogMessage -Type INFO -Message "Script Executed: $str1" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Script Syntax: $str2" -Colour Yellow
@@ -360,7 +360,7 @@ Try {
             Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping restarting vSphere HA" -Colour Cyan
             Exit
         }
-        
+
         # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
         if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
             Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated

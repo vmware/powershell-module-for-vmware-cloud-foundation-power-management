@@ -78,7 +78,7 @@ Param (
                 $regionalWSAYesOrNo = Read-Host "Have you deployed a Standalone Workspace ONE Access instance (Yes/No)"
                 if ($regionalWSAYesOrNo -eq "yes") {
                     $regionalWSA = Read-Host "Enter the Virtual Machine name for the Standalone Workspace ONE Access instance"
-                    Write-LogMessage -Type INFO -Message "The Standlaone Workspace ONE Access instance Name is : $regionalWSA"
+                    Write-LogMessage -Type INFO -Message "The Standalone Workspace ONE Access instance Name is : $regionalWSA"
                     if (([string]::IsNullOrEmpty($regionalWSA))) {
                         Write-LogMessage -Type WARNING -Message "Regional WSA information is null, hence Exiting" -Colour Magenta
                         Exit
@@ -130,7 +130,7 @@ Try {
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     $str1 = "$PSCommandPath "
     if ($server -and $user -and $pass) {
-        $str2 = "-server $server -user $user -pass $pass -powerState $powerState"
+        $str2 = "-server $server -user $user -pass ******* -powerState $powerState"
     } else {
         $str2 = "-powerState $powerState"
     }

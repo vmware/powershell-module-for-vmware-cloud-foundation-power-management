@@ -40,7 +40,7 @@ Try {
     Clear-Host; Write-Host ""
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     $str1 = "$PSCommandPath "
-    $str2 = "-server $server -user $user -pass $pass -powerState $powerState"
+    $str2 = "-server $server -user $user -pass ******* -powerState $powerState"
     Write-LogMessage -Type INFO -Message "Script Executed: $str1" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Script Syntax: $str2" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
