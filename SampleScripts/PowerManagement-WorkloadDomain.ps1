@@ -303,6 +303,8 @@ Try {
             foreach ($esxiNode in $esxiWorkloadDomain) {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
             }
+            # End of shutdown
+            Write-LogMessage -Type INFO -Message "End of Shutdown sequence!" -Colour Cyan
         }
         else {
             Write-LogMessage -Type ERROR -Message "Stopping shutdown process, since there are still running VMs! Please, check output above in order to identify ESXi hosts with running VMs." -Colour Red
@@ -315,7 +317,7 @@ Catch {
     Debug-CatchWriter -object $_
 }
 
-# Execute the Statup procedures
+# Execute the Startup procedures
 Try {
     if ($WorkloadDomain.type -eq "MANAGEMENT") {
         Write-LogMessage -Type ERROR -Message "Provided Workload domain '$sddcDomain' is the Management Workload domain. This script handles Worload Domains. Exiting! " -Colour Red
@@ -358,6 +360,15 @@ Try {
             Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping restarting vSphere HA" -Colour Cyan
             Exit
         }
+        
+        # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
+        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
+        }
+        else {
+            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping setting the DRS Automation level" -Colour Cyan
+            Exit
+        }
 
         #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
         if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
@@ -389,14 +400,8 @@ Try {
             Exit
         }
 
-        # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
-            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
-        }
-        else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping setting the DRS Automation level" -Colour Cyan
-            Exit
-        }
+        # End of startup
+        Write-LogMessage -Type INFO -Message "End of startup sequence!" -Colour Cyan
     }
 }
 Catch {
