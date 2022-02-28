@@ -1,4 +1,4 @@
-# PowerShell module for Power Management of an SDDC
+# PowerShell module for Power Management of VMware Cloud Foundation
 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
 # WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
@@ -7,10 +7,10 @@
 
 ### Note
 # This PowerShell module should be considered entirely experimental. It is still in development & not tested beyond
-# lab scenarios. It is recommended you dont use it for any production environment without testing extensively!
+# lab scenarios. It is recommended you don't use it for any production environment without testing extensively!
 
-# Enable communication with self signed certs when using Powershell Core if you require all communications to be secure
-# and do not wish to allow communication with self signed certs remove lines 23-35 before importing the module
+# Enable communication with self-signed cerificates when using Powershell Core if you require all communications to be secure
+# and do not wish to allow communication with self-signed cerificates remove lines 23-35 before importing the module.
 
 if ($PSEdition -eq 'Core') {
     $PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck", $true)
@@ -40,10 +40,10 @@ if ($PSEdition -eq 'Desktop') {
 Function Stop-CloudComponent {
     <#
         .SYNOPSIS
-        Shutdown node(s) on a given server
+        Shutdown node(s) in a vCenter Server inventory
     
         .DESCRIPTION
-        The Stop-CloudComponent cmdlet shutdowns the given node(s) on the server provided 
+        The Stop-CloudComponent cmdlet shutdowns the given node(s) in a vCenter Server inventory
     
         .EXAMPLE
         Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
@@ -65,7 +65,7 @@ Function Stop-CloudComponent {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Stop-CloudComponent cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of the Stop-CloudComponent cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -165,7 +165,7 @@ Function Stop-CloudComponent {
 		Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Stop-CloudComponent cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Stop-CloudComponent cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Stop-CloudComponent
@@ -173,17 +173,17 @@ Export-ModuleMember -Function Stop-CloudComponent
 Function Start-CloudComponent {
     <#
         .SYNOPSIS
-        Startup node(s) on a given server
+        Startup node(s) in a vCenter Server inventory
     
         .DESCRIPTION
-        The Start-CloudComponent cmdlet starts up the given node(s) on the server provided 
+        The Start-CloudComponent cmdlet starts up the given node(s) in a vCenter Server inventory
     
         .EXAMPLE
         Start-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
         This example connects to a vCenter Server and starts up the nodes sfo-m01-en01 and sfo-m01-en02
 
         .EXAMPLE
-        Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
+        Start-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
         This example connects to an ESXi Host and starts up the nodes that match the pattern vCLS.*
     #>
 
@@ -197,7 +197,7 @@ Function Start-CloudComponent {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Start-CloudComponent cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Start-CloudComponent cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -224,7 +224,7 @@ Function Start-CloudComponent {
                                     $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 }
                                 if ($count -eq $timeout) {
-                                    Write-LogMessage -Type ERROR -Message "Node '$node' did not get turned on within the stipulated timeout: $timeout value" -Colour Red
+                                    Write-LogMessage -Type ERROR -Message "Node '$node' did not startup within the stipulated timeout: $timeout value" -Colour Red
                                     Break 			
                                 } 
                                 else {
@@ -264,7 +264,7 @@ Function Start-CloudComponent {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             }
                             if ($count -eq $timeout) {
-                                Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not start up within the stipulated timeout: $timeout value"	-Colour Red
+                                Write-LogMessage -Type ERROR -Message "Node '$($node.name)' did not startup within the stipulated timeout: $timeout value"	-Colour Red
                             }
                             else {
                                 Write-LogMessage -Type INFO -Message "Node '$($node.name)' has started successfully" -Colour Green
@@ -290,7 +290,7 @@ Function Start-CloudComponent {
 		Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Start-CloudComponent cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Start-CloudComponent cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Start-CloudComponent
@@ -298,10 +298,10 @@ Export-ModuleMember -Function Start-CloudComponent
 Function Set-MaintenanceMode {
     <#
         .SYNOPSIS
-        Enable or Disable maintenance mode on an ESXi host
+        Enable or disable maintenance mode on an ESXi host
     
         .DESCRIPTION
-        The Set-MaintenanceMode cmdlet place an ESXi host in maintenance mode or takes it out of maintenance mode 
+        The Set-MaintenanceMode cmdlet enables or disables maintenance mode on an ESXi host 
     
         .EXAMPLE
         Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state ENABLE
@@ -320,28 +320,28 @@ Function Set-MaintenanceMode {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Set-MaintenanceMode cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Set-MaintenanceMode cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to $state Maintenance mode"
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to $state maintenance mode"
                 $hostStatus = (Get-VMHost -Server $server)
                 if ($state -eq "ENABLE") {
                     if ($hostStatus.ConnectionState -eq "Connected") {
-                        Write-LogMessage -Type INFO -Message "Attempting to place $server into Maintenance mode"
+                        Write-LogMessage -type INFO -Message "Attempting to enter maintenance mode for $server"
                         Get-View -Server $server -ViewType HostSystem -Filter @{"Name" = $server }| Where-Object {!$_.Runtime.InMaintenanceMode} | ForEach-Object {$_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode=(new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction=[VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction})}))} | Out-Null
                         $hostStatus = (Get-VMHost -Server $server)
                         if ($hostStatus.ConnectionState -eq "Maintenance") {
-                            Write-LogMessage -Type INFO -Message "The host $server has been placed in Maintenance mode successfully" -Colour Green
+                            Write-LogMessage -Type INFO -Message "The host $server has entered maintenance mode successfully" -Colour Green
                         }
                         else {
-                            Write-LogMessage -Type ERROR -Message "The host $server was not placed in Maintenance mode, verify and try again" -Colour Red
+                            Write-LogMessage -Type ERROR -Message "The host $server did not enter maintenance mode, verify and try again" -Colour Red
                         }
                     }
                     elseif ($hostStatus.ConnectionState -eq "Maintenance") {
-                        Write-LogMessage -Type INFO -Message "The host $server is already in Maintenance mode" -Colour Green
+                        Write-LogMessage -Type INFO -Message "The host $server has already entered maintenance mode" -Colour Green
                     }
                     else {
                         Write-LogMessage -Type ERROR -Message "The host $server is not currently connected" -Colour Red
@@ -350,19 +350,19 @@ Function Set-MaintenanceMode {
 
                 elseif ($state -eq "DISABLE") {
                     if ($hostStatus.ConnectionState -eq "Maintenance") {
-                        Write-LogMessage -Type INFO -Message "Attempting to take $server out of Maintenance mode"
+                        Write-LogMessage -type INFO -Message "Attempting to exit maintenance mode for $server"
                         $task = Set-VMHost -VMHost $server -State "Connected" -RunAsync -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
                         Wait-Task $task | out-null
                         $hostStatus = (Get-VMHost -Server $server)
                         if ($hostStatus.ConnectionState -eq "Connected") {
-                            Write-LogMessage -Type INFO -Message "The host $server has been taken out of Maintenance mode successfully" -Colour Green
+                            Write-LogMessage -Type INFO -Message "The host $server has exited maintenance mode successfully" -Colour Green
                         }
                         else {
-                            Write-LogMessage -Type ERROR -Message "The host $server was not taken out of Maintenance mode, verify and try again" -Colour Red
+                            Write-LogMessage -Type ERROR -Message "The host $server did not exit maintenance mode, verify and try again" -Colour Red
                         }
                     }
                     elseif ($hostStatus.ConnectionState -eq "Connected") {
-                        Write-LogMessage -Type INFO -Message "The host $server is already out of Maintenance mode" -Colour Cyan
+                        Write-LogMessage -Type INFO -Message "The host $server has already exited maintenance mode" -Colour Cyan
                     }
                     else {
                         Write-LogMessage -Type ERROR -Message "The host $server is not currently connected" -Colour Red
@@ -383,7 +383,7 @@ Function Set-MaintenanceMode {
         Debug-CatchWriter -object $_
     } 
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Set-MaintenanceMode cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Set-MaintenanceMode cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Set-MaintenanceMode
@@ -410,7 +410,7 @@ Function Set-DrsAutomationLevel {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Set-DrsAutomationLevel cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Set-DrsAutomationLevel cmdlet" -Colour Yellow
 
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
@@ -420,15 +420,15 @@ Function Set-DrsAutomationLevel {
                 $drsStatus = Get-Cluster -Name $cluster -ErrorAction SilentlyContinue
                 if ($drsStatus) {
                     if ($drsStatus.DrsAutomationLevel -eq $level) {
-                        Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' is already set to '$level'" -Colour Cyan
+                        Write-LogMessage -Type INFO -Message "The DRS automation level for cluster '$cluster' is already set to '$level'" -Colour Cyan
                     }
                     else {
                         $drsStatus = Set-Cluster -Cluster $cluster -DrsAutomationLevel $level -Confirm:$false 
                         if ($drsStatus.DrsAutomationLevel -eq $level) {
-                            Write-LogMessage -Type INFO -Message "The DRS Automation Level for cluster '$cluster' has been set to '$level' successfully" -Colour Green
+                            Write-LogMessage -Type INFO -Message "The DRS automation level for cluster '$cluster' has been set to '$level' successfully" -Colour Green
                         }
                         else {
-                            Write-LogMessage -Type ERROR -Message "The DRS Automation Level for cluster '$cluster' could not be set to '$level'" -Colour Red
+                            Write-LogMessage -Type ERROR -Message "The DRS automation level for cluster '$cluster' could not be set to '$level'" -Colour Red
                         }
                     }
                     Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
@@ -449,7 +449,7 @@ Function Set-DrsAutomationLevel {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Set-DrsAutomationLevel cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Set-DrsAutomationLevel cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Set-DrsAutomationLevel
@@ -476,7 +476,7 @@ Function Get-VMRunningStatus {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Get-VMRunningStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Get-VMRunningStatus cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -513,7 +513,7 @@ Function Get-VMRunningStatus {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-VMRunningStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Get-VMRunningStatus cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Get-VMRunningStatus
@@ -521,10 +521,10 @@ Export-ModuleMember -Function Get-VMRunningStatus
 Function Invoke-EsxCommand {
     <#
         .SYNOPSIS
-        Execute a given command on an ESXi host
+        Run a given command on an ESXi host
     
         .DESCRIPTION
-        The Invoke-EsxCommand cmdlet executes a given command on a given ESXi host. If expected is
+        The Invoke-EsxCommand cmdlet runs a given command on a given ESXi host. If expected is
         not passed, then #exitstatus of 0 is considered as success 
     
         .EXAMPLE
@@ -540,22 +540,22 @@ Function Invoke-EsxCommand {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Invoke-EsxCommand cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Invoke-EsxCommand cmdlet" -Colour Yellow
         $password = ConvertTo-SecureString $pass -AsPlainText -Force
         $Cred = New-Object System.Management.Automation.PSCredential ($user, $password)
         Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
         $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue
         if ($session) {
-            Write-LogMessage -Type INFO -Message "Attempting to execute command '$cmd' on server '$server'"
+            Write-LogMessage -Type INFO -Message "Attempting to run command '$cmd' on server '$server'"
             $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd
             if ($expected) {
-                Write-LogMessage -Type INFO -Message "Command '$cmd' executed with expected output on server '$server' successfully" -Colour Green
+                Write-LogMessage -Type INFO -Message "Command '$cmd' ran with expected output on server '$server' successfully" -Colour Green
             }
             elseif ($commandOutput.exitStatus -eq 0) {
-                Write-LogMessage -Type INFO -Message "Success. The command got successfully executed" -Colour Green
+                Write-LogMessage -Type INFO -Message "Success. The command ran successfully" -Colour Green
             }
             else  {
-                Write-LogMessage -Type ERROR -Message "Failure. The command could not be executed" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Failure. The command could not be run" -Colour Red
             }
             Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
             Remove-SSHSession -Index $session.SessionId | Out-Null   
@@ -568,7 +568,7 @@ Function Invoke-EsxCommand {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Invoke-EsxCommand cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Invoke-EsxCommand cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Invoke-EsxCommand
@@ -576,7 +576,7 @@ Export-ModuleMember -Function Invoke-EsxCommand
 Function Get-VsanClusterMember {
     <#
         .SYNOPSIS
-        Get list of VSAN cluster members from a given ESXi host 
+        Get list of vSAN cluster members from a given ESXi host 
     
         .DESCRIPTION
 		The Get-VsanClusterMember cmdlet uses the command "esxcli vsan cluster get", the output has a field SubClusterMemberHostNames
@@ -584,7 +584,7 @@ Function Get-VsanClusterMember {
     
         .EXAMPLE
         Get-VsanClusterMember -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -members "sfo01-w01-esx01.sfo.rainpole.io"
-        This example connects to an ESXI host and checks that all members are listed
+        This example connects to an ESXi host and checks that all members are listed
     #>
 
     Param (
@@ -595,21 +595,21 @@ Function Get-VsanClusterMember {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Get-VsanClusterMember cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Get-VsanClusterMember cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and checking VSAN Cluster members are present"
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and checking vSAN cluster members are present"
                 $esxcli = Get-EsxCli -Server $server -VMHost (Get-VMHost $server) -V2
                 $out =  $esxcli.vsan.cluster.get.Invoke()
                 foreach ($member in $members) {
                     if ($out.SubClusterMemberHostNames -eq $member) {
-                        Write-LogMessage -Type INFO -Message "VSAN Cluster Host member '$member' matches" -Colour Green
+                        Write-LogMessage -Type INFO -Message "vSAN cluster member '$member' matches" -Colour Green
                     }
                     else {
-                        Write-LogMessage -Type INFO -Message "VSAN Cluster Host member '$member' does not match" -Colour Red
+                        Write-LogMessage -Type INFO -Message "vSAN cluster member '$member' does not match" -Colour Red
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
@@ -627,7 +627,7 @@ Function Get-VsanClusterMember {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-VsanClusterMember cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Get-VsanClusterMember cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Get-VsanClusterMember
@@ -635,14 +635,14 @@ Export-ModuleMember -Function Get-VsanClusterMember
 Function Test-VsanHealth {
     <#
         .SYNOPSIS
-        Check the health of the VSAN cluster
+        Check the vSAN cluster health
         
         .DESCRIPTION
-        The Test-VsanHealth cmdlet checks the healh of the VSAN cluster
+        The Test-VsanHealth cmdlet checks the state of the vSAN cluster health
         
         .EXAMPLE
         Test-VsanHealth -cluster sfo-m01-cl01 -server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re1!
-        This example connects to a vCenter Server and checks the health of the VSAN cluster
+        This example connects to a vCenter Server and checks the state of the vSAN cluster health
     #>
     
     Param (
@@ -653,33 +653,33 @@ Function Test-VsanHealth {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Test-VsanHealth cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Test-VsanHealth cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the VSAN cluster health"
+                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the vSAN Cluster Health"
                 $count = 1
                 $flag = 0
                 While ($count -ne 5) {
                     Try {
                         $Error.clear()
-                        Get-VSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system" -erroraction stop | Out-Null
+                        Get-vSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system" -erroraction stop | Out-Null
                         if(-Not $Error) {
                             $flag = 1
                             Break
                         }
                     }
                     Catch {
-                        Write-LogMessage -Type INFO -Message "VSAN Cluster health service is yet to come up, kindly wait"
+                        Write-LogMessage -Type INFO -Message "vSAN Health Service is yet to come up, kindly wait"
                         Start-Sleep -s 60
                         $count += 1
                     }
                 }
 
                 if (-Not $flag) {
-                    Write-LogMessage -Type ERROR -Message "Unable to Execute Test-VsanHealth cmdlet because vSANHealth service is not up" -Colour Red
+                    Write-LogMessage -Type ERROR -Message "Unable to run Test-VsanHealth cmdlet because vSAN Health Service is not running" -Colour Red
                 }
                 else {
                     $vchs = Get-VSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
@@ -705,10 +705,10 @@ Function Test-VsanHealth {
                             $healthCheckResults+=$healtCheckGroupResult
                             }
                     if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){
-                        Write-LogMessage -Type INFO -Message "The VSAN Health Status for $cluster is GOOD" -Colour Green
+                        Write-LogMessage -Type INFO -Message "The vSAN Health Status for $cluster is GOOD" -Colour Green
                     }
                     else {
-                        Write-LogMessage -Type ERROR -Message "The VSAN Health Status for $cluster is BAD" -Colour Red
+                        Write-LogMessage -Type ERROR -Message "The vSAN Health Status for $cluster is BAD" -Colour Red
                     }
                     Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                     Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
@@ -726,7 +726,7 @@ Function Test-VsanHealth {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Test-VsanHealth cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Test-VsanHealth cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Test-VsanHealth
@@ -734,14 +734,14 @@ Export-ModuleMember -Function Test-VsanHealth
 Function Test-VsanObjectResync {
     <#
         .SYNOPSIS
-        Check object sync for VSAN cluster
+        Check object sync for vSAN cluster
         
         .DESCRIPTION
-        The Test-VsanObjectResync cmdlet checks for resyncing of objects on the VSAN cluster
+        The Test-VsanObjectResync cmdlet checks for resyncing of objects on the vSAN cluster
         
         .EXAMPLE
         Test-VsanObjectResync -cluster sfo-m01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
-        This example connects to a vCenter Server and checks the status of object syncing for the VSAN cluster
+        This example connects to a vCenter Server and checks the status of object syncing for the vSAN cluster
     #>
 
     Param(
@@ -752,7 +752,7 @@ Function Test-VsanObjectResync {
     )
     
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Test-VsanObjectResync cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Test-VsanObjectResync cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -765,7 +765,7 @@ Function Test-VsanObjectResync {
                     Write-LogMessage -Type INFO -Message "No resyncing objects" -Colour Green
                 }
                 else {
-                    Write-LogMessage -Type ERROR -Message "There are some resyncing happening" -Colour Red
+                    Write-LogMessage -Type ERROR -Message "Resyncing of objects in progress" -Colour Red
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
@@ -782,7 +782,7 @@ Function Test-VsanObjectResync {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Test-VsanObjectResync cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Test-VsanObjectResync cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Test-VsanObjectResync
@@ -790,14 +790,14 @@ Export-ModuleMember -Function Test-VsanObjectResync
 Function Get-PoweredOnVMsCount {
     <#
         .SYNOPSIS
-        Check how many VM's are in powered on state
+        Check how many virtual machines are in a powered on state
 
         .DESCRIPTION
-        The Get-PoweredOnVMsCount cmdlet checks how many VM's are powered-on on a given host
+        The Get-PoweredOnVMsCount cmdlet checks how many virtual machines are in a powered on state on a given host
 
         .EXAMPLE
         Get-PoweredOnVMsCount -server sfo01-m01-esx01.sfo.rainpole.io -user root -pass VMw@re1!
-        This example connects to a esxi host and returns the count of powered on VM's on it
+        This example connects to a ESXi host and returns the count of powered on virtual machines
     #>
 
     Param(
@@ -808,13 +808,13 @@ Function Get-PoweredOnVMsCount {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Get-PoweredOnVMsCount cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Get-PoweredOnVMsCount cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to count number of VMs powered On"
+                Write-LogMessage -type INFO -Message "Connected to server '$server' and attempting to count number of powered on virtual machines"
                 if ($pattern) {
                     $no_powered_on_vms =  get-vm -Server $server | Where-Object Name -match $pattern  | where PowerState -eq "PoweredOn"
                 }
@@ -822,10 +822,10 @@ Function Get-PoweredOnVMsCount {
                     $no_powered_on_vms =  get-vm -Server $server | where PowerState -eq "PoweredOn"
                 }
                 if ($no_powered_on_vms.count -eq 0){
-                    Write-LogMessage -Type INFO -Message "No VMs in powered on state"
+                    Write-LogMessage -type INFO -Message "No virtual machines in a powered on state"
                 }
                 else {
-                    Write-LogMessage -Type INFO -Message "There are some vms in powered on state $no_powered_on_vms"
+                    Write-LogMessage -type INFO -Message "There are virtual machines in a powered on state: $no_powered_on_vms"
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
@@ -843,7 +843,7 @@ Function Get-PoweredOnVMsCount {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-PoweredOnVMsCount cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Get-PoweredOnVMsCount cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Get-PoweredOnVMsCount
@@ -851,10 +851,10 @@ Export-ModuleMember -Function Get-PoweredOnVMsCount
 Function Test-WebUrl {
     <#
         .SYNOPSIS
-        Test connection to a url 
+        Test connection to a URL
     
         .DESCRIPTION
-        The Test-WebUrl cmdlet tests the connection to the provided url
+        The Test-WebUrl cmdlet tests the connection to the provided URL
     
         .EXAMPLE
         Test-WebUrl -url "https://sfo-m01-nsx01.sfo.rainpole.io/login.jsp?local=true"
@@ -866,8 +866,8 @@ Function Test-WebUrl {
     )
     
     Try {
-        Write-LogMessage -Type INFO -Message  "Starting Execution of Test-WebUrl cmdlet" -Colour Yellow
-        Write-LogMessage -Type INFO -Message "Attempting connect to url '$url'"
+        Write-LogMessage -Type INFO -Message  "Starting run of Test-WebUrl cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Attempting connect to URL '$url'"
         $count = 1
         $StatusCode = ""
         While ($count -ne 6) {
@@ -892,7 +892,7 @@ Function Test-WebUrl {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Test-WebUrl cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Test-WebUrl cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Test-WebUrl
@@ -919,7 +919,7 @@ Function Get-VamiServiceStatus {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -949,7 +949,7 @@ Function Get-VamiServiceStatus {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Get-VAMIServiceStatus
@@ -980,7 +980,7 @@ Function Set-VamiServiceStatus {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Set-VAMIServiceStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Set-VAMIServiceStatus cmdlet" -Colour Yellow
         if ((Test-Connection -ComputerName $server -Quiet -Count 1) -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
@@ -1020,7 +1020,7 @@ Function Set-VamiServiceStatus {
         else {
             Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
     } 
     Catch {
         Debug-CatchWriter -object $_
@@ -1053,7 +1053,7 @@ Function Set-vROPSClusterState {
     )
 	
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Set-vROPSClusterState cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Set-vROPSClusterState cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -1089,7 +1089,7 @@ Function Set-vROPSClusterState {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Set-vROPSClusterState cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Set-vROPSClusterState cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Set-vROPSClusterState
@@ -1207,7 +1207,7 @@ Function Request-PowerStateViaVRSLCM {
     )
     
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Request-PowerStateViaVRSLCM" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Request-PowerStateViaVRSLCM" -Colour Yellow
 		Write-LogMessage -Type INFO -Message "Obtaining the vRealize Suite Lifecycle Manager Environment ID for '$product'"
         $environmentId = Get-EnvironmentId -server $server -user $user -pass $pass -product $product
 		$vrslcmHeaders = createHeader $user $pass
@@ -1228,12 +1228,12 @@ Function Request-PowerStateViaVRSLCM {
         } 
         Until ($requestStatus -ne "INPROGRESS")
         if ($requestStatus -eq "COMPLETED") {
-            Write-LogMessage -Type INFO -Message "The $mode of $product Completed Successfully" -Colour Green
+            Write-LogMessage -Type INFO -Message "The $mode of $product completed successfully" -Colour Green
         }
         elseif ($requestStatus -ne "FAILED") {
             Write-LogMessage -Type ERROR -Message "Could not $mode of $product because of $($response.errorCause.message)" -Colour Red
         }
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Request-PowerStateViaVRSLCM" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Request-PowerStateViaVRSLCM" -Colour Yellow
     }
     Catch {
         Debug-CatchWriter -object $_
@@ -1244,10 +1244,10 @@ Export-ModuleMember -Function Request-PowerStateViaVRSLCM
 Function Start-EsxiUsingILO {
     <#
         .SYNOPSIS
-        Power On/Off via DELL ESXi Server
+        Power On/Off via DellEMC Server
 
         .DESCRIPTION
-        This method is used to poweron the DELL ESXi server using ILO ip address using racadm cli. This is cli equivalent of admin console for DELL servers
+        This method is used to poweron the DellEMC Server using ILO IP address using racadm cli. This is cli equivalent of admin console for DELL servers
 
         .EXAMPLE
         PowerOn-EsxiUsingILO -ilo_ip $ilo_ip -ilo_user <drac_console_user> -ilo_pass <drac_console_pass>
@@ -1275,19 +1275,19 @@ Function Start-EsxiUsingILO {
         }
 		$out = cmd /c $default_path -r $ilo_ip -u $ilo_user -p $ilo_pass  --nocertwarn serveraction powerup
 		if ( $out.contains("Server power operation successful")) {
-            Write-LogMessage -Type INFO -Message "power-on on host $ilo_ip is successfully initiated" -Colour Yellow
+            Write-LogMessage -Type INFO -Message "power on of host $ilo_ip is successfully initiated" -Colour Yellow
 			Start-Sleep -Seconds 600
             Write-LogMessage -Type INFO -Message "bootup complete." -Colour Yellow
 		}
         else {
-            Write-LogMessage -Type Error -Message "Couldn't poweron the server $ilo_ip" -Colour Red
+            Write-LogMessage -Type Error -Message "Could not power on the server $ilo_ip" -Colour Red
 		}
 	}
     Catch {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Exeuction of PowerOn-EsxiUsingILO cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of PowerOn-EsxiUsingILO cmdlet" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Start-EsxiUsingILO
@@ -1295,14 +1295,14 @@ Export-ModuleMember -Function Start-EsxiUsingILO
 Function Restart-VsphereHA {
     <#
         .SYNOPSIS
-        Restart vSphere HA
+        Restart vSphere High Availability
 
         .DESCRIPTION
-        Restart vSphere HA to avoid triggering a "Cannot find vSphere HA master agent error".
+        Restart vSphere High Availability to avoid "Cannot find vSphere HA master agent error".
 
         .EXAMPLE
         Restart-VsphereHA -server $server -user $user -pass $pass -cluster $cluster
-        This example restarts Vsphere HA if enabled
+        This example restarts vSphere High Availability if enabled
     #>
 
 	Param(
@@ -1313,7 +1313,7 @@ Function Restart-VsphereHA {
     )
 
 	Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Restart-VsphereHA cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Restart-VsphereHA cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -1322,17 +1322,17 @@ Function Restart-VsphereHA {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server'"
                 $HAStatus = Get-Cluster -Name $cluster | Select-Object HAEnabled
                 if ($HAStatus) {
-                    Write-LogMessage -Type INFO -Message "The HA is enabled on the VSAN cluster, restarting the same"
+                    Write-LogMessage -type INFO -Message "vSphere High Availability is enabled on the vSAN cluster, restarting vSphere High Availability"
                     Set-Cluster -Cluster $cluster -HAEnabled:$false -Confirm:$false | Out-Null
                     $var1 = get-cluster -Name $cluster | Select-Object HAEnabled
                     if (-Not  $var1) {
-                        Write-LogMessage -Type INFO -Message "The HA is disabled"
+                        Write-LogMessage -Type INFO -Message "vSphere High Availability is disabled"
                     }
                     Start-Sleep -s 5
                     Set-Cluster -Cluster $cluster -HAEnabled:$true -Confirm:$false | Out-Null
                     $var2 = get-cluster -Name $cluster | Select-Object HAEnabled
                     if ($var2) {
-                        Write-LogMessage -Type INFO -Message "The HA is enabled. Vsphere HA is restarted"  -Colour GREEN
+                        Write-LogMessage -type INFO -Message 'vSphere High Availability is enabled. vSphere High Availability is restarted'  -Colour GREEN
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
@@ -1350,7 +1350,7 @@ Function Restart-VsphereHA {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Restart-VsphereHA cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Restart-VsphereHA cmdlet" -Colour Yellow
     }
 
 }
@@ -1382,7 +1382,7 @@ Function Set-Retreatmode {
     )
 
 	Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Set-Retreatmode cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Starting run of Set-Retreatmode cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -1429,7 +1429,7 @@ Function Set-Retreatmode {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Set-Retreatmode cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Set-Retreatmode cmdlet" -Colour Yellow
     }
 
 }
@@ -1445,7 +1445,7 @@ Function Wait-ForStableNsxtClusterStatus {
 
         .EXAMPLE
         Wait-ForStableNsxtClusterStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re1!VMw@re1!
-        This example gets the Cluster Status of the sfo-m01-nsx01.sfo.rainpole.io NSX Management Cluster
+        This example gets the cluster status of the sfo-m01-nsx01.sfo.rainpole.io NSX Management Cluster
     #>
 
 	Param (
@@ -1455,8 +1455,8 @@ Function Wait-ForStableNsxtClusterStatus {
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting Execution of Wait-ForStableNsxtClusterStatus" -Colour Yellow
-        Write-LogMessage -Type INFO -Message "Waiting the cluster to become 'STABLE' for NSX-T '$server'. This could take up to 20 min, please be patient"
+        Write-LogMessage -Type INFO -Message "Starting run of Wait-ForStableNsxtClusterStatus" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Waiting the cluster to become 'STABLE' for NSX Manager '$server'. This could take up to 20 min, please be patient"
         $uri = "https://$server/api/v1/cluster/status"
         $nsxHeaders = createHeader $user $pass
         $retryCount = 0
@@ -1473,17 +1473,17 @@ Function Wait-ForStableNsxtClusterStatus {
                 return $false
             }
             $retrycount++
-            # Retry connection if NSX-T is not up
+            # Retry connection if NSX Manager is not online
             Try {
                 $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
             } Catch {
-                Write-LogMessage -Type INFO -Message "Could not connet to NSX-T '$server'. Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt"
+                Write-LogMessage -Type INFO -Message "Could not connect to NSX Manager '$server'. Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt"
                 Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
                 continue
             }
             $successfulConnecitons++
             if ($response.mgmt_cluster_status.status -ne 'STABLE') {
-                Write-LogMessage -Type INFO -Message "Expecting NSX Management Cluster state as 'STABLE', was: $($response.mgmt_cluster_status.status)"
+                Write-LogMessage -Type INFO -Message "Expecting NSX Manager cluster state as 'STABLE', was: $($response.mgmt_cluster_status.status)"
                 # Add longer sleep during fiest several attempts to avoid locking the NSX-T account just after power-on
                 if ($successfulConnecitons -lt 4) {
                     Write-LogMessage -Type INFO -Message "Sleeping for $($SecondsDelay * $aditionalWaitMultiplier) seconds before next check..."
@@ -1496,7 +1496,7 @@ Function Wait-ForStableNsxtClusterStatus {
             }
             else {
                 $completed = $true
-                Write-LogMessage -Type INFO -Message "The NSX Management Cluster '$server' state is 'STABLE'" -Colour GREEN
+                Write-LogMessage -Type INFO -Message "The NSX Manager cluster '$server' state is 'STABLE'" -Colour GREEN
                 return $true
             }
         }
@@ -1505,7 +1505,7 @@ Function Wait-ForStableNsxtClusterStatus {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Finishing Execution of Wait-ForStableNsxtClusterStatus" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Wait-ForStableNsxtClusterStatus" -Colour Yellow
     }
 }
 Export-ModuleMember -Function Wait-ForStableNsxtClusterStatus
