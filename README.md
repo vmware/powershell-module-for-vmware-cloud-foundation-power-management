@@ -6,11 +6,11 @@ OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHE
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # Supported Platforms
-Tested on Windows 10 and Windows 2016 running Windows PowerShell 5.1  
-Supported target systems: vSAN ready nodes running VMware Cloud Foundation 4.4 or VMware Cloud Foundation 4.3  
-VMware Cloud Foundation on VxRail **IS NOT** supported
+- Tested on: Windows 10 and Windows 2016 running Windows PowerShell 5.1.  
+- Supported target systems: vSAN ready nodes running VMware Cloud Foundation 4.4 or VMware Cloud Foundation 4.3.  
 
 # Limitations
+- VMware Cloud Foundation on VxRail **IS NOT** supported.
 - Site Recovery Manager and vSphere Replication are not supported.
 - Limited error handling.
 - The parameters and behavior of the scripts might change in the next version of the module.
@@ -124,10 +124,10 @@ ___
 **Note** More usage examples are available in the scripts.
 ___
 # Troubleshooting
-- ESXi hosts should have SSH service up, running and accessible from the machine running the scripts
+- ESXi hosts should have SSH service up, running and accessible from the machine running the scripts.
 - In case of failure the script could be started again with the same parameters in order to overcome
 some errors.
 - Identify the step that is causing the issue and continue the sequence following the manual guide in
-VMware Cloud Foundation documentation
+VMware Cloud Foundation documentation.
 - During shutdown of the Management Domain if SDDC manager is already stopped the only option is to continue
-with manual steps, following VMware Cloud Foundation documentation
+with manual steps, following VMware Cloud Foundation documentation.
