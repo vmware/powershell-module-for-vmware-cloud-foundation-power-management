@@ -41,8 +41,8 @@ Try {
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     $str1 = "$PSCommandPath "
     $str2 = "-server $server -user $user -pass ******* -powerState $powerState"
-    Write-LogMessage -Type INFO -Message "Script Executed: $str1" -Colour Yellow
-    Write-LogMessage -Type INFO -Message "Script Syntax: $str2" -Colour Yellow
+    Write-LogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
+    Write-LogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
 
     if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
@@ -141,7 +141,7 @@ Catch {
     Debug-CatchWriter -object $_
 }
 
-# Execute the Shutdown procedures
+# Shutdown procedures
 Try {
     if ($powerState -eq "Shutdown") {
         # Shutdown vRealize Suite
@@ -174,7 +174,7 @@ Catch {
     Debug-CatchWriter -object $_
 }
 
-# Execute the Startup procedures
+# Startup procedures
 Try {
     if ($powerState -eq "Startup") {
         # Startup vRealize Suite

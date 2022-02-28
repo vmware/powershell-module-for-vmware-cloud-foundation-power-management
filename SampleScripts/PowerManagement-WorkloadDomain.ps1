@@ -73,13 +73,13 @@ Try {
     $str1 = "$PSCommandPath "
     $str2 = "-server $server -user $user -pass ******* -sddcDomain $sddcDomain -powerState $powerState"
     if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $str2 = $str2 + " -shutdownCustomerVm" }
-    Write-LogMessage -Type INFO -Message "Script Executed: $str1" -Colour Yellow
-    Write-LogMessage -Type INFO -Message "Script Syntax: $str2" -Colour Yellow
+    Write-LogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
+    Write-LogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
     if (-Not $null -eq $customerVmMessage) { Write-LogMessage -Type INFO -Message $customerVmMessage -Colour Cyan}
 
     if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0 -ErrorAction Ignore)) {
-        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0 or greater is not found. Please install before proceeding" -Colour Red
+        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0 or greater. Please install before proceeding" -Colour Red
         Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 2.3.0' to install from PS Gallery" -Colour Cyan
         Break
     }
@@ -255,7 +255,7 @@ Try {
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-        # Check the health and sync status of the VSAN cluster 
+        # Check the health and sync status of the vSAN cluster 
         if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
@@ -263,7 +263,7 @@ Try {
             Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
         }
         else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping checking VSAN health for cluster $($cluster.name)" -Colour Cyan
+            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping checking vSAN health for cluster $($cluster.name)" -Colour Cyan
         }
 
         # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
@@ -317,7 +317,7 @@ Catch {
     Debug-CatchWriter -object $_
 }
 
-# Execute the Startup procedures
+# Startup procedures
 Try {
     if ($WorkloadDomain.type -eq "MANAGEMENT") {
         Write-LogMessage -Type ERROR -Message "Provided Workload domain '$sddcDomain' is the Management Workload domain. This script handles Worload Domains. Exiting! " -Colour Red
@@ -341,7 +341,7 @@ Try {
         Write-LogMessage -Type INFO -Message "Waiting for vCenter Server services to start on $($vcServer.fqdn) (may take some time)"
         Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
 
-        # Check the health and sync status of the VSAN cluster
+        # Check the health and sync status of the vSAN cluster
         if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
             Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
