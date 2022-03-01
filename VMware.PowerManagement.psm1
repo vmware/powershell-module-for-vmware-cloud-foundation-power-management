@@ -1512,62 +1512,6 @@ Export-ModuleMember -Function Wait-ForStableNsxtClusterStatus
 
 ######### Start Useful Script Functions ##########
 
-Function Start-SetupLogFile ($path, $scriptName) {
-    $filetimeStamp = Get-Date -Format "MM-dd-yyyy_hh_mm_ss"
-    $Global:logFile = $path + '\logs\' + $scriptName + '-' + $filetimeStamp + '.log'
-    $logFolder = $path + '\logs'
-    $logFolderExists = Test-Path $logFolder
-    if (!$logFolderExists) {
-        New-Item -ItemType Directory -Path $logFolder | Out-Null
-    }
-    New-Item -Type File -Path $logFile | Out-Null
-    $logContent = '[' + $filetimeStamp + '] Beginning of Log File'
-    Add-Content -Path $logFile $logContent | Out-Null
-}
-Export-ModuleMember -Function Start-SetupLogFile
-
-Function Write-LogMessage {
-    Param (
-        [Parameter (Mandatory = $true)] [AllowEmptyString()] [String]$Message,
-        [Parameter (Mandatory = $false)] [ValidateSet("INFO", "ERROR", "WARNING", "EXCEPTION")] [String]$Type,
-        [Parameter (Mandatory = $false)] [String]$Colour,
-        [Parameter (Mandatory = $false)] [string]$Skipnewline
-    )
-
-    if (!$Colour) {
-        $Colour = "White"
-    }
-
-    $timeStamp = Get-Date -Format "MM-dd-yyyy_HH:mm:ss"
-
-    Write-Host -NoNewline -ForegroundColor White " [$timestamp]"
-    if ($Skipnewline) {
-        Write-Host -NoNewline -ForegroundColor $Colour " $Type $Message"        
-    }
-    else {
-        Write-Host -ForegroundColor $Colour " $Type $Message" 
-    }
-    $logContent = '[' + $timeStamp + '] ' + $Type + ' ' + $Message
-    if ($logFile) {
-        Add-Content -Path $logFile $logContent
-    }
-}
-Export-ModuleMember -Function Write-LogMessage
-
-Function Debug-CatchWriter {
-    Param (
-        [Parameter (Mandatory = $true)] [PSObject]$object
-    )
-
-    $lineNumber = $object.InvocationInfo.ScriptLineNumber
-    $lineText = $object.InvocationInfo.Line.trim()
-    $errorMessage = $object.Exception.Message
-    Write-LogMessage -Type EXCEPTION -Message "Error at Script Line $lineNumber" -Colour Red
-    Write-LogMessage -Type EXCEPTION -Message "Relevant Command: $lineText" -Colour Red
-    Write-LogMessage -Type EXCEPTION -Message "Error Message: $errorMessage" -Colour Red
-}
-Export-ModuleMember -Function Debug-CatchWriter
-
 Function createHeader  {
     Param (
         [Parameter (Mandatory=$true)] [String] $user,
