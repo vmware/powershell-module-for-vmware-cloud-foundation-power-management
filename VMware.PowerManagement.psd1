@@ -12,13 +12,13 @@
     RootModule = 'VMware.PowerManagement.psm1'
 
     # Version number of this module.
-    ModuleVersion = '0.5.0'
+    ModuleVersion = '0.6.0'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
 
     # ID used to uniquely identify this module
-    GUID = '4dfce98f-e82f-43ef-965d-47273cacc385'
+    GUID = '4dfce98f-e82f-43ef-965d-47273cacc485'
 
     # Author of this module
     Author = 'Sowjanya V / Gary Blake, Cloud Infrastructure Business Group (CIBG)'

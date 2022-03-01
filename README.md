@@ -44,7 +44,7 @@ domain.
 module together with the supporting modules from the PowerShell Gallery by running the
 following commands:  
     > `Install-Module -Name VMware.PowerCLI -MinimumVersion 12.3.0`  
-    > `Install-Module -Name VMware.PowerManagement -MinimumVersion 0.5.0`  
+    > `Install-Module -Name VMware.PowerManagement -MinimumVersion 0.6.0`  
     > `Install-Module -Name PowerVCF -MinimumVersion 2.1.7`  
     > `Install-Module -Name Posh-SSH -MinimumVersion 2.3.0`  
 - Verify that SDDC Manager is running.
@@ -73,7 +73,7 @@ PowerShell command.
     > `(Get-Module -ListAvailable VMware.PowerManagement*).path`  
 
 > For example, the full path to the module might be `C:\Program
-Files\WindowsPowerShell\Modules\VMware.PowerManagement\0.5.0\VMware.PowerM
+Files\WindowsPowerShell\Modules\VMware.PowerManagement\0.6.0\VMware.PowerM
 anagement.psd1`.  
 4. Go to the SampleScripts folder that is located in the same folder as the
 `VMware.PowerManagement.psd1` file.
