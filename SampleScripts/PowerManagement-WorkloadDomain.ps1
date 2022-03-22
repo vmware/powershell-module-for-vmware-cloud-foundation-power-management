@@ -74,6 +74,7 @@ Catch {
 
 # Pre-Checks and Log Creation
 Try {
+    $Global:ProgressPreference = 'SilentlyContinue'
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     $str1 = "$PSCommandPath "
     $str2 = "-server $server -user $user -pass ******* -sddcDomain $sddcDomain -powerState $powerState"
@@ -92,7 +93,7 @@ Try {
         Write-LogMessage -Type INFO -Message "Required version of Posh-SSH found on system"
     }
 
-    if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
+    if (!(Test-NetConnection -ComputerName $server)) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
     }
@@ -184,8 +185,8 @@ Try {
     if ($powerState -eq "Shutdown") {
         # Change the DRS Automation Level to Partially Automated for VI Workload Domain Clusters
         if ($WorkloadDomain.type -ne "MANAGEMENT") {
-            $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-            if ($checkServer -eq "True") {
+            $checkServer = Test-NetConnection -ComputerName $vcServer.fqdn
+            if ($checkServer) {
                 Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
             }
         }
@@ -195,7 +196,7 @@ Try {
         }
         
         # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
         }
         else {
@@ -223,7 +224,7 @@ Try {
         }
 
         # Shut Down the vSphere with Tanzu Virtual Machines
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
             Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action STOP
         }
         else {
@@ -246,7 +247,7 @@ Try {
         }
 
         # Shutdown the NSX Edge Nodes
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
             if ($nsxtEdgeNodes) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
             }
@@ -261,7 +262,7 @@ Try {
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
         # Check the health and sync status of the vSAN cluster 
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             # Shutdown vCenter Server
@@ -347,7 +348,7 @@ Try {
         Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
 
         # Check the health and sync status of the vSAN cluster
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
             Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
@@ -358,7 +359,7 @@ Try {
         }
 
         # Restart vSphere HA to avoid triggering a Cannot find vSphere HA master agent error.
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
             Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
         }
         else {
@@ -367,7 +368,7 @@ Try {
         }
 
         # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
             Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
         }
         else {
@@ -376,7 +377,7 @@ Try {
         }
 
         #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
         }
         else {
@@ -392,7 +393,7 @@ Try {
         }
 
         # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain 
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if (Test-NetConnection -ComputerName $vcServer.fqdn) {
             if ($nsxtEdgeNodes) {
                 Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
             }

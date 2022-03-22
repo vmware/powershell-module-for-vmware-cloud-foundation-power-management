@@ -58,6 +58,7 @@ Param (
         # Customer Questions Section 
         Try {
             Clear-Host; Write-Host ""
+            $Global:ProgressPreference = 'SilentlyContinue'
             if ($powerState -eq "Shutdown" -or $genjson) {
                 # Check if we have all needed inputs for shutdown
                 if (-Not $PsBoundParameters.ContainsKey("server") -or -Not $PsBoundParameters.ContainsKey("user") -or -Not $PsBoundParameters.ContainsKey("pass")){
@@ -158,7 +159,7 @@ Try {
 
     # Check connection to SDDC Manager only in case of shutdown, for startup we are using information from input json
     if ($powerState -eq "Shutdown") { 
-        if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
+        if (!(Test-NetConnection -ComputerName $vcServer.fqdn)) {
             Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
             Break
         }
@@ -499,8 +500,8 @@ Try {
         }
 
         # Shutdown the NSX Edge Nodes
-        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $vcServer.fqdn
+        if ($checkServer) {
             # Shutdown Standalone WSA
             if ($regionalWSA) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $regionalWSA -timeout 600
@@ -521,8 +522,8 @@ Try {
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
 
-        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $vcServer.fqdn
+        if ($checkServer) {
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
         }
@@ -534,7 +535,7 @@ Try {
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600
 
         # Shut Down the vSphere Cluster Services Virtual Machines
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if () {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
         }
         else {
@@ -789,8 +790,8 @@ Try {
         Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
 
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
-        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $vcServer.fqdn
+        if ($checkServer) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
@@ -802,8 +803,8 @@ Try {
         }
         
         # Change the DRS Automation Level to Fully Automated for both the Management Domain Clusters
-        $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $vcServer.fqdn
+        if ($checkServer) {
             Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
         }
 

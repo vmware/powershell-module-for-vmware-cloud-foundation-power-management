@@ -66,9 +66,12 @@ Function Stop-CloudComponent {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of the Stop-CloudComponent cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 if ($PSCmdlet.ParameterSetName -eq "Node") {
@@ -198,9 +201,12 @@ Function Start-CloudComponent {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Start-CloudComponent cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer -server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 if ($PSCmdlet.ParameterSetName -eq "Node") {
@@ -210,7 +216,7 @@ Function Start-CloudComponent {
                                 $count=0
                             if (Get-VM | Where-Object {$_.Name -eq $node}) {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
-                                    if($vm_obj.State -eq 'Running'){
+                                if($vm_obj.State -eq 'Running'){
                                     Write-LogMessage -Type INFO -Message "Node '$node' is already in Powered On state" -Colour Green
                                     Continue
                                 }
@@ -321,9 +327,12 @@ Function Set-MaintenanceMode {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Set-MaintenanceMode cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to $state maintenance mode"
@@ -412,9 +421,12 @@ Function Set-DrsAutomationLevel {
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Set-DrsAutomationLevel cmdlet" -Colour Yellow
 
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 $drsStatus = Get-Cluster -Name $cluster -ErrorAction SilentlyContinue
@@ -477,9 +489,12 @@ Function Get-VMRunningStatus {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Get-VMRunningStatus cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server' and checking nodes named '$pattern' are in a '$($status.ToUpper())' state"
@@ -547,7 +562,7 @@ Function Invoke-EsxCommand {
         $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue
         if ($session) {
             Write-LogMessage -Type INFO -Message "Attempting to run command '$cmd' on server '$server'"
-            $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd
+            $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd -Timeout 600
             if ($expected) {
                 Write-LogMessage -Type INFO -Message "Command '$cmd' ran with expected output on server '$server' successfully" -Colour Green
             }
@@ -596,9 +611,12 @@ Function Get-VsanClusterMember {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Get-VsanClusterMember cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server' and checking vSAN cluster members are present"
@@ -654,9 +672,12 @@ Function Test-VsanHealth {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Test-VsanHealth cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the vSAN Cluster Health"
@@ -753,9 +774,12 @@ Function Test-VsanObjectResync {
     
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Test-VsanObjectResync cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server' and attempting to check status of resync"
@@ -809,9 +833,12 @@ Function Get-PoweredOnVMsCount {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Get-PoweredOnVMsCount cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -type INFO -Message "Connected to server '$server' and attempting to count number of powered on virtual machines"
@@ -920,11 +947,14 @@ Function Get-VamiServiceStatus {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if ($DefaultCisServers -and ($DefaultCisServers | where Name -eq $server)) {
+                Disconnect-CisServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
-            if ($DefaultCisServers.Name -eq $server) {
+            if ($DefaultCisServer.Name -eq $server) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
                 $serviceStatus = $vMonAPI.Get($service,0)
                 Write-LogMessage -Type INFO -Message "Checking the service '$service' status is $checkStatus"
@@ -981,11 +1011,14 @@ Function Set-VamiServiceStatus {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Set-VAMIServiceStatus cmdlet" -Colour Yellow
-        if ((Test-Connection -ComputerName $server -Quiet -Count 1) -eq "True") {
+        if ((Test-NetConnection -ComputerName $server  ) -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if ($DefaultCisServers -and ($DefaultCisServers | where Name -eq $server)) {
+                Disconnect-CisServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
             if ($action -eq "START") { $requestedState = "STARTED"} elseif ($action -eq "STOP") { $requestedState = "STOPPED" }
-            if ($DefaultCisServers.Name -eq $server) {
+            if ($DefaultCisServer.Name -eq $server) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
                 $serviceStatus = $vMonAPI.Get($service,0)                
                 if ($serviceStatus.state -match $requestedState) {
@@ -1054,8 +1087,8 @@ Function Set-vROPSClusterState {
 	
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Set-vROPSClusterState cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             $vropsHeader = createHeader $user $pass
             $statusUri = "https://$server/casa/deployment/cluster/info"
@@ -1314,9 +1347,12 @@ Function Restart-VsphereHA {
 
 	Try {
         Write-LogMessage -Type INFO -Message "Starting run of Restart-VsphereHA cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server'"
@@ -1383,9 +1419,12 @@ Function Set-Retreatmode {
 
 	Try {
         Write-LogMessage -Type INFO -Message "Starting run of Set-Retreatmode cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
+        $checkServer = Test-NetConnection -ComputerName $server
+        if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
+                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-LogMessage -Type INFO -Message "Connected to server '$server'"

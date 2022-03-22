@@ -43,6 +43,7 @@ Param (
 
 Try {
     Clear-Host; Write-Host ""
+    $Global:ProgressPreference = 'SilentlyContinue'
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     $str1 = "$PSCommandPath "
     $str2 = "-server $server -user $user -pass ******* -powerState $powerState"
@@ -50,7 +51,7 @@ Try {
     Write-LogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
 
-    if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
+    if (!(Test-NetConnection -ComputerName $vcServer.fqdn)) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
     }
