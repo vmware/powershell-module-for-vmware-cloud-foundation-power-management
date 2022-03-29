@@ -150,7 +150,7 @@ Function Stop-CloudComponent {
                         }
                     }
                     elseif ($pattern) {
-                        Write-LogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Yellow
+                        Write-LogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Cyan
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
@@ -278,7 +278,7 @@ Function Start-CloudComponent {
                         }
                     }
                     elseif ($pattern) {
-                        Write-LogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Yellow
+                        Write-LogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Cyan
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
@@ -1508,7 +1508,7 @@ Function Wait-ForStableNsxtClusterStatus {
         While (-not $completed) {
             # Check iteration number
             if ($retrycount -ge $Retries) {
-                Write-LogMessage -Type Warning -Message "Request to $uri failed after $retryCount attempts." -Colour RED
+                Write-LogMessage -Type Warning -Message "Request to $uri failed after $retryCount attempts." -Colour Cyan
                 return $false
             }
             $retrycount++

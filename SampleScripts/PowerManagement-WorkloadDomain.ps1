@@ -81,16 +81,16 @@ Try {
     if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $str2 = $str2 + " -shutdownCustomerVm" }
     Write-LogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
-    Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
-    if (-Not $null -eq $customerVmMessage) { Write-LogMessage -Type INFO -Message $customerVmMessage -Colour Cyan}
+    Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile" -Colour Yellow
+    if (-Not $null -eq $customerVmMessage) { Write-LogMessage -Type INFO -Message $customerVmMessage -Colour Yellow}
 
-    if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0 -ErrorAction Ignore)) {
-        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0 or greater. Please install before proceeding" -Colour Red
-        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 2.3.0' to install from PS Gallery" -Colour Cyan
+    if (-Not (Get-InstalledModule -Name Posh-SSH -RequiredVersion 2.3.0 -ErrorAction Ignore)) {
+        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0. Please install before proceeding" -Colour Red
+        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -RequiredVersion 2.3.0' to install from PS Gallery" -Colour Yellow
         Break
     }
     else {
-        Write-LogMessage -Type INFO -Message "Required version of Posh-SSH found on system"
+        Write-LogMessage -Type INFO -Message "Required version of Posh-SSH 2.3.0 found on system" -Colour Green
     }
 
     if (!(Test-NetConnection -ComputerName $server)) {
@@ -100,7 +100,7 @@ Try {
     else {
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
         if ($StatusMsg) {
-            Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
+            Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully" -Colour Green
         }
         elseif ($ErrorMsg) {
             if ($ErrorMsg -match "4\d\d") {
@@ -122,7 +122,7 @@ Catch {
 Try {
     Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
     $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-    if ($StatusMsg) { Write-LogMessage -Type INFO -Message $StatusMsg } if ($WarnMsg) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ($ErrorMsg) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+    if ($StatusMsg) { Write-LogMessage -Type INFO -Message $StatusMsg } if ($WarnMsg) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Cyan } if ($ErrorMsg) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
     if ($accessToken) {
         Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory (May take little time)"
         # Gather Details from SDDC Manager
@@ -204,7 +204,7 @@ Try {
         }
 
         # Waiting for VCLS VMs to be stopped for ($retries*10) seconds
-        Write-LogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) shutdown will take time...please wait"
+        Write-LogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) shutdown will take time...please wait" -Colour Yellow
         $counter = 0
         $retries = 30
         foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -291,7 +291,7 @@ Try {
                     $flag = 1
                     Write-LogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state. Customer VM Shutdown is not requested," -Colour Cyan
                     Write-LogMessage -Type WARNING -Message "So not shutting down Non VCF management VMs. Hence unable to proceed with putting host in maintenance mode" -Colour Cyan
-                    Write-LogMessage -Type WARNING -Message "ESXi with VMs running: $($esxiNode.fqdn)" -Colour Red
+                    Write-LogMessage -Type WARNING -Message "ESXi with VMs running: $($esxiNode.fqdn)" -Colour Cyan
                 }
             }
         }
@@ -310,7 +310,7 @@ Try {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
             }
             # End of shutdown
-            Write-LogMessage -Type INFO -Message "End of Shutdown sequence!" -Colour Cyan
+            Write-LogMessage -Type INFO -Message "End of Shutdown sequence!" -Colour Yellow
         }
         else {
             Write-LogMessage -Type ERROR -Message "Stopping shutdown process, since there are still running VMs! Please, check output above in order to identify ESXi hosts with running VMs." -Colour Red
@@ -344,7 +344,7 @@ Try {
 
         # Startup the Virtual Infrastructure Workload Domain vCenter Server
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
-        Write-LogMessage -Type INFO -Message "Waiting for vCenter Server services to start on $($vcServer.fqdn) (may take some time)"
+        Write-LogMessage -Type INFO -Message "Waiting for vCenter Server services to start on $($vcServer.fqdn) (may take some time)" -Colour Yellow
         Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
 
         # Check the health and sync status of the vSAN cluster
@@ -396,7 +396,9 @@ Try {
         if (Test-NetConnection -ComputerName $vcServer.fqdn) {
             if ($nsxtEdgeNodes) {
                 Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
-            }
+
+
+
             else {
                 Write-LogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
             }
@@ -407,7 +409,7 @@ Try {
         }
 
         # End of startup
-        Write-LogMessage -Type INFO -Message "End of startup sequence!" -Colour Cyan
+        Write-LogMessage -Type INFO -Message "End of startup sequence!" -Colour Yellow
     }
 }
 Catch {

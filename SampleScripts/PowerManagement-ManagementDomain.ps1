@@ -86,7 +86,7 @@ Param (
                     $regionalWSA = Read-Host "Enter the Virtual Machine name for the Standalone Workspace ONE Access instance"
                     Write-LogMessage -Type INFO -Message "The Standalone Workspace ONE Access instance Name is : $regionalWSA"
                     if (([string]::IsNullOrEmpty($regionalWSA))) {
-                        Write-LogMessage -Type WARNING -Message "Regional WSA information is null, hence Exiting" -Colour Magenta
+                        Write-LogMessage -Type WARNING -Message "Regional WSA information is null, hence Exiting" -Colour Cyan
                         Exit
                     }
                 }
@@ -96,7 +96,7 @@ Param (
                 $edgenodesList = Read-Host "Kindly provide space separated list of Virtual Machine names for NSX-T edge nodes. (Enter for none)"
                 Write-LogMessage -Type INFO -Message "The list of edgenodes VM name passed are :$edgenodesList"
                 if (([string]::IsNullOrEmpty($edgenodesList))) {
-                    Write-LogMessage -Type WARNING -Message "No Edge nodes have been provided!" -Colour Magenta
+                    Write-LogMessage -Type WARNING -Message "No Edge nodes have been provided!" -Colour Cyan
                     $edgenodes = $false
                 }
                 else {
@@ -111,17 +111,17 @@ Param (
                     $inputFile = $json
                 }
                 elseif (Test-Path -Path $defaultFile -PathType Leaf) {
-                    Write-LogMessage -Type INFO -Message "No path to json provided on the command line so script is using for auto created input json file ManagementStartupInput.json from current directory" -Colour Magenta
+                    Write-LogMessage -Type INFO -Message "No path to json provided on the command line so script is using for auto created input json file ManagementStartupInput.json from current directory" -Colour Yellow
                     $inputFile =  $defaultFile
                 } 
                 if ([string]::IsNullOrEmpty($inputFile)) {
-                    Write-LogMessage -Type Warning -Message "JSON input file is not provided, unable to proceed, hence exiting" -Colour Magenta
+                    Write-LogMessage -Type Warning -Message "JSON input file is not provided, unable to proceed, hence exiting" -Colour Cyan
                     Exit
                 }
                 Write-Host "";
                 $proceed =  Read-Host "The following JSON file $inputFile will be used for the operation, please confirm (Yes or No): [No]"
                 if ($proceed -match "no" -or (-not $proceed)) {
-                    Write-LogMessage -Type WARNING -Message "Exiting script execution as the input is No" -Colour Magenta
+                    Write-LogMessage -Type WARNING -Message "Exiting script execution as the input is No" -Colour Cyan
                     Exit
                 }
                 Write-LogMessage -Type INFO -Message "$inputFile is checked for its correctness, moving on with execution"
@@ -145,16 +145,16 @@ Try {
     if ($json) {$str2 = $str2 + " -json $json"}
     Write-LogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
-    Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
-    if (-Not $null -eq $customerVmMessage) { Write-LogMessage -Type INFO -Message $customerVmMessage -Colour Cyan}
+    Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile" -Colour Yellow
+    if (-Not $null -eq $customerVmMessage) { Write-LogMessage -Type INFO -Message $customerVmMessage -Colour Yellow}
 
-    if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0 -ErrorAction Ignore)) {
-        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0 or greater. Please install before proceeding" -Colour Red
-        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 2.3.0' to install from PS Gallery" -Colour Cyan
+    if (-Not (Get-InstalledModule -Name Posh-SSH -RequiredVersion 2.3.0 -ErrorAction Ignore)) {
+        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0. Please install before proceeding" -Colour Red
+        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -RequiredVersion 2.3.0' to install from PS Gallery" -Colour Yellow
         Break
     }
     else {
-        Write-LogMessage -Type INFO -Message "Required version of Posh-SSH found on the system"
+        Write-LogMessage -Type INFO -Message "Required version of Posh-SSH 2.3.0 found on the system" -Colour Green
     }
 
     # Check connection to SDDC Manager only in case of shutdown, for startup we are using information from input json
@@ -166,7 +166,7 @@ Try {
         else {
             $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
             if ($StatusMsg) {
-                Write-LogMessage -Type INFO -Message "Connection to SDDC Manager is validated successfully"
+                Write-LogMessage -Type INFO -Message "Connection to SDDC Manager is validated successfully" -Colour Green
             }
             elseif ($ErrorMsg) {
                 if ($ErrorMsg -match "4\d\d") {
@@ -192,7 +192,7 @@ Try {
         Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
         Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to gather system details"
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-        if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+        if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Cyan } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
         if ($accessToken) {
             Write-LogMessage -Type INFO -Message "Gathering system details from SDDC Manager inventory (May take some time)"
             $workloadDomain = Get-VCFWorkloadDomain | Where-Object {  $_.type -eq "MANAGEMENT" }
@@ -457,7 +457,7 @@ Try {
             if ($genjson) {
                 if (Test-Path -Path "ManagementStartupInput.json" -PathType Leaf) {
                     $location = Get-Location
-                    Write-LogMessage -Type INFO -Message "The generation of JSON is successful." 
+                    Write-LogMessage -Type INFO -Message "The generation of JSON is successful."  -colour Green
                     Write-LogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path." -colour Green
                     Exit
                 }
@@ -543,7 +543,7 @@ Try {
         }
 
         # Waiting for VCLS VMs to be stopped for ($retries*10) seconds
-        Write-LogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) shutdown will take time...please wait"
+        Write-LogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) shutdown will take time...please wait" -colour Yellow
         $counter = 0
         $retries = 30
         foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -607,7 +607,7 @@ Try {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
             }
             # End of shutdown
-            Write-LogMessage -Type INFO -Message "End of Shutdown sequence!" -Colour Cyan
+            Write-LogMessage -Type INFO -Message "End of Shutdown sequence!" -Colour Yellow
         }
         else {
             Write-LogMessage -Type ERROR -Message "Stopping shutdown process, since there are still running VMs! Please, check output above in order to identify ESXi hosts with running VMs." -Colour Red
@@ -786,7 +786,7 @@ Try {
 
         # Startup the Management Domain vCenter Server
         Start-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.Name -timeout 600
-        Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
+        Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)" -colour Yellow
         Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
 
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
@@ -846,7 +846,7 @@ Try {
             if ($($vrops.status -eq "ACTIVE") -and $vropsNodes) {
                 Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsNodes -timeout 600
                 # Sleep before start quering API - TODO needs better handling with a loop.
-                Write-LogMessage -Type INFO -Message "Sleeping 5 min in order to allow vROps API to start..."
+                Write-LogMessage -Type INFO -Message "Sleeping 5 min in order to allow vROps API to start..." -colour Yellow
                 Start-Sleep -s 300
 
                 $vropsCollectorNodes = @()
@@ -869,7 +869,7 @@ Try {
         }
 
         # End of startup
-        Write-LogMessage -Type INFO -Message "End of startup sequence. Please check your environment" -Colour Cyan
+        Write-LogMessage -Type INFO -Message "End of startup sequence. Please check your environment" -Colour Yellow
     }
 }
 Catch {
