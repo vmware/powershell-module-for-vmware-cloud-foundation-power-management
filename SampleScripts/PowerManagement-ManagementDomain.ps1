@@ -148,13 +148,13 @@ Try {
     Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile" -Colour Yellow
     if (-Not $null -eq $customerVmMessage) { Write-LogMessage -Type INFO -Message $customerVmMessage -Colour Yellow}
 
-    if (-Not (Get-InstalledModule -Name Posh-SSH -RequiredVersion 2.3.0 -ErrorAction Ignore)) {
-        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0. Please install before proceeding" -Colour Red
-        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -RequiredVersion 2.3.0' to install from PS Gallery" -Colour Yellow
+    if (-Not (Get-InstalledModule -Name Posh-SSH -RequiredVersion 3.0.0 -ErrorAction Ignore)) {
+        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 3.0.0. Please install before proceeding" -Colour Red
+        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -RequiredVersion 3.0.0' to install from PS Gallery" -Colour Yellow
         Break
     }
     else {
-        Write-LogMessage -Type INFO -Message "Required version of Posh-SSH 2.3.0 found on the system" -Colour Green
+        Write-LogMessage -Type INFO -Message "Required version of Posh-SSH 3.0.0 found on the system" -Colour Green
     }
 
     # Check connection to SDDC Manager only in case of shutdown, for startup we are using information from input json
