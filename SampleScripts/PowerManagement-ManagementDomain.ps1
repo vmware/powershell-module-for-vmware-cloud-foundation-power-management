@@ -441,6 +441,7 @@ Try {
                 $vcHostUser = (Get-VCFCredential -resourceType ESXI -resourceName $vcHost | Where-Object {$_.accountType -eq "USER"}).username
                 $vcHostPass = (Get-VCFCredential -resourceType ESXI -resourceName $vcHost | Where-Object {$_.accountType -eq "USER"}).password
                 $vcHostPass_encrypted = $vcHostPass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
 
             }
             $var["Server"]["host"] = $vcHost
@@ -787,11 +788,22 @@ Try {
         # Startup the Management Domain vCenter Server
         Start-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.Name -timeout 600
         Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)" -colour Yellow
-        Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
+        $retries = 20
+        $flag = 0
+        Do {
+            Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue
+            if ($DefaultVIServer.Name -eq $server) {
+                $flag =1
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                break
+            }
+            Start-Sleep 60
+            $retries -= 1
+            Write-LogMessage -Type INFO -Message "The services still coming up. Please wait." -colour Yellow
+        } Until ($retries)
 
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
-        $checkServer = Test-NetConnection -ComputerName $vcServer.fqdn
-        if ($checkServer) {
+        if ($flag) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
@@ -803,10 +815,9 @@ Try {
         }
         
         # Change the DRS Automation Level to Fully Automated for both the Management Domain Clusters
-        $checkServer = Test-NetConnection -ComputerName $vcServer.fqdn
-        if ($checkServer) {
-            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
-        }
+
+
+        Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
 
         #Startup the SDDC Manager Virtual Machine in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600

@@ -345,45 +345,39 @@ Try {
         # Startup the Virtual Infrastructure Workload Domain vCenter Server
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
         Write-LogMessage -Type INFO -Message "Waiting for vCenter Server services to start on $($vcServer.fqdn) (may take some time)" -Colour Yellow
-        Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
+        $retries = 20
+        $flag = 0
+        Do {
+            Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue
+            if ($DefaultVIServer.Name -eq $server) {
+                $flag =1
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                break
+            }
+            Start-Sleep 60
+            $retries -= 1
+            Write-LogMessage -Type INFO -Message "The services still coming up. Please wait." -colour Yellow
+        } Until ($retries)
 
         # Check the health and sync status of the vSAN cluster
-        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
-            Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+        if ( $flag ) {
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
         }
         else {
-            Write-LogMessage -Type ERROR -Message "The vCenter Server and its services are still not online" -Colour Red
+            Write-LogMessage -Type ERROR -Message "The vCenter Server and its services are still not online despite waiting for 20 mins" -Colour Red
             Exit
         }
 
         # Restart vSphere HA to avoid triggering a Cannot find vSphere HA master agent error.
-        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
-            Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
-        }
-        else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping restarting vSphere HA" -Colour Cyan
-            Exit
-        }
+        Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
 
         # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
-        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
-            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
-        }
-        else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping setting the DRS Automation level" -Colour Cyan
-            Exit
-        }
+        Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
 
         #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
-        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
-            Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
-        }
-        else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping disabling Retreat Mode" -Colour Cyan
-            Exit
-        }
+        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
+
 
         # Startup the NSX Manager Nodes in the Virtual Infrastructure Workload Domain
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
@@ -392,20 +386,11 @@ Try {
             Exit
         }
 
-        # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain 
-        if (Test-NetConnection -ComputerName $vcServer.fqdn) {
-            if ($nsxtEdgeNodes) {
-                Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
-
-
-
-            else {
-                Write-LogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
-            }
-        }
+        # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain
+        if ($nsxtEdgeNodes) {
+            Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
         else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping startup of $nsxtEdgeNodes" -Colour Cyan
-            Exit
+            Write-LogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
         }
 
         # End of startup

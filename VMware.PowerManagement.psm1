@@ -69,8 +69,8 @@ Function Stop-CloudComponent {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -154,7 +154,7 @@ Function Stop-CloudComponent {
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -204,8 +204,8 @@ Function Start-CloudComponent {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer -server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -282,7 +282,7 @@ Function Start-CloudComponent {
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -330,8 +330,8 @@ Function Set-MaintenanceMode {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -378,7 +378,7 @@ Function Set-MaintenanceMode {
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -424,8 +424,8 @@ Function Set-DrsAutomationLevel {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -443,7 +443,7 @@ Function Set-DrsAutomationLevel {
                             Write-LogMessage -Type ERROR -Message "The DRS automation level for cluster '$cluster' could not be set to '$level'" -Colour Red
                         }
                     }
-                    Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                    Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
                 else {
                     Write-LogMessage -Type ERROR -Message "Cluster '$cluster' not found on server '$server', please check your details and try again" -Colour Red
@@ -492,8 +492,8 @@ Function Get-VMRunningStatus {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -514,7 +514,7 @@ Function Get-VMRunningStatus {
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -614,8 +614,8 @@ Function Get-VsanClusterMember {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -631,7 +631,7 @@ Function Get-VsanClusterMember {
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -675,8 +675,8 @@ Function Test-VsanHealth {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -732,7 +732,7 @@ Function Test-VsanHealth {
                         Write-LogMessage -Type ERROR -Message "The vSAN Health Status for $cluster is BAD" -Colour Red
                     }
                     Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                    Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                    Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
             }
             else {
@@ -777,8 +777,8 @@ Function Test-VsanObjectResync {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -792,7 +792,7 @@ Function Test-VsanObjectResync {
                     Write-LogMessage -Type ERROR -Message "Resyncing of objects in progress" -Colour Red
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -836,8 +836,8 @@ Function Get-PoweredOnVMsCount {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -855,7 +855,7 @@ Function Get-PoweredOnVMsCount {
                     Write-LogMessage -type INFO -Message "There are virtual machines in a powered on state: $no_powered_on_vms"
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 Return $no_powered_on_vms.count
             }
             else {
@@ -950,8 +950,8 @@ Function Get-VamiServiceStatus {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if ($DefaultCisServers -and ($DefaultCisServers | where Name -eq $server)) {
-                Disconnect-CisServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultCisServers) {
+                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
             if ($DefaultCisServer.Name -eq $server) {
@@ -965,7 +965,7 @@ Function Get-VamiServiceStatus {
                     Write-LogMessage -Type ERROR -Message  "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Red
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-CisServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -1013,8 +1013,8 @@ Function Set-VamiServiceStatus {
         Write-LogMessage -Type INFO -Message "Starting run of Set-VAMIServiceStatus cmdlet" -Colour Yellow
         if ((Test-NetConnection -ComputerName $server  ) -eq "True") {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if ($DefaultCisServers -and ($DefaultCisServers | where Name -eq $server)) {
-                Disconnect-CisServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultCisServers) {
+                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
             if ($action -eq "START") { $requestedState = "STARTED"} elseif ($action -eq "STOP") { $requestedState = "STOPPED" }
@@ -1044,7 +1044,7 @@ Function Set-VamiServiceStatus {
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-CisServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -1350,8 +1350,8 @@ Function Restart-VsphereHA {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -1372,7 +1372,7 @@ Function Restart-VsphereHA {
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
@@ -1422,8 +1422,8 @@ Function Set-Retreatmode {
         $checkServer = Test-NetConnection -ComputerName $server
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if (($DefaultVIServers) -and ($DefaultVIServers | where Name -eq $server)) {
-                Disconnect-VIServer -Server $server -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -1454,7 +1454,7 @@ Function Set-Retreatmode {
                     }
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
