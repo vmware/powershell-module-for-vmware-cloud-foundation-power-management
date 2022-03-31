@@ -365,7 +365,7 @@ Try {
         $flag = 0
         While ($retries) {
             Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue
-            if ($DefaultVIServer.Name -eq $server) {
+            if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
                 $flag =1
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 break
