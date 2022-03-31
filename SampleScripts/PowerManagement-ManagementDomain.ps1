@@ -148,13 +148,29 @@ Try {
     Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile" -Colour Yellow
     if (-Not $null -eq $customerVmMessage) { Write-LogMessage -Type INFO -Message $customerVmMessage -Colour Yellow}
 
-    if (-Not (Get-InstalledModule -Name Posh-SSH -RequiredVersion 3.0.0 -ErrorAction Ignore)) {
-        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 3.0.0. Please install before proceeding" -Colour Red
-        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -RequiredVersion 3.0.0' to install from PS Gallery" -Colour Yellow
-        Break
+    if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0 -ErrorAction Ignore)) {
+        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0 or greater, Please install before proceeding" -Colour Red
+        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 2.3.0' to install from PS Gallery" -Colour Yellow
+        Exit
     }
     else {
-        Write-LogMessage -Type INFO -Message "Required version of Posh-SSH 3.0.0 found on the system" -Colour Green
+        $ver = Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0
+        Write-LogMessage -Type INFO -Message "The version of Posh-SSH $($ver.Version) found on system" -Colour Green
+        if (Get-Module -Name Posh-SSH) {
+            Write-LogMessage -Type INFO -Message "The required version of Posh-SSH $($ver.Version) is already imported" -Colour Green
+        } else {
+            # If module is not imported, check if available on disk and try to import
+            Try {
+                Write-LogMessage -Type INFO -Message "Module Posh-SSH not loaded, importing now please wait..."
+                Import-Module "Posh-SSH"
+                Write-LogMessage -Type INFO -Message "Module Posh-SSH imported successfully." -Colour Green
+
+            }
+            Catch {
+                Write-LogMessage -Type ERROR -Message "Import is not sucessfull, please refer doc for possible reason and solution"
+                Exit
+            }
+        }
     }
 
     # Check connection to SDDC Manager only in case of shutdown, for startup we are using information from input json
