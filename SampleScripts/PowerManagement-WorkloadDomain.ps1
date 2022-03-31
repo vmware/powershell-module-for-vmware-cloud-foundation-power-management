@@ -347,7 +347,7 @@ Try {
         Write-LogMessage -Type INFO -Message "Waiting for vCenter Server services to start on $($vcServer.fqdn) (may take some time)" -Colour Yellow
         $retries = 20
         $flag = 0
-        Do {
+        While ($retries) {
             Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue
             if ($DefaultVIServer.Name -eq $server) {
                 $flag =1
@@ -357,7 +357,7 @@ Try {
             Start-Sleep 60
             $retries -= 1
             Write-LogMessage -Type INFO -Message "The services still coming up. Please wait." -colour Yellow
-        } Until ($retries)
+        }
 
         # Check the health and sync status of the vSAN cluster
         if ( $flag ) {

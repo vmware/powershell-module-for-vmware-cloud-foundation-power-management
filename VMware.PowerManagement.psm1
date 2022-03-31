@@ -960,25 +960,30 @@ Function Get-VamiServiceStatus {
                 Write-LogMessage -Type INFO -Message "Checking the service '$service' status is $checkStatus"
                 if ($serviceStatus.state -eq $checkStatus) {
                     Write-LogMessage -Type INFO -Message "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Green
+                    return 1
                 }
                 else {
                     Write-LogMessage -Type ERROR -Message  "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Red
+                    return 0
                 }
-                Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
                 Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                return 0
             }
         }
         else {
             Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            return 0
         } 
     } 
     Catch {
         Debug-CatchWriter -object $_
+        return 0
     }
     Finally {
+        Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+        Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
         Write-LogMessage -Type INFO -Message "Finishing run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
     }
 }

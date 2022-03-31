@@ -790,7 +790,7 @@ Try {
         Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)" -colour Yellow
         $retries = 20
         $flag = 0
-        Do {
+        while ($retries) {
             Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue
             if ($DefaultVIServer.Name -eq $server) {
                 $flag =1
@@ -800,7 +800,7 @@ Try {
             Start-Sleep 60
             $retries -= 1
             Write-LogMessage -Type INFO -Message "The services still coming up. Please wait." -colour Yellow
-        } Until ($retries)
+        }
 
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
         if ($flag) {
