@@ -807,7 +807,7 @@ Try {
         $retries = 20
         $flag = 0
         while ($retries) {
-            Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue
+            Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
             if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
                 $flag =1
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
