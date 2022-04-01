@@ -562,7 +562,7 @@ Function Invoke-EsxCommand {
         $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue
         if ($session) {
             Write-LogMessage -Type INFO -Message "Attempting to run command '$cmd' on server '$server'"
-            $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd -Timeout 600
+            $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd -Timeout 1200
             if ($expected) {
                 Write-LogMessage -Type INFO -Message "Command '$cmd' ran with expected output on server '$server' successfully" -Colour Green
             }
