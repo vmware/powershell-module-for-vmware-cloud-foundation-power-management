@@ -552,7 +552,7 @@ Try {
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600
 
         # Shut Down the vSphere Cluster Services Virtual Machines
-        if () {
+        if ($checkServer) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
         }
         else {

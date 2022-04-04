@@ -551,7 +551,7 @@ Function Invoke-EsxCommand {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cmd,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$expected
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$expected
     )
 
     Try {
@@ -562,8 +562,10 @@ Function Invoke-EsxCommand {
         $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue
         if ($session) {
             Write-LogMessage -Type INFO -Message "Attempting to run command '$cmd' on server '$server'"
-            $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd -Timeout 1200
-            if ($expected) {
+            #bug-2925496, default value was only 60 seconds, so increased it 900 as per IVO's suggestion
+            $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd -Timeout 900
+            #bug-2948041, was only checking $expected is passed but was not parsing it, did that so against command output.
+            if ($expected -and ($commandOutput.Output -match $expected)) {
                 Write-LogMessage -Type INFO -Message "Command '$cmd' ran with expected output on server '$server' successfully" -Colour Green
             }
             elseif ($commandOutput.exitStatus -eq 0) {
@@ -924,6 +926,7 @@ Function Test-WebUrl {
 }
 Export-ModuleMember -Function Test-WebUrl
 
+#bug-2925594, Here method name was get, but actually functionality was verify, so made expected argument optional, also now it returns the function
 Function Get-VamiServiceStatus {
     <#
         .SYNOPSIS
@@ -942,7 +945,7 @@ Function Get-VamiServiceStatus {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
 		[Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service,
-		[Parameter (Mandatory = $true)] [ValidateSet("STARTED", "STOPPED")] [String]$checkStatus
+		[Parameter (Mandatory = $false)] [ValidateSet("STARTED", "STOPPED")] [String]$checkStatus
     )
 
     Try {
@@ -954,32 +957,35 @@ Function Get-VamiServiceStatus {
                 Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
-            if ($DefaultCisServer.Name -eq $server) {
+            if ($DefaultCisServers.Name -eq $server) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
                 $serviceStatus = $vMonAPI.Get($service,0)
+                if (-Not $checkStatus) {
+                    return $serviceStatus.state
+                }
                 Write-LogMessage -Type INFO -Message "Checking the service '$service' status is $checkStatus"
                 if ($serviceStatus.state -eq $checkStatus) {
                     Write-LogMessage -Type INFO -Message "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Green
-                    return 1
+                    return $true
                 }
                 else {
                     Write-LogMessage -Type ERROR -Message  "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Red
-                    return 0
+                    return $false
                 }
             }
             else {
                 Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
-                return 0
+                return $false
             }
         }
         else {
             Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
-            return 0
+            return $false
         } 
     } 
     Catch {
         Debug-CatchWriter -object $_
-        return 0
+        return $false
     }
     Finally {
         Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"

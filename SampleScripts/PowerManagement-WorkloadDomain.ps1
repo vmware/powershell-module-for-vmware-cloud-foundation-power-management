@@ -50,6 +50,10 @@ Param (
 
 # Customer Questions Section 
 Try {
+    #bug-2925318 - The default action of $erroractionpreference variable value is continue by default, so upon error, error message is thrown
+    #on the screen and execution is continued. but if you set -erroraction common parameter, the default action is overridden. Since we  want
+    #execution to stop on error, we are resetting the environment variable value to STOP
+    $ErrorActionPreference = 'Stop'
     Clear-Host; Write-Host ""
     if ($powerState -eq "Shutdown") {
         if (-Not $PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
@@ -361,22 +365,36 @@ Try {
         # Startup the Virtual Infrastructure Workload Domain vCenter Server
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
         Write-LogMessage -Type INFO -Message "Waiting for vCenter Server services to start on $($vcServer.fqdn) (may take some time)" -Colour Yellow
+
+        #bug-2925594  and bug-2925501 and bug-2925511
         $retries = 20
         $flag = 0
+        $service_status = 0
         While ($retries) {
             Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
             if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
+                #Max wait time for services to come up is 10 mins.
+                for ($i=0;  in 1..10) {
+                    $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser  -pass $vcPass -service 'vsphere-ui'
+                    if ($status -eq "STARTED") {
+                        $service_status = 1
+                        break
+                    } else {
+                       Start-Sleep 60
+                       Write-LogMessage -Type INFO -Message "The services on Virtual Center is still coming up. Please wait." -colour Yellow
+                    }
+                }
                 $flag =1
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 break
             }
             Start-Sleep 60
             $retries -= 1
-            Write-LogMessage -Type INFO -Message "The services still coming up. Please wait." -colour Yellow
+            Write-LogMessage -Type INFO -Message "The Virtual Center still coming up. Please wait." -colour Yellow
         }
 
         # Check the health and sync status of the vSAN cluster
-        if ( $flag ) {
+        if ( $flag -and $service_status) {
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
         }
