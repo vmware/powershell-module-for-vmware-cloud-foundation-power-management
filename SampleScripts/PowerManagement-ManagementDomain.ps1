@@ -179,7 +179,7 @@ Try {
 
     # Check connection to SDDC Manager only in case of shutdown, for startup we are using information from input json
     if ($powerState -eq "Shutdown") { 
-        if (!(Test-NetConnection -ComputerName $server)) {
+        if (!(Test-NetConnection -ComputerName $server).PingSucceeded) {
             Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
             Exit
         }
@@ -521,7 +521,7 @@ Try {
         }
 
         # Shutdown the NSX Edge Nodes
-        $checkServer = Test-NetConnection -ComputerName $vcServer.fqdn
+        $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
         if ($checkServer) {
             # Shutdown Standalone WSA
             if ($regionalWSA) {
@@ -543,7 +543,7 @@ Try {
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
 
-        $checkServer = Test-NetConnection -ComputerName $vcServer.fqdn
+        $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
         if ($checkServer) {
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass

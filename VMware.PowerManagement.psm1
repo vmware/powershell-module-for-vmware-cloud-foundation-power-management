@@ -1560,6 +1560,83 @@ Function Wait-ForStableNsxtClusterStatus {
 }
 Export-ModuleMember -Function Wait-ForStableNsxtClusterStatus
 
+
+Function Wait-ForActiveNodeStatus {
+    <#
+        .SYNOPSIS
+        Fetch status of NSX Manager nodes
+
+        .DESCRIPTION
+        The Wait-ForActiveNodeStatus cmdlet fetches the cluster status of NSX Manager nodes after restart
+
+        .EXAMPLE
+        Wait-ForActiveNodeStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re1!VMw@re1! -node sfo-m01-nsx01a
+        This example gets the node status of sfo-m01-nsx01a of the NSX Management Cluster
+    #>
+
+	Param (
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $node
+    )
+
+    Try {
+        Write-LogMessage -Type INFO -Message "Starting run of Wait-ForActiveNodeStatus" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Waiting the node to become 'Active' for NSX Manager '$server'. This could take up to 20 min, please be patient"
+        $uri = "https://$server/api/v1/cluster/status"
+        $nsxHeaders = createHeader $user $pass
+        $retryCount = 0
+        $completed = $false
+        $response = $null
+        $SecondsDelay = 30
+        $Retries = 20
+        $aditionalWaitMultiplier = 3
+        $successfulConnecitons = 0
+        While (-not $completed) {
+            # Check iteration number
+            if ($retrycount -ge $Retries) {
+                Write-LogMessage -Type Warning -Message "Request to $uri failed after $retryCount attempts." -Colour Cyan
+                return $false
+            }
+            $retrycount++
+            # Retry connection if NSX Manager is not online
+            Try {
+                $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
+            } Catch {
+                Write-LogMessage -Type INFO -Message "Could not connect to NSX Manager '$server'. Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt"
+                Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
+                continue
+            }
+            $successfulConnecitons++
+            if ($response.mgmt_cluster_status.status -ne 'STABLE') {
+                Write-LogMessage -Type INFO -Message "Expecting NSX Manager cluster state as 'STABLE', was: $($response.mgmt_cluster_status.status)"
+                # Add longer sleep during fiest several attempts to avoid locking the NSX-T account just after power-on
+                if ($successfulConnecitons -lt 4) {
+                    Write-LogMessage -Type INFO -Message "Sleeping for $($SecondsDelay * $aditionalWaitMultiplier) seconds before next check..."
+                    Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
+                }
+                else {
+                    Write-LogMessage -Type INFO -Message "Sleeping for $SecondsDelay seconds before next check..."
+                    Start-Sleep $SecondsDelay
+                }
+            }
+            else {
+                $completed = $true
+                Write-LogMessage -Type INFO -Message "The NSX Manager cluster '$server' state is 'STABLE'" -Colour GREEN
+                return $true
+            }
+        }
+    }
+    Catch {
+        Debug-CatchWriter -object $_
+    }
+    Finally {
+        Write-LogMessage -Type INFO -Message "Finishing run of Wait-ForActiveNodeStatus" -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Wait-ForActiveNodeStatus
+
 ######### Start Useful Script Functions ##########
 
 Function createHeader  {

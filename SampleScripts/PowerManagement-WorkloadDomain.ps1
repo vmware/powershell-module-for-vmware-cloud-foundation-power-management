@@ -113,7 +113,7 @@ Try {
         }
     }
 
-    if (!(Test-NetConnection -ComputerName $server)) {
+    if (!(Test-NetConnection -ComputerName $server).PingSucceeded) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Exit
     }
@@ -205,7 +205,7 @@ Try {
     if ($powerState -eq "Shutdown") {
         # Change the DRS Automation Level to Partially Automated for VI Workload Domain Clusters
         if ($WorkloadDomain.type -ne "MANAGEMENT") {
-            $checkServer = Test-NetConnection -ComputerName $vcServer.fqdn
+            $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
             if ($checkServer) {
                 Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
             }
@@ -216,7 +216,7 @@ Try {
         }
         
         # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
         }
         else {
@@ -244,7 +244,7 @@ Try {
         }
 
         # Shut Down the vSphere with Tanzu Virtual Machines
-        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
             Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action STOP
         }
         else {
@@ -267,7 +267,7 @@ Try {
         }
 
         # Shutdown the NSX Edge Nodes
-        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
             if ($nsxtEdgeNodes) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
             }
@@ -282,7 +282,7 @@ Try {
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
         # Check the health and sync status of the vSAN cluster 
-        if (Test-NetConnection -ComputerName $vcServer.fqdn ) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             # Shutdown vCenter Server
