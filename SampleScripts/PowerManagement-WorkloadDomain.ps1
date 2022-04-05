@@ -374,14 +374,14 @@ Try {
             Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
             if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
                 #Max wait time for services to come up is 10 mins.
-                for ($i=0;  in 1..10) {
+                for ($i=0;  $i -le 10; $i++) {
                     $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser  -pass $vcPass -service 'vsphere-ui'
                     if ($status -eq "STARTED") {
                         $service_status = 1
                         break
                     } else {
                        Start-Sleep 60
-                       Write-LogMessage -Type INFO -Message "The services on Virtual Center is still coming up. Please wait." -colour Yellow
+                       Write-LogMessage -Type INFO -Message "The services on Virtual Center is still starting. Please wait." -colour Yellow
                     }
                 }
                 $flag =1
@@ -390,7 +390,7 @@ Try {
             }
             Start-Sleep 60
             $retries -= 1
-            Write-LogMessage -Type INFO -Message "The Virtual Center still coming up. Please wait." -colour Yellow
+            Write-LogMessage -Type INFO -Message "The Virtual Center is still starting. Please wait." -colour Yellow
         }
 
         # Check the health and sync status of the vSAN cluster
