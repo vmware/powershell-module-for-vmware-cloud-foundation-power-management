@@ -55,7 +55,7 @@ Try {
 
     if (!(Test-NetConnection -ComputerName $server).PingSucceeded) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
-        Break
+        Exit
     }
     else {
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
@@ -65,11 +65,11 @@ Try {
         elseif ($ErrorMsg) {
             if ($ErrorMsg -match "4\d\d") {
                 Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
-                Break
+                Exit
             }
             else {
                 Write-Error $ErrorMsg
-                Break
+                Exit
             }
         }
     }
