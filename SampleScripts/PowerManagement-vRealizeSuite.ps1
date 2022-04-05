@@ -51,7 +51,7 @@ Try {
     Write-LogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
 
-    if (!(Test-NetConnection -ComputerName $vcServer.fqdn)) {
+    if (!(Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
     }

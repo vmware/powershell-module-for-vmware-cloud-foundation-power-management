@@ -53,7 +53,7 @@ Try {
     Write-LogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
 
-    if (!(Test-NetConnection -ComputerName $server)) {
+    if (!(Test-NetConnection -ComputerName $server).PingSucceeded) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Break
     }
@@ -118,7 +118,7 @@ Catch {
 Try {
     if ($powerState -eq "Shutdown") {
         # Change the DRS Automation Level to Partially Automated for the VI Workload Domain Clusters
-        if (Test-NetConnection -ComputerName $vcServer.fqdn) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded) {
             Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
         }
 
@@ -156,7 +156,7 @@ Try {
         Write-LogMessage -Type INFO -Message "Workload Management will be started automatically by the WCP service, this will take some time"
 
         # Change the DRS Automation Level to Fully Automated for the VI Workload Domain Clusters
-        if (Test-NetConnection -ComputerName $vcServer.fqdn) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded) {
             Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
         }
     }
