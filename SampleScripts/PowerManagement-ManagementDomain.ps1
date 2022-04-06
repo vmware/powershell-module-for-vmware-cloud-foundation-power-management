@@ -808,24 +808,35 @@ Try {
         }
 
         # Startup the Management Domain vCenter Server
-        Start-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.Name -timeout 600
-        Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)" -colour Yellow
+        #bug-2925594  and bug-2925501 and bug-2925511
         $retries = 20
         $flag = 0
-        while ($retries) {
+        $service_status = 0
+        While ($retries) {
             Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
             if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
+                #Max wait time for services to come up is 10 mins.
+                for ($i=0;  $i -le 10; $i++) {
+                    $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser  -pass $vcPass -service 'vsphere-ui'
+                    if ($status -eq "STARTED") {
+                        $service_status = 1
+                        break
+                    } else {
+                       Start-Sleep 60
+                       Write-LogMessage -Type INFO -Message "The services on Virtual Center is still starting. Please wait." -colour Yellow
+                    }
+                }
                 $flag =1
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 break
             }
             Start-Sleep 60
             $retries -= 1
-            Write-LogMessage -Type INFO -Message "The services still coming up. Please wait." -colour Yellow
+            Write-LogMessage -Type INFO -Message "The Virtual Center is still starting. Please wait." -colour Yellow
         }
 
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
-        if ($flag) {
+        if ($flag -and $service_status) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
             Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
             Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
