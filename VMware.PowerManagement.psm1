@@ -66,7 +66,7 @@ Function Stop-CloudComponent {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of the Stop-CloudComponent cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -201,7 +201,7 @@ Function Start-CloudComponent {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Start-CloudComponent cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -327,7 +327,7 @@ Function Set-MaintenanceMode {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Set-MaintenanceMode cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -421,7 +421,7 @@ Function Set-DrsAutomationLevel {
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Set-DrsAutomationLevel cmdlet" -Colour Yellow
 
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -489,7 +489,7 @@ Function Get-VMRunningStatus {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Get-VMRunningStatus cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -613,7 +613,7 @@ Function Get-VsanClusterMember {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Get-VsanClusterMember cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -674,7 +674,7 @@ Function Test-VsanHealth {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Test-VsanHealth cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -776,7 +776,7 @@ Function Test-VsanObjectResync {
     
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Test-VsanObjectResync cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -835,7 +835,7 @@ Function Get-PoweredOnVMsCount {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Get-PoweredOnVMsCount cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -950,7 +950,7 @@ Function Get-VamiServiceStatus {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultCisServers) {
@@ -1022,7 +1022,7 @@ Function Set-VamiServiceStatus {
 
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Set-VAMIServiceStatus cmdlet" -Colour Yellow
-        if ((Test-NetConnection -ComputerName $server  ) -eq "True") {
+        if ((Test-NetConnection -ComputerName $server).PingSucceeded) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultCisServers) {
                 Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
@@ -1064,7 +1064,7 @@ Function Set-VamiServiceStatus {
         else {
             Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-        Write-LogMessage -Type INFO -Message "Finishing run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        Write-LogMessage -Type INFO -Message "Finishing run of Set-VAMIServiceStatus cmdlet" -Colour Yellow
     } 
     Catch {
         Debug-CatchWriter -object $_
@@ -1098,7 +1098,7 @@ Function Set-vROPSClusterState {
 	
     Try {
         Write-LogMessage -Type INFO -Message "Starting run of Set-vROPSClusterState cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             $vropsHeader = createHeader $user $pass
@@ -1358,7 +1358,7 @@ Function Restart-VsphereHA {
 
 	Try {
         Write-LogMessage -Type INFO -Message "Starting run of Restart-VsphereHA cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -1430,7 +1430,7 @@ Function Set-Retreatmode {
 
 	Try {
         Write-LogMessage -Type INFO -Message "Starting run of Set-Retreatmode cmdlet" -Colour Yellow
-        $checkServer = Test-NetConnection -ComputerName $server
+        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
