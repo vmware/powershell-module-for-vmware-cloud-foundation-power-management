@@ -74,6 +74,7 @@ Try {
 }
 Catch {
     Debug-CatchWriter -object $_
+    Exit
 }
 
 # Pre-Checks and Log Creation
@@ -136,6 +137,7 @@ Try {
 }
 Catch {
     Debug-CatchWriter -object $_
+    Exit
 }
 
 # Gather details from SDDC Manager

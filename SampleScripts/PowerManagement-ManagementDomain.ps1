@@ -131,9 +131,9 @@ Param (
                 Write-LogMessage -Type INFO -Message "$inputFile is checked for its correctness, moving on with execution"
             } 
         }
-        Catch {
-    Debug-CatchWriter -object $_
-}
+       Catch {
+            Debug-CatchWriter -object $_
+       }
 
 # Pre-Checks and Log Creation
 Try {
@@ -203,6 +203,7 @@ Try {
 }
 Catch {
     Debug-CatchWriter -object $_
+    Exit
 }
 
 # Shutdown procedures
@@ -639,6 +640,7 @@ Try {
 }
 Catch {
     Debug-CatchWriter -object $_
+    Exit
 }
 
 # Startup procedures
@@ -905,4 +907,5 @@ Try {
 }
 Catch {
     Debug-CatchWriter -object $_
+    Exit
 }
