@@ -936,8 +936,8 @@ Function Get-VamiServiceStatus {
         The Get-VamiServiceStatus cmdlet gets the current status of the service on a given vCenter Server. The status can be STARTED/STOPPED
     
         .EXAMPLE
-        Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -checkStatus STARTED
-        This example connects to a vCenter Server and checks the wcp service is STARTED
+        Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp
+        This example connects to a vCenter Server and returns the wcp service status
     #>
 
 	Param (
@@ -945,7 +945,6 @@ Function Get-VamiServiceStatus {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
 		[Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service,
-		[Parameter (Mandatory = $false)] [ValidateSet("STARTED", "STOPPED")] [String]$checkStatus
     )
 
     Try {
@@ -956,36 +955,36 @@ Function Get-VamiServiceStatus {
             if ($DefaultCisServers) {
                 Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
-            Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
-            if ($DefaultCisServers.Name -eq $server) {
+            #bug-2925594  and bug-2925501 and bug-2925511
+            $retries = 20
+            $flag = 0
+            While ($retries) {
+                Connect-CisServer -Server $server -User $user -Password $pass -ErrorAction SilentlyContinue | Out-Null
+                if ($DefaultCisServers.Name -eq $server) {
+                    $flag = 1
+                    break
+                }
+                Start-Sleep 60
+                $retries -= 1
+                Write-LogMessage -Type INFO -Message "Getting Service status is taking time, Please wait." -colour Yellow
+            }
+            if ($flag) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
                 $serviceStatus = $vMonAPI.Get($service,0)
                 if (-Not $checkStatus) {
                     return $serviceStatus.state
                 }
-                Write-LogMessage -Type INFO -Message "Checking the service '$service' status is $checkStatus"
-                if ($serviceStatus.state -eq $checkStatus) {
-                    Write-LogMessage -Type INFO -Message "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Green
-                    return $true
-                }
-                else {
-                    Write-LogMessage -Type ERROR -Message  "Service: $service Expected Status: $checkStatus Actual Status: $($serviceStatus.state)" -Colour Red
-                    return $false
-                }
             }
             else {
                 Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
-                return $false
             }
         }
         else {
             Write-LogMessage -Type ERROR -Message  "Testing a connection to server $server failed, please check your details and try again" -Colour Red
-            return $false
         } 
     } 
     Catch {
         Debug-CatchWriter -object $_
-        return $false
     }
     Finally {
         Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
