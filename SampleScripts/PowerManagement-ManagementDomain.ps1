@@ -159,21 +159,16 @@ Try {
     }
     else {
         $ver = Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0
-        Write-LogMessage -Type INFO -Message "The version of Posh-SSH $($ver.Version) found on system" -Colour Green
-        if (Get-Module -Name Posh-SSH) {
-            Write-LogMessage -Type INFO -Message "The required version of Posh-SSH $($ver.Version) is already imported" -Colour Green
-        } else {
-            # If module is not imported, check if available on disk and try to import
-            Try {
-                Write-LogMessage -Type INFO -Message "Module Posh-SSH not loaded, importing now please wait..."
-                Import-Module "Posh-SSH"
-                Write-LogMessage -Type INFO -Message "Module Posh-SSH imported successfully." -Colour Green
-
-            }
-            Catch {
-                Write-LogMessage -Type ERROR -Message "Import is not sucessfull, please refer doc for possible reason and solution"
-                Exit
-            }
+        Write-LogMessage -Type INFO -Message "The version of Posh-SSH found on the system is: $($ver.Version)" -Colour Green
+        Try {
+            Write-LogMessage -Type INFO -Message "Module Posh-SSH not loaded, importing now please wait..." -Colour Yellow
+            Import-Module "Posh-SSH"
+            Write-LogMessage -Type INFO -Message "Module Posh-SSH imported successfully." -Colour Green
+        }
+        Catch {
+            Write-LogMessage -Type ERROR -Message "could not import Posh-SSH module, refer the documentation for possible solution"  -Colour Red
+            Write-LogMessage -Type ERROR -Message "$($PSItem.Exception.Message)" -Colour Red
+            Exit
         }
     }
 
@@ -543,11 +538,18 @@ Try {
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-
+        #bug-2925318
         $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
         if ($checkServer) {
-            Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
-            Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+            if(-Not (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)){
+                Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
+                Exit
+            }
+            if(-Not (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+                Write-LogMessage -Type ERROR -Message "Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
+                Exit
+            }
+
         }
         else {
             Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping checking vSAN health for cluster $($cluster.name)" -Colour Cyan
@@ -838,8 +840,14 @@ Try {
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
         if ($flag -and $service_status) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
-            Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
-            Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+            if(-Not (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)){
+                Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
+                Exit
+            }
+            if(-Not (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+                Write-LogMessage -Type ERROR -Message "Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
+                Exit
+            }
 
         }
         else {

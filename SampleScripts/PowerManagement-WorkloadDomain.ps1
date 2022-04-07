@@ -96,21 +96,17 @@ Try {
     }
     else {
         $ver = Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0
-        Write-LogMessage -Type INFO -Message "The version of Posh-SSH $($ver.Version) found on system" -Colour Green
-        if (Get-Module -Name Posh-SSH) {
-            Write-LogMessage -Type INFO -Message "The required version of Posh-SSH $($ver.Version) is already imported" -Colour Green
-        } else {
-            # If module is not imported, check if available on disk and try to import
-            Try {
-                Write-LogMessage -Type INFO -Message "Module Posh-SSH not loaded, importing now please wait..."
-                Import-Module "Posh-SSH"
-                Write-LogMessage -Type INFO -Message "Module Posh-SSH imported successfully." -Colour Green
+        Write-LogMessage -Type INFO -Message "The version of Posh-SSH found on the system is: $($ver.Version)" -Colour Green
+        Try {
+            Write-LogMessage -Type INFO -Message "Module Posh-SSH not loaded, importing now please wait..." -Colour Yellow
+            Import-Module "Posh-SSH"
+            Write-LogMessage -Type INFO -Message "Module Posh-SSH imported successfully." -Colour Green
 
-            }
-            Catch {
-                Write-LogMessage -Type ERROR -Message "Import is not sucessfull, please refer doc for possible reason and solution"
-                Exit
-            }
+        }
+        Catch {
+            Write-LogMessage -Type ERROR -Message "could not import Posh-SSH module, refer the documentation for possible solution"  -Colour Red
+            Write-LogMessage -Type ERROR -Message "$($PSItem.Exception.Message)" -Colour Red
+            Exit
         }
     }
 
@@ -283,10 +279,16 @@ Try {
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-        # Check the health and sync status of the vSAN cluster 
+        # Check the health and sync status of the vSAN cluster -- bug-2925318
         if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
-            Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
-            Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+            if(-NOT (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+                Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
+                Exit
+            }
+            if(-Not (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+                Write-LogMessage -Type ERROR -Message "Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
+                Exit
+            }
             # Shutdown vCenter Server
             Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
         }
@@ -397,8 +399,14 @@ Try {
 
         # Check the health and sync status of the vSAN cluster
         if ( $flag -and $service_status) {
-            Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
-            Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+            if(-NOT (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+                Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
+                Exit
+            }
+            if(-Not (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+                Write-LogMessage -Type ERROR -Message "Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
+                Exit
+            }
         }
         else {
             Write-LogMessage -Type ERROR -Message "The vCenter Server and its services are still not online despite waiting for 20 mins" -Colour Red

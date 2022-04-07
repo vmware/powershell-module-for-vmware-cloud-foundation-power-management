@@ -157,7 +157,7 @@ Function Stop-CloudComponent {
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -285,7 +285,7 @@ Function Start-CloudComponent {
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -381,7 +381,7 @@ Function Set-MaintenanceMode {
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -450,7 +450,7 @@ Function Set-DrsAutomationLevel {
                 }
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server '$server', due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -517,7 +517,7 @@ Function Get-VMRunningStatus {
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -565,8 +565,12 @@ Function Invoke-EsxCommand {
             #bug-2925496, default value was only 60 seconds, so increased it 900 as per IVO's suggestion
             $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd -Timeout 900
             #bug-2948041, was only checking $expected is passed but was not parsing it, did that so against command output.
-            if ($expected -and ($commandOutput.Output -match $expected)) {
-                Write-LogMessage -Type INFO -Message "Command '$cmd' ran with expected output on server '$server' successfully" -Colour Green
+            if ($expected ) {
+                if (($commandOutput.Output -match $expected)) {
+                    Write-LogMessage -Type INFO -Message "Command '$cmd' ran with expected output on server '$server' successfully" -Colour Green
+                } else {
+                    Write-LogMessage -Type ERROR -Message "Failure. The `"$($expected)`" is not present in `"$($commandOutput.Output)`" output" -Colour Red
+                }
             }
             elseif ($commandOutput.exitStatus -eq 0) {
                 Write-LogMessage -Type INFO -Message "Success. The command ran successfully" -Colour Green
@@ -578,7 +582,7 @@ Function Invoke-EsxCommand {
             Remove-SSHSession -Index $session.SessionId | Out-Null   
         }
         else {
-            Write-LogMessage -Type ERROR -Message "Not connected to server '$server', due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+            Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
         }
     }
     Catch {
@@ -636,7 +640,7 @@ Function Get-VsanClusterMember {
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message  "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -705,6 +709,7 @@ Function Test-VsanHealth {
                     Write-LogMessage -Type ERROR -Message "Unable to run Test-VsanHealth cmdlet because vSAN Health Service is not running" -Colour Red
                 }
                 else {
+                    Start-Sleep -s 60
                     $vchs = Get-VSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
                     $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
                     $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
@@ -729,16 +734,18 @@ Function Test-VsanHealth {
                             }
                     if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){
                         Write-LogMessage -Type INFO -Message "The vSAN Health Status for $cluster is GOOD" -Colour Green
+                        return 1
                     }
                     else {
                         Write-LogMessage -Type ERROR -Message "The vSAN Health Status for $cluster is BAD" -Colour Red
+                        return 0
                     }
                     Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                     Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -789,15 +796,17 @@ Function Test-VsanObjectResync {
                 Write-LogMessage -Type INFO -Message "The number of resyncing objects are $no_resyncing_objects"
                 if ($no_resyncing_objects.count -eq 0){
                     Write-LogMessage -Type INFO -Message "No resyncing objects" -Colour Green
+                    return 1
                 }
                 else {
                     Write-LogMessage -Type ERROR -Message "Resyncing of objects in progress" -Colour Red
+                    return 0
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -861,7 +870,7 @@ Function Get-PoweredOnVMsCount {
                 Return $no_powered_on_vms.count
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -944,7 +953,7 @@ Function Get-VamiServiceStatus {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service,
+		[Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service
     )
 
     Try {
@@ -976,7 +985,7 @@ Function Get-VamiServiceStatus {
                 }
             }
             else {
-                Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message  "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -1023,12 +1032,12 @@ Function Set-VamiServiceStatus {
         Write-LogMessage -Type INFO -Message "Starting run of Set-VAMIServiceStatus cmdlet" -Colour Yellow
         if ((Test-NetConnection -ComputerName $server).PingSucceeded) {
             Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if ($action -eq "START") { $requestedState = "STARTED"} elseif ($action -eq "STOP") { $requestedState = "STOPPED" }
             if ($DefaultCisServers) {
                 Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
-            Connect-CisServer -Server $server -User $user -Password $pass | Out-Null
-            if ($action -eq "START") { $requestedState = "STARTED"} elseif ($action -eq "STOP") { $requestedState = "STOPPED" }
-            if ($DefaultCisServer.Name -eq $server) {
+            Connect-CisServer -Server $server -User $user -Password $pass -ErrorAction SilentlyContinue | Out-Null
+            if ($DefaultCisServers.Name -eq $server) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
                 $serviceStatus = $vMonAPI.Get($service,0)                
                 if ($serviceStatus.state -match $requestedState) {
@@ -1057,7 +1066,7 @@ Function Set-VamiServiceStatus {
                 Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message  "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -1121,7 +1130,7 @@ Function Set-vROPSClusterState {
                 }
             }
             else {
-                Write-LogMessage -Type ERROR -Message  "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message  "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -1385,7 +1394,7 @@ Function Restart-VsphereHA {
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
@@ -1467,7 +1476,7 @@ Function Set-Retreatmode {
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
             else {
-                Write-LogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-LogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
             }
         }
         else {
