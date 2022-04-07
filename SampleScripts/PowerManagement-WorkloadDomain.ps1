@@ -281,11 +281,11 @@ Try {
 
         # Check the health and sync status of the vSAN cluster -- bug-2925318
         if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
-            if(-NOT (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+            if( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                 Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
                 Exit
             }
-            if(-Not (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+            if( (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                 Write-LogMessage -Type ERROR -Message "Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
                 Exit
             }
@@ -399,11 +399,11 @@ Try {
 
         # Check the health and sync status of the vSAN cluster
         if ( $flag -and $service_status) {
-            if(-NOT (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+            if((Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                 Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
                 Exit
             }
-            if(-Not (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+            if((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                 Write-LogMessage -Type ERROR -Message "Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
                 Exit
             }

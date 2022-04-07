@@ -734,11 +734,11 @@ Function Test-VsanHealth {
                             }
                     if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){
                         Write-LogMessage -Type INFO -Message "The vSAN Health Status for $cluster is GOOD" -Colour Green
-                        return 1
+                        return 0
                     }
                     else {
                         Write-LogMessage -Type ERROR -Message "The vSAN Health Status for $cluster is BAD" -Colour Red
-                        return 0
+                        return 1
                     }
                     Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                     Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
@@ -796,11 +796,11 @@ Function Test-VsanObjectResync {
                 Write-LogMessage -Type INFO -Message "The number of resyncing objects are $no_resyncing_objects"
                 if ($no_resyncing_objects.count -eq 0){
                     Write-LogMessage -Type INFO -Message "No resyncing objects" -Colour Green
-                    return 1
+                    return 0
                 }
                 else {
                     Write-LogMessage -Type ERROR -Message "Resyncing of objects in progress" -Colour Red
-                    return 0
+                    return 1
                 }
                 Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null

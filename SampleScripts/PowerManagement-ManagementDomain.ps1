@@ -541,11 +541,11 @@ Try {
         #bug-2925318
         $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
         if ($checkServer) {
-            if(-Not (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)){
+            if( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0){
                 Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
                 Exit
             }
-            if(-Not (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+            if((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                 Write-LogMessage -Type ERROR -Message "Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
                 Exit
             }
@@ -840,11 +840,11 @@ Try {
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
         if ($flag -and $service_status) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
-            if(-Not (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)){
+            if( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0){
                 Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
                 Exit
             }
-            if(-Not (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass)) {
+            if( (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                 Write-LogMessage -Type ERROR -Message "Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
                 Exit
             }
