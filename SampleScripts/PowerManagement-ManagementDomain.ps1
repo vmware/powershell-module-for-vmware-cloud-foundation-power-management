@@ -814,6 +814,9 @@ Try {
         }
 
         # Startup the Management Domain vCenter Server
+        Start-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.Name -timeout 600
+        Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
+
         #bug-2925594  and bug-2925501 and bug-2925511
         $retries = 20
         $flag = 0
