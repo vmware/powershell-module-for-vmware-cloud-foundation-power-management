@@ -123,11 +123,22 @@ Param (
                     Exit
                 }
                 Write-Host "";
-                $proceed =  Read-Host "The following JSON file $inputFile will be used for the operation, please confirm (Yes or No): [No]"
-                if ($proceed -match "no" -or (-not $proceed)) {
-                    Write-LogMessage -Type WARNING -Message "Exiting script execution as the input is No" -Colour Cyan
-                    Exit
+                $proceed =  Read-Host "The following JSON file $inputFile will be used for the operation, please confirm (Yes or No)[default:No]"
+                if (-not $proceed) {
+                        Write-LogMessage -Type WARNING -Message "None of the option is chosen. Default is `"No`", hence exiting script execution" -Colour Cyan
+                        Exit
+                } else {
+                    if (($proceed -match "no") -or ($proceed -match "yes")) {
+                        if ($proceed -match "no") {
+                            Write-LogMessage -Type WARNING -Message "Exiting script execution as the input is No" -Colour Cyan
+                            Exit
+                        }
+                    } else {
+                            Write-LogMessage -Type WARNING -Message "Pass the right string, either Yes or No" -Colour Cyan
+                            Exit
+                    }
                 }
+
                 Write-LogMessage -Type INFO -Message "$inputFile is checked for its correctness, moving on with execution"
             } 
         }
