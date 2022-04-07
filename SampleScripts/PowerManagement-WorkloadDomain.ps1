@@ -282,11 +282,15 @@ Try {
         # Check the health and sync status of the vSAN cluster -- bug-2925318
         if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
             if( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-                Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
+                Write-LogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
+            } else {
+                Write-LogMessage -Type ERROR -Message "VSAN Cluster health is BAD. Please check and rerun the script" -Colour Red
                 Exit
             }
             if( (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-                Write-LogMessage -Type ERROR -Message "Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
+                Write-LogMessage -Type INFO -Message "VSAN Object Resync is successfull" -Colour Green
+            } else {
+                Write-LogMessage -Type ERROR -Message "VSAN Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
                 Exit
             }
             # Shutdown vCenter Server
@@ -400,11 +404,15 @@ Try {
         # Check the health and sync status of the vSAN cluster
         if ( $flag -and $service_status) {
             if((Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
+                Write-LogMessage -Type INFO -Message "Cluster health is Good." -Colour Green
+            } else {
                 Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
                 Exit
             }
             if((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-                Write-LogMessage -Type ERROR -Message "Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
+                Write-LogMessage -Type INFO -Message "VSAN Object Resync is successfull" -Colour Green
+            } else {
+                Write-LogMessage -Type ERROR -Message "VSAN Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
                 Exit
             }
         }
