@@ -57,11 +57,8 @@ Param (
         
         # Customer Questions Section 
         Try {
-            #bug-2925318 - The default action of $erroractionpreference variable value is continue by default, so upon error, error message is thrown
-            #on the screen and execution is continued. but if you set -erroraction common parameter, the default action is overridden. Since we  want
-            #execution to stop on error, we are resetting the environment variable value to STOP
-            $ErrorActionPreference = 'Stop'
             Clear-Host; Write-Host ""
+            Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
             $Global:ProgressPreference = 'SilentlyContinue'
             if ($powerState -eq "Shutdown" -or $genjson) {
                 # Check if we have all needed inputs for shutdown
@@ -148,7 +145,6 @@ Param (
 
 # Pre-Checks and Log Creation
 Try {
-    Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     $str1 = "$PSCommandPath "
     if ($server -and $user -and $pass) {
         $str2 = "-server $server -user $user -pass ******* -powerState $powerState"

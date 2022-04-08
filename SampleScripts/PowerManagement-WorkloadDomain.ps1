@@ -50,10 +50,6 @@ Param (
 
 # Customer Questions Section 
 Try {
-    #bug-2925318 - The default action of $erroractionpreference variable value is continue by default, so upon error, error message is thrown
-    #on the screen and execution is continued. but if you set -erroraction common parameter, the default action is overridden. Since we  want
-    #execution to stop on error, we are resetting the environment variable value to STOP
-    $ErrorActionPreference = 'Stop'
     Clear-Host; Write-Host ""
     if ($powerState -eq "Shutdown") {
         if (-Not $PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
