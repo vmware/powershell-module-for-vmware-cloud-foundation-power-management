@@ -738,6 +738,7 @@ Function Test-VsanHealth {
                     }
                     else {
                         Write-LogMessage -Type ERROR -Message "The vSAN Health Status for $cluster is BAD" -Colour Red
+                        Write-LogMessage -Type INFO -Message "The vSAN Health Status for $cluster is GOOD" -Colour Green
                         return 1
                     }
                     Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
@@ -1583,5 +1584,34 @@ Function createHeader  {
     Return $headers
 }
 Export-ModuleMember -Function createHeader
+
+Function Write-LogMessage {
+    Param (
+        [Parameter (Mandatory = $true)] [AllowEmptyString()] [String]$Message,
+        [Parameter (Mandatory = $false)] [ValidateSet("INFO", "ERROR", "WARNING", "EXCEPTION")] [String]$type,
+        [Parameter (Mandatory = $false)] [String]$Colour,
+        [Parameter (Mandatory = $false)] [String]$Skipnewline
+    )
+    $ErrorActionPreference = 'Stop'
+    if (!$Colour) {
+        $Colour = "White"
+    }
+
+    $timeStamp = Get-Date -Format "MM-dd-yyyy_HH:mm:ss"
+
+    Write-Host -NoNewline -ForegroundColor White " [$timestamp]"
+    if ($Skipnewline) {
+        Write-Host -NoNewline -ForegroundColor $Colour " $type $Message"
+    }
+    else {
+        Write-Host -ForegroundColor $colour " $Type $Message"
+    }
+    $logContent = '[' + $timeStamp + '] ' + $Type + ' ' + $Message
+    Add-Content -Path $logFile $logContent
+    if ($type -match "ERROR") {
+        Exit
+    }
+}
+Export-ModuleMember -Function Write-LogMessage
 
 ######### End Useful Script Functions ##########
