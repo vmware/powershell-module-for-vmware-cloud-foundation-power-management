@@ -1614,4 +1614,19 @@ Function Write-LogMessage {
 }
 Export-ModuleMember -Function Write-LogMessage
 
+Function Debug-CatchWriter {
+    Param (
+        [Parameter (Mandatory = $true)] [PSObject]$object
+    )
+
+    $lineNumber = $object.InvocationInfo.ScriptLineNumber
+    $lineText = $object.InvocationInfo.Line.trim()
+    $errorMessage = $object.Exception.Message
+    Write-LogMessage -message " Error at Script Line $lineNumber" -colour Red
+    Write-LogMessage -message " Relevant Command: $lineText" -colour Red
+    Write-LogMessage -message " Error Message: $errorMessage" -colour Red
+    Exit
+}
+Export-ModuleMember -Function Debug-CatchWriter
+
 ######### End Useful Script Functions ##########
