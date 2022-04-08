@@ -738,7 +738,6 @@ Function Test-VsanHealth {
                     }
                     else {
                         Write-LogMessage -Type ERROR -Message "The vSAN Health Status for $cluster is BAD" -Colour Red
-                        Write-LogMessage -Type INFO -Message "The vSAN Health Status for $cluster is GOOD" -Colour Green
                         return 1
                     }
                     Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
