@@ -371,7 +371,7 @@ Function Set-MaintenanceMode {
                         }
                     }
                     elseif ($hostStatus.ConnectionState -eq "Connected") {
-                        Write-LogMessage -Type INFO -Message "The host $server has already exited maintenance mode" -Colour Cyan
+                        Write-LogMessage -Type INFO -Message "The host $server has already exited maintenance mode" -Colour Yellow
                     }
                     else {
                         Write-LogMessage -Type ERROR -Message "The host $server is not currently connected" -Colour Red
