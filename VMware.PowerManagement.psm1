@@ -947,20 +947,28 @@ Function Get-VamiServiceStatus {
         .EXAMPLE
         Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp
         This example connects to a vCenter Server and returns the wcp service status
+
+        Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -nolog
+        This example connects to a vCenter Server and returns the wcp service status and also suppress any log messages inside the function
     #>
 
 	Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$nolog,
 		[Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service
     )
 
     Try {
-        Write-LogMessage -Type INFO -Message "Starting run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        if (-Not $nolog) {
+            Write-LogMessage -Type INFO -Message "Starting run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        }
         $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
-            Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            if (-Not $nolog) {
+                Write-LogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            }
             if ($DefaultCisServers) {
                 Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
@@ -975,14 +983,14 @@ Function Get-VamiServiceStatus {
                 }
                 Start-Sleep 60
                 $retries -= 1
-                Write-LogMessage -Type INFO -Message "Getting Service status is taking time, Please wait." -colour Yellow
+                if (-Not $nolog) {
+                    Write-LogMessage -Type INFO -Message "Getting Service status is taking time, Please wait." -colour Yellow
+                }
             }
             if ($flag) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
                 $serviceStatus = $vMonAPI.Get($service,0)
-                if (-Not $checkStatus) {
-                    return $serviceStatus.state
-                }
+                return $serviceStatus.state
             }
             else {
                 Write-LogMessage -Type ERROR -Message  "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -996,9 +1004,13 @@ Function Get-VamiServiceStatus {
         Debug-CatchWriter -object $_
     }
     Finally {
-        Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+        if (-Not $nolog) {
+            Write-LogMessage -Type INFO -Message "Disconnecting from server '$server'"
+        }
         Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-        Write-LogMessage -Type INFO -Message "Finishing run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        if (-Not $nolog) {
+            Write-LogMessage -Type INFO -Message "Finishing run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
+        }
     }
 }
 Export-ModuleMember -Function Get-VAMIServiceStatus
@@ -1608,10 +1620,10 @@ Function Write-LogMessage {
     $logContent = '[' + $timeStamp + '] ' + $Type + ' ' + $Message
     Add-Content -Path $logFile $logContent
     if ($type -match "ERROR") {
-        Exit
+        Break NoMatchingLabel
     }
 }
-Export-ModuleMember -Function Write-LogMessage
+#Export-ModuleMember -Function Write-LogMessage
 
 Function Debug-CatchWriter {
     Param (
@@ -1624,8 +1636,8 @@ Function Debug-CatchWriter {
     Write-LogMessage -message " Error at Script Line $lineNumber" -colour Red
     Write-LogMessage -message " Relevant Command: $lineText" -colour Red
     Write-LogMessage -message " Error Message: $errorMessage" -colour Red
-    Exit
+    Break NoMatchingLabel
 }
-Export-ModuleMember -Function Debug-CatchWriter
+#Export-ModuleMember -Function Debug-CatchWriter
 
 ######### End Useful Script Functions ##########

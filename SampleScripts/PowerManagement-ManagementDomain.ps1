@@ -457,7 +457,10 @@ Try {
             $vcHostUser = ""
             $vcHostPass = ""
             if ($vcServer.fqdn) {
-                Write-LogMessage -Type INFO -Message "Getting SDDC Manager Manager VM Name "
+                Write-LogMessage -Type INFO -Message "Getting SDDC Manager VM Name "
+                if ($DefaultVIServers) {
+                    Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                }
                 Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
                 $sddcmVMName = ((Get-VM * | Where-Object {$_.Guest.Hostname -eq $server}).Name)
                 $vcHost = (get-vm | where Name -eq $vcServer.fqdn.Split(".")[0] | select VMHost).VMHost.Name
@@ -828,12 +831,15 @@ Try {
         $retries = 20
         $flag = 0
         $service_status = 0
+        if ($DefaultVIServers) {
+            Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+        }
         While ($retries) {
             Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
             if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
                 #Max wait time for services to come up is 10 mins.
                 for ($i=0;  $i -le 10; $i++) {
-                    $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser  -pass $vcPass -service 'vsphere-ui'
+                    $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser  -pass $vcPass -service 'vsphere-ui' -nolog
                     if ($status -eq "STARTED") {
                         $service_status = 1
                         break
