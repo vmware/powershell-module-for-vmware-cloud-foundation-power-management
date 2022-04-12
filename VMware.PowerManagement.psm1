@@ -1620,7 +1620,7 @@ Function Write-LogMessage {
     $logContent = '[' + $timeStamp + '] ' + $Type + ' ' + $Message
     Add-Content -Path $logFile $logContent
     if ($type -match "ERROR") {
-        Break NoMatchingLabel
+        exit
     }
 }
 #Export-ModuleMember -Function Write-LogMessage
@@ -1636,7 +1636,7 @@ Function Debug-CatchWriter {
     Write-LogMessage -message " Error at Script Line $lineNumber" -colour Red
     Write-LogMessage -message " Relevant Command: $lineText" -colour Red
     Write-LogMessage -message " Error Message: $errorMessage" -colour Red
-    Break NoMatchingLabel
+    exit
 }
 #Export-ModuleMember -Function Debug-CatchWriter
 
