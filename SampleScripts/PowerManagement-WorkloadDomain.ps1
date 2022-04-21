@@ -70,58 +70,73 @@ Try {
 }
 Catch {
     Debug-CatchWriter -object $_
+    Exit
 }
 
 # Pre-Checks and Log Creation
 Try {
+    $Global:ProgressPreference = 'SilentlyContinue'
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     $str1 = "$PSCommandPath "
     $str2 = "-server $server -user $user -pass ******* -sddcDomain $sddcDomain -powerState $powerState"
     if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $str2 = $str2 + " -shutdownCustomerVm" }
     Write-LogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
     Write-LogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
-    Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
-    if (-Not $null -eq $customerVmMessage) { Write-LogMessage -Type INFO -Message $customerVmMessage -Colour Cyan}
+    Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile" -Colour Yellow
+    if (-Not $null -eq $customerVmMessage) { Write-LogMessage -Type INFO -Message $customerVmMessage -Colour Yellow}
 
     if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0 -ErrorAction Ignore)) {
-        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0 or greater. Please install before proceeding" -Colour Red
-        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 2.3.0' to install from PS Gallery" -Colour Cyan
-        Break
+        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0 or greater, Please install before proceeding" -Colour Red
+        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 2.3.0' to install from PS Gallery" -Colour Yellow
+        Exit
     }
     else {
-        Write-LogMessage -Type INFO -Message "Required version of Posh-SSH found on system"
+        $ver = Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0
+        Write-LogMessage -Type INFO -Message "The version of Posh-SSH found on the system is: $($ver.Version)" -Colour Green
+        Try {
+            Write-LogMessage -Type INFO -Message "Module Posh-SSH not loaded, importing now please wait..." -Colour Yellow
+            Import-Module "Posh-SSH"
+            Write-LogMessage -Type INFO -Message "Module Posh-SSH imported successfully." -Colour Green
+
+        }
+        Catch {
+            Write-LogMessage -Type ERROR -Message "could not import Posh-SSH module, refer the documentation for possible solution"  -Colour Red
+            Write-LogMessage -Type ERROR -Message "$($PSItem.Exception.Message)" -Colour Red
+            Exit
+        }
     }
 
-    if (!(Test-Connection -ComputerName $server -Count 1 -ErrorAction SilentlyContinue)) {
+    if (!(Test-NetConnection -ComputerName $server).PingSucceeded) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
-        Break
+        Exit
     }
     else {
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
         if ($StatusMsg) {
-            Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
+            Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully" -Colour Green
         }
         elseif ($ErrorMsg) {
             if ($ErrorMsg -match "4\d\d") {
                 Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
-                Break
+                Exit
             }
             else {
                 Write-Error $ErrorMsg
-                Break
+                Exit
             }
         }
     }
 }
 Catch {
     Debug-CatchWriter -object $_
+    Exit
 }
 
 # Gather details from SDDC Manager
 Try {
     Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
     $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-    if ($StatusMsg) { Write-LogMessage -Type INFO -Message $StatusMsg } if ($WarnMsg) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ($ErrorMsg) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+    if ($StatusMsg) { Write-LogMessage -Type INFO -Message $StatusMsg } if ($WarnMsg) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Cyan } if ($ErrorMsg) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
     if ($accessToken) {
         Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory (May take little time)"
         # Gather Details from SDDC Manager
@@ -184,8 +199,8 @@ Try {
     if ($powerState -eq "Shutdown") {
         # Change the DRS Automation Level to Partially Automated for VI Workload Domain Clusters
         if ($WorkloadDomain.type -ne "MANAGEMENT") {
-            $checkServer = Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1
-            if ($checkServer -eq "True") {
+            $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
+            if ($checkServer) {
                 Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level PartiallyAutomated
             }
         }
@@ -195,7 +210,7 @@ Try {
         }
         
         # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
         }
         else {
@@ -203,7 +218,7 @@ Try {
         }
 
         # Waiting for VCLS VMs to be stopped for ($retries*10) seconds
-        Write-LogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) shutdown will take time...please wait"
+        Write-LogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) shutdown will take time...please wait" -Colour Yellow
         $counter = 0
         $retries = 30
         foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -223,7 +238,7 @@ Try {
         }
 
         # Shut Down the vSphere with Tanzu Virtual Machines
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
             Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action STOP
         }
         else {
@@ -246,7 +261,7 @@ Try {
         }
 
         # Shutdown the NSX Edge Nodes
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
             if ($nsxtEdgeNodes) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
             }
@@ -260,10 +275,20 @@ Try {
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-        # Check the health and sync status of the vSAN cluster 
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
-            Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
-            Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+        # Check the health and sync status of the vSAN cluster -- bug-2925318
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
+            if( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
+                Write-LogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
+            } else {
+                Write-LogMessage -Type ERROR -Message "VSAN Cluster health is BAD. Please check and rerun the script" -Colour Red
+                Exit
+            }
+            if( (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
+                Write-LogMessage -Type INFO -Message "VSAN Object Resync is successfull" -Colour Green
+            } else {
+                Write-LogMessage -Type ERROR -Message "VSAN Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
+                Exit
+            }
             # Shutdown vCenter Server
             Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
         }
@@ -290,7 +315,7 @@ Try {
                     $flag = 1
                     Write-LogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state. Customer VM Shutdown is not requested," -Colour Cyan
                     Write-LogMessage -Type WARNING -Message "So not shutting down Non VCF management VMs. Hence unable to proceed with putting host in maintenance mode" -Colour Cyan
-                    Write-LogMessage -Type WARNING -Message "ESXi with VMs running: $($esxiNode.fqdn)" -Colour Red
+                    Write-LogMessage -Type WARNING -Message "ESXi with VMs running: $($esxiNode.fqdn)" -Colour Cyan
                 }
             }
         }
@@ -309,7 +334,7 @@ Try {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
             }
             # End of shutdown
-            Write-LogMessage -Type INFO -Message "End of Shutdown sequence!" -Colour Cyan
+            Write-LogMessage -Type INFO -Message "End of Shutdown sequence!" -Colour Yellow
         }
         else {
             Write-LogMessage -Type ERROR -Message "Stopping shutdown process, since there are still running VMs! Please, check output above in order to identify ESXi hosts with running VMs." -Colour Red
@@ -343,46 +368,67 @@ Try {
 
         # Startup the Virtual Infrastructure Workload Domain vCenter Server
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
-        Write-LogMessage -Type INFO -Message "Waiting for vCenter Server services to start on $($vcServer.fqdn) (may take some time)"
-        Do {} Until (Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue)
+        Write-LogMessage -Type INFO -Message "Waiting for vCenter Server services to start on $($vcServer.fqdn) (may take some time)" -Colour Yellow
+
+        #bug-2925594  and bug-2925501 and bug-2925511
+        $retries = 20
+        $flag = 0
+        $service_status = 0
+        if ($DefaultVIServers) {
+            Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+        }
+        While ($retries) {
+            Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
+            if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
+                #Max wait time for services to come up is 10 mins.
+                for ($i=0;  $i -le 10; $i++) {
+                    $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser  -pass $vcPass -service 'vsphere-ui' -nolog
+                    if ($status -eq "STARTED") {
+                        $service_status = 1
+                        break
+                    } else {
+                       Start-Sleep 60
+                       Write-LogMessage -Type INFO -Message "The services on Virtual Center is still starting. Please wait." -colour Yellow
+                    }
+                }
+                $flag =1
+                Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                break
+            }
+            Start-Sleep 60
+            $retries -= 1
+            Write-LogMessage -Type INFO -Message "The Virtual Center is still starting. Please wait." -colour Yellow
+        }
 
         # Check the health and sync status of the vSAN cluster
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
-            Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-            Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
-            Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass
+        if ( $flag -and $service_status) {
+            if((Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
+                Write-LogMessage -Type INFO -Message "Cluster health is Good." -Colour Green
+            } else {
+                Write-LogMessage -Type ERROR -Message "Cluster health is BAD. Please check and rerun the script" -Colour Red
+                Exit
+            }
+            if((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
+                Write-LogMessage -Type INFO -Message "VSAN Object Resync is successfull" -Colour Green
+            } else {
+                Write-LogMessage -Type ERROR -Message "VSAN Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
+                Exit
+            }
         }
         else {
-            Write-LogMessage -Type ERROR -Message "The vCenter Server and its services are still not online" -Colour Red
+            Write-LogMessage -Type ERROR -Message "The vCenter Server and its services are still not online despite waiting for 20 mins" -Colour Red
             Exit
         }
 
         # Restart vSphere HA to avoid triggering a Cannot find vSphere HA master agent error.
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
-            Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
-        }
-        else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping restarting vSphere HA" -Colour Cyan
-            Exit
-        }
+        Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
 
         # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
-            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
-        }
-        else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping setting the DRS Automation level" -Colour Cyan
-            Exit
-        }
+        Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
 
         #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
-            Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
-        }
-        else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping disabling Retreat Mode" -Colour Cyan
-            Exit
-        }
+        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
+
 
         # Startup the NSX Manager Nodes in the Virtual Infrastructure Workload Domain
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
@@ -391,22 +437,16 @@ Try {
             Exit
         }
 
-        # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain 
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
-            if ($nsxtEdgeNodes) {
-                Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
-            }
-            else {
-                Write-LogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
-            }
+        # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain
+        if ($nsxtEdgeNodes) {
+            Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
         }
         else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping startup of $nsxtEdgeNodes" -Colour Cyan
-            Exit
+            Write-LogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
         }
 
         # End of startup
-        Write-LogMessage -Type INFO -Message "End of startup sequence!" -Colour Cyan
+        Write-LogMessage -Type INFO -Message "End of startup sequence!" -Colour Yellow
     }
 }
 Catch {
