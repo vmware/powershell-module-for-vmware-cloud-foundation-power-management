@@ -49,9 +49,9 @@ Try {
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     $str1 = "$PSCommandPath "
     $str2 = "-server $server -user $user -pass ******* -sddcDomain $sddcDomain -powerState $powerState"
-    Write-LogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
-    Write-LogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
-    Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
+    Write-PowerManagementLogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
+    Write-PowerManagementLogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
+    Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
 
     if (!(Test-NetConnection -ComputerName $server).PingSucceeded) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
@@ -60,11 +60,11 @@ Try {
     else {
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
         if ($StatusMsg) {
-            Write-LogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connection to SDDC manager is validated successfully"
         }
         elseif ($ErrorMsg) {
             if ($ErrorMsg -match "4\d\d") {
-                Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
                 Exit
             }
             else {
@@ -75,16 +75,16 @@ Try {
     }
 }
 Catch {
-    Debug-CatchWriter -object $_
+    Debug-CatchWriterForPowerManagement -object $_
 }
 
 # Gather details from SDDC Manager
 Try {
-    Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
+    Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to Gather System Details"
     $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-    if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+    if ( $StatusMsg ) { Write-PowerManagementLogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-PowerManagementLogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ( $ErrorMsg ) { Write-PowerManagementLogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
     if ($accessToken) {
-        Write-LogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
+        Write-PowerManagementLogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory"
         # Gather Details from SDDC Manager
         $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.Name -eq $sddcDomain }
         $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
@@ -106,12 +106,12 @@ Try {
         } 
     }
     else {
-        Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
+        Write-PowerManagementLogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
         Exit
     }
 }
 Catch {
-    Debug-CatchWriter -object $_
+    Debug-CatchWriterForPowerManagement -object $_
 }
 
 # Shutdown procedures
@@ -145,7 +145,7 @@ Try {
     }
 }
 Catch {
-    Debug-CatchWriter -object $_
+    Debug-CatchWriterForPowerManagement -object $_
 }
 
 # Startup procedures
@@ -153,7 +153,7 @@ Try {
     if ($powerState -eq "Startup") {
         # Startup the vSphere with Tanzu Virtual Machines
         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service wcp -action START
-        Write-LogMessage -Type INFO -Message "Workload Management will be started automatically by the WCP service, this will take some time"
+        Write-PowerManagementLogMessage -Type INFO -Message "Workload Management will be started automatically by the WCP service, this will take some time"
 
         # Change the DRS Automation Level to Fully Automated for the VI Workload Domain Clusters
         if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded) {
@@ -162,5 +162,5 @@ Try {
     }
 }
 Catch {
-    Debug-CatchWriter -object $_
+    Debug-CatchWriterForPowerManagement -object $_
 }

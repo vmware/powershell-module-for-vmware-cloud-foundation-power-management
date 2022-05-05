@@ -57,13 +57,14 @@ Param (
         
         # Customer Questions Section 
         Try {
+            Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
             Clear-Host; Write-Host ""
             Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
             $Global:ProgressPreference = 'SilentlyContinue'
             if ($powerState -eq "Shutdown" -or $genjson) {
                 # Check if we have all needed inputs for shutdown
                 if (-Not $PsBoundParameters.ContainsKey("server") -or -Not $PsBoundParameters.ContainsKey("user") -or -Not $PsBoundParameters.ContainsKey("pass")){
-                    Write-LogMessage -Type ERROR -Message "Missing one or more of the mandatory inputs 'Server', 'User', 'Password'. Exiting!" -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Missing one or more of the mandatory inputs 'Server', 'User', 'Password'. Exiting!" -Colour Red
                     Exit
                 }
                 if (-Not $PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
@@ -71,77 +72,86 @@ Param (
                     $proceed_force = Read-Host "Would you like to gracefully shutdown customer deployed Virtual Machines not managed by SDDC Manager (Yes/No)? [No]"; Write-Host ""
                     if ($proceed_force -Match "yes") {
                         $PSBoundParameters.Add('shutdownCustomerVm','Yes')
-                        $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running within the Management Domain"
+                        $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Management Domain"
                     }
                     else {
-                        $customerVmMessage = "Process WILL NOT gracefully shutdown customer deployed Virtual Machines not managed by VCF running within the Management Domain"
+                        $customerVmMessage = "Process WILL NOT gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Management Domain"
                     }
                 }
                 else {
-                    $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running within the Management Domain"
+                    $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Management Domain"
                 }
                 
                 Write-Host "";
+                $regionalWSA = $False
                 $regionalWSAYesOrNo = Read-Host "Have you deployed a Standalone Workspace ONE Access instance (Yes/No)"
                 if ($regionalWSAYesOrNo -eq "yes") {
                     $regionalWSA = Read-Host "Enter the Virtual Machine name for the Standalone Workspace ONE Access instance"
-                    Write-LogMessage -Type INFO -Message "The Standalone Workspace ONE Access instance Name is : $regionalWSA"
+                    Write-PowerManagementLogMessage -Type INFO -Message "The Standalone Workspace ONE Access instance Name is : $regionalWSA"
                     if (([string]::IsNullOrEmpty($regionalWSA))) {
-                        Write-LogMessage -Type WARNING -Message "Regional WSA information is null, hence Exiting" -Colour Cyan
+                        Write-PowerManagementLogMessage -Type WARNING -Message "Regional WSA information is null, hence Exiting" -Colour Cyan
                         Exit
                     }
                 }
-                
-                Write-Host "";
-                $edgenodes  = @()
-                $edgenodesList = Read-Host "Kindly provide space separated list of Virtual Machine names for NSX-T edge nodes. (Enter for none)"
-                Write-LogMessage -Type INFO -Message "The list of edgenodes VM name passed are :$edgenodesList"
-                if (([string]::IsNullOrEmpty($edgenodesList))) {
-                    Write-LogMessage -Type WARNING -Message "No Edge nodes have been provided!" -Colour Cyan
-                    $edgenodes = $false
+
+            # Gather NSX Edge Node Details
+                Try {
+                    [Array]$edgenodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
+                } catch {
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Unable to fetch nsx edge nodes information" -Colour CYAN
                 }
-                else {
-                    $edgenodes = $edgenodesList.split()
+
+                if($edgenodes.count -eq 0) {
+                    Write-Host "";
+                    $edgenodes  = @()
+                    $edgenodesList = Read-Host "Kindly provide space separated list of Virtual Machine names for NSX-T edge nodes. (Enter for none)"
+                    if (([string]::IsNullOrEmpty($edgenodesList))) {
+                        Write-PowerManagementLogMessage -Type WARNING -Message "No Edge nodes have been provided!" -Colour Magenta
+                    }
+                    else {
+                        Write-PowerManagementLogMessage -Type INFO -Message "The list of edgenodes VM name passed are :$edgenodesList"
+                        $edgenodes = $edgenodesList.split()
+                    }
                 }
             }
             elseif ($powerState -eq "Startup") {
                 $defaultFile = "./ManagementStartupInput.json"
                 $inputFile = $null
                 if ($json) {
-                    Write-LogMessage -Type INFO -Message "User has provided the input json file" -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "User has provided the input json file" -Colour Green
                     $inputFile = $json
                 }
                 elseif (Test-Path -Path $defaultFile -PathType Leaf) {
-                    Write-LogMessage -Type INFO -Message "No path to json provided on the command line so script is using for auto created input json file ManagementStartupInput.json from current directory" -Colour Yellow
+                    Write-PowerManagementLogMessage -Type INFO -Message "No path to json provided on the command line so script is using for auto created input json file ManagementStartupInput.json from current directory" -Colour Yellow
                     $inputFile =  $defaultFile
                 } 
                 if ([string]::IsNullOrEmpty($inputFile)) {
-                    Write-LogMessage -Type Warning -Message "JSON input file is not provided, unable to proceed, hence exiting" -Colour Cyan
+                    Write-PowerManagementLogMessage -Type Warning -Message "JSON input file is not provided, unable to proceed, hence exiting" -Colour Cyan
                     Exit
                 }
                 Write-Host "";
                 $proceed =  Read-Host "The following JSON file $inputFile will be used for the operation, please confirm (Yes or No)[default:No]"
                 if (-not $proceed) {
-                        Write-LogMessage -Type WARNING -Message "None of the option is chosen. Default is `"No`", hence exiting script execution" -Colour Cyan
+                        Write-PowerManagementLogMessage -Type WARNING -Message "None of the option is chosen. Default is `"No`", hence exiting script execution" -Colour Cyan
                         Exit
                 } else {
                     if (($proceed -match "no") -or ($proceed -match "yes")) {
                         if ($proceed -match "no") {
-                            Write-LogMessage -Type WARNING -Message "Exiting script execution as the input is No" -Colour Cyan
+                            Write-PowerManagementLogMessage -Type WARNING -Message "Exiting script execution as the input is No" -Colour Cyan
                             Exit
                         }
                     } else {
-                            Write-LogMessage -Type WARNING -Message "Pass the right string, either Yes or No" -Colour Cyan
+                            Write-PowerManagementLogMessage -Type WARNING -Message "Pass the right string, either Yes or No" -Colour Cyan
                             Exit
                     }
                 }
 
-                Write-LogMessage -Type INFO -Message "$inputFile is checked for its correctness, moving on with execution"
+                Write-PowerManagementLogMessage -Type INFO -Message "$inputFile is checked for its correctness, moving on with execution"
             } 
         }
-       Catch {
-            Debug-CatchWriter -object $_
-       }
+        Catch {
+            Debug-CatchWriterForPowerManagement -object $_
+        }
 
 # Pre-Checks and Log Creation
 Try {
@@ -154,27 +164,27 @@ Try {
     if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $str2 = $str2 + " -shutdownCustomerVm" }
     if ($PsBoundParameters.ContainsKey("genjson")) { $str2 = $str2 + " -genjson" }
     if ($json) {$str2 = $str2 + " -json $json"}
-    Write-LogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
-    Write-LogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
-    Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile" -Colour Yellow
-    if (-Not $null -eq $customerVmMessage) { Write-LogMessage -Type INFO -Message $customerVmMessage -Colour Yellow}
+    Write-PowerManagementLogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
+    Write-PowerManagementLogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
+    Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile" -Colour Yellow
+    if (-Not $null -eq $customerVmMessage) { Write-PowerManagementLogMessage -Type INFO -Message $customerVmMessage -Colour Yellow}
 
     if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0 -ErrorAction Ignore)) {
-        Write-LogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0 or greater, Please install before proceeding" -Colour Red
-        Write-LogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 2.3.0' to install from PS Gallery" -Colour Yellow
+        Write-PowerManagementLogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 2.3.0 or greater, Please install before proceeding" -Colour Red
+        Write-PowerManagementLogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 2.3.0' to install from PS Gallery" -Colour Yellow
         Exit
     }
     else {
         $ver = Get-InstalledModule -Name Posh-SSH -MinimumVersion 2.3.0
-        Write-LogMessage -Type INFO -Message "The version of Posh-SSH found on the system is: $($ver.Version)" -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "The version of Posh-SSH found on the system is: $($ver.Version)" -Colour Green
         Try {
-            Write-LogMessage -Type INFO -Message "Module Posh-SSH not loaded, importing now please wait..." -Colour Yellow
+            Write-PowerManagementLogMessage -Type INFO -Message "Module Posh-SSH not loaded, importing now please wait..." -Colour Yellow
             Import-Module "Posh-SSH"
-            Write-LogMessage -Type INFO -Message "Module Posh-SSH imported successfully." -Colour Green
+            Write-PowerManagementLogMessage -Type INFO -Message "Module Posh-SSH imported successfully." -Colour Green
         }
         Catch {
-            Write-LogMessage -Type ERROR -Message "could not import Posh-SSH module, refer the documentation for possible solution"  -Colour Red
-            Write-LogMessage -Type ERROR -Message "$($PSItem.Exception.Message)" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "could not import Posh-SSH module, refer the documentation for possible solution"  -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "$($PSItem.Exception.Message)" -Colour Red
             Exit
         }
     }
@@ -188,11 +198,11 @@ Try {
         else {
             $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
             if ($StatusMsg) {
-                Write-LogMessage -Type INFO -Message "Connection to SDDC Manager is validated successfully" -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "Connection to SDDC Manager is validated successfully" -Colour Green
             }
             elseif ($ErrorMsg) {
                 if ($ErrorMsg -match "4\d\d") {
-                    Write-LogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
                     Exit
                 }
                 else {
@@ -204,20 +214,20 @@ Try {
     }
 }
 Catch {
-    Debug-CatchWriter -object $_
+    Debug-CatchWriterForPowerManagement -object $_
     Exit
 }
 
 # Shutdown procedures
 Try {
     if ($powerState -eq "Shutdown" -or $genjson) {
-#        Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
-        Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
-        Write-LogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to gather system details"
+#       Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
+        Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
+        Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to gather system details"
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-        if ( $StatusMsg ) { Write-LogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-LogMessage -Type WARNING -Message $WarnMsg -Colour Cyan } if ( $ErrorMsg ) { Write-LogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+        if ( $StatusMsg ) { Write-PowerManagementLogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-PowerManagementLogMessage -Type WARNING -Message $WarnMsg -Colour Cyan } if ( $ErrorMsg ) { Write-PowerManagementLogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
         if ($accessToken) {
-            Write-LogMessage -Type INFO -Message "Gathering system details from SDDC Manager inventory (May take some time)"
+            Write-PowerManagementLogMessage -Type INFO -Message "Gathering system details from SDDC Manager inventory (May take some time)"
             $workloadDomain = Get-VCFWorkloadDomain | Where-Object {  $_.type -eq "MANAGEMENT" }
             $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
 
@@ -237,6 +247,17 @@ Try {
                 $vcPass_encrypted = $vcPass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
             } else {
                 $vcPass_encrypted = $null
+            }
+
+            [Array]$allvms = @()
+            [Array]$vcfvms = @()
+            [Array]$vcfvms += $server.Split(".")[0]
+
+            [Array]$vcfvms += ($vcServer.fqdn).Split(".")[0]
+
+
+            if ($regionalWSA) {
+                [Array]$vcfvms += $regionalWSA
             }
 
             $var["Server"] = @{}
@@ -287,6 +308,7 @@ Try {
             $nsxtNodes = @()
             foreach ($node in $nsxtNodesfqdn) {
                 [Array]$nsxtNodes += $node.Split(".")[0]
+                [Array]$vcfvms += $node.Split(".")[0]
             }
             $var["NsxtManager"] = @{}
             $var["NsxtManager"]["vipfqdn"] = $nsxtMgrfqdn
@@ -294,11 +316,14 @@ Try {
             $var["NsxtManager"]["user"] = $nsxMgrVIP.adminUser
             $var["NsxtManager"]["password"] = $Pass_encrypted
 
-            $nsxtEdgeNodes = $edgenodes
-            $var["NsxEdge"] = @{}
-            $var["NsxEdge"]["nodes"]= New-Object System.Collections.ArrayList
-            foreach ($val in $edgenodes) {
-            $var["NsxEdge"]["nodes"].add($val) | out-null
+            if ($edgenodes.count -ne 0)  {
+                $nsxtEdgeNodes = $edgenodes
+                $var["NsxEdge"] = @{}
+                $var["NsxEdge"]["nodes"]= New-Object System.Collections.ArrayList
+                foreach ($val in $edgenodes) {
+                    $var["NsxEdge"]["nodes"].add($val) | out-null
+                    [Array]$vcfvms += $val
+                }
             }
 
             # Gather vRealize Suite Details
@@ -457,7 +482,7 @@ Try {
             $vcHostUser = ""
             $vcHostPass = ""
             if ($vcServer.fqdn) {
-                Write-LogMessage -Type INFO -Message "Getting SDDC Manager VM Name "
+                Write-PowerManagementLogMessage -Type INFO -Message "Getting SDDC Manager VM Name "
                 if ($DefaultVIServers) {
                     Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
@@ -484,23 +509,74 @@ Try {
             if ($genjson) {
                 if (Test-Path -Path "ManagementStartupInput.json" -PathType Leaf) {
                     $location = Get-Location
-                    Write-LogMessage -Type INFO -Message "The generation of JSON is successful."  -colour Green
-                    Write-LogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path." -colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "The generation of JSON is successful."  -colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path." -colour Green
                     Exit
                 }
                 else {
-                    Write-LogMessage -Type ERROR -Message "Json file is not created, check for permissions in the $location path" -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Json file is not created, check for permissions in the $location path" -Colour Red
                     Exit
                 }
             }
         }
         else {
-            Write-LogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
             Exit
         }
-        
+
+        Write-PowerManagementLogMessage -Type Info -Message "Trying to fetch All PoweredOn VM's from the server $($vcServer.fqdn)"
+        [Array]$allvms = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
+        $customervms = @()
+        Write-PowerManagementLogMessage -Type Info -Message "Trying to fetch All PoweredOn VCLS VM's from the server $($vcServer.fqdn)"
+        [Array]$vclsvms += Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "vCLS"
+        foreach ($vm in $vclsvms) {
+            [Array]$vcfvms += $vm
+        }
+
+        $customervms = $allvms | ?{$vcfvms -notcontains $_}
+        $vcfvms_string = $vcfvms -join ","
+        Write-PowerManagementLogMessage -Type Info -Message "The SDDC manager managed VM's are: $($vcfvms_string)"
+        if($customervms.count -ne 0) {
+            $customervms_string = $customervms -join ","
+            Write-PowerManagementLogMessage -Type Info -Message "The SDDC manager non-managed customer VM's are: $($customervms_string)"
+        }
+
+        $VMwareToolsNotRunningVMs = @()
+        $VMwareToolsRunningVMs = @()
+        foreach ($vm in $customervms) {
+            $status = Get-VMwareToolsStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -vm $vm
+            if($status  -eq "RUNNING") {
+                [Array]$VMwareToolsRunningVMs += $vm
+            } else {
+                [Array]$VMwareToolsNotRunningVMs += $vm
+            }
+        }
+        if (($VMwareToolsNotRunningVMs.count -ne 0) -and ($PsBoundParameters.ContainsKey("shutdownCustomerVm"))) {
+             Write-PowerManagementLogMessage -Type Warning -Message "There are some non VCF maintained VMs where VMWareTools NotRunning, hence unable to shutdown these VMs:$($VMwareToolsNotRunningVMs)" -colour Cyan
+             Write-PowerManagementLogMessage -Type Error -Message "Unless these VMs are shutdown manually, we cannot proceed. Please shutdown manually and rerun the script" -colour Red
+             Exit
+        }
+
+         if ($customervms.count -ne 0) {
+            $customervms_string = $customervms -join ","
+            if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
+                Write-PowerManagementLogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state. Customer VM Shutdown option is set to true" -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "Hence shutting down Non VCF management VMs, to put host in maintenance mode" -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: $($customervms_string)" -Colour Cyan
+                foreach ($vm in $customervms) {
+                    Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vm -timeout 300
+                }
+            } else {
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state. Customer VM Shutdown option is set to false" -Colour Cyan
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence not shutting down Non VCF management VMs: $($customervms_string)" -Colour Cyan
+                    Write-PowerManagementLogMessage -Type ERROR -Message "The script cannot proceed unless these VMs are shutdown manually or the customer VM Shutdown option is set to true.  Please take the necessary action and rerun the script" -Colour Red
+                    Exit
+            }
+        }
+        <#
         # Shutdown vRealize Suite
         if ($($WorkloadDomain.type) -eq "MANAGEMENT") {
+
             if ($($vra.status -eq "ACTIVE")) {
                 Request-PowerStateViaVRSLCM -server $vrslcm.fqdn -user $vrslcm.adminUser -pass $vrslcm.adminPassword -product VRA -mode power-off -timeout 1800
             }
@@ -525,6 +601,7 @@ Try {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vrliNodes -timeout 600
             }
         }
+        #>
 
         # Shutdown the NSX Edge Nodes
         $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
@@ -533,17 +610,17 @@ Try {
             if ($regionalWSA) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $regionalWSA -timeout 600
             } else {
-                Write-LogMessage -Type WARNING -Message "No Standalone Workspace ONE Access instance present, skipping shutdown" -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "No Standalone Workspace ONE Access instance present, skipping shutdown" -Colour Cyan
             }
             if ($nsxtEdgeNodes) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
             }
             else {
-                Write-LogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping shutdown" -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping shutdown" -Colour Cyan
             }
         }
         else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping shutdown of $nsxtEdgeNodes" -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping shutdown of $nsxtEdgeNodes" -Colour Cyan
         }
         # Shutdown the NSX Manager Nodes
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
@@ -552,21 +629,21 @@ Try {
         $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
         if ($checkServer) {
             if( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0){
-                Write-LogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
             } else {
-                Write-LogMessage -Type ERROR -Message "VSAN Cluster health is BAD. Please check and rerun the script" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "VSAN Cluster health is BAD. Please check and rerun the script" -Colour Red
                 Exit
             }
             if((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-                Write-LogMessage -Type INFO -Message "VSAN Object Resync is successfull" -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "VSAN Object Resync is successfull" -Colour Green
             } else {
-                Write-LogMessage -Type ERROR -Message "VSAN Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "VSAN Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
                 Exit
             }
 
         }
         else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping checking vSAN health for cluster $($cluster.name)" -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping checking vSAN health for cluster $($cluster.name)" -Colour Cyan
         }
 
         # Shut Down the SDDC Manager Virtual Machine in the Management Domain
@@ -577,16 +654,16 @@ Try {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
         }
         else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping Setting Retreat Mode" -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping Setting Retreat Mode" -Colour Cyan
         }
 
         # Waiting for VCLS VMs to be stopped for ($retries*10) seconds
-        Write-LogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) shutdown will take time...please wait" -colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) shutdown will take time...please wait" -colour Yellow
         $counter = 0
         $retries = 30
         foreach ($esxiNode in $esxiWorkloadDomain) {
             while ($counter -ne $retries) {
-                $powerOnVMcount = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "vcls"
+                $powerOnVMcount = (Get-PoweredOnVMs -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "vcls").count
                 if ( $powerOnVMcount ) {
                     start-sleep 10
                     $counter += 1
@@ -597,7 +674,7 @@ Try {
             }
         }
         if ($counter -eq $retries) {
-            Write-LogMessage -Type WARNING -Message "The vCLS vms did't get shutdown within stipulated timeout value" -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "The vCLS vms did't get shutdown within stipulated timeout value" -Colour Cyan
             Exit
         }
 
@@ -607,27 +684,17 @@ Try {
         # Shutdown vCenter Server
         Stop-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -timeout 600
 
+
         # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
         $count = 0
         $flag = 0
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            $count = Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-            if ($count) {
-                if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
-                    Write-LogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state. Customer VM Shutdown option is set to true" -Colour Cyan
-                    Write-LogMessage -Type WARNING -Message "Hence shutting down Non VCF management VMs, to put host in maintenance mode" -Colour Cyan
-                    Stop-CloudComponent -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern .* -timeout 300
-                    if (Get-PoweredOnVMsCount -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password) {
-                        Write-LogMessage -Type ERROR -Message "Could not stop VM on ESXi $($esxiNode.fqdn). Please stop VM manually. Exiting!" -Colour Red
-                        Exit
-                    }                    
-                }
-                else {
-                    $flag = 1
-                    Write-LogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state. Customer VM Shutdown is not requested," -Colour Cyan
-                    Write-LogMessage -Type WARNING -Message "So not shutting down Non VCF management VMs. Hence unable to proceed with putting host in maintenance mode" -Colour Cyan
-                    Write-LogMessage -Type WARNING -Message "ESXi with VMs running: $($esxiNode.fqdn)" -Colour Red
-                }
+            $vms = Get-PoweredOnVMs -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+            if ($vms.count) {
+                $flag = 1
+                Write-PowerManagementLogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state." -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "Unable to proceed unless they are shutdown. Kindly shutdown them manually and rerun the script" -Colour Cyan
+                Write-PowerManagementLogMessage -Type ERROR -Message "ESXi with VMs running: $($esxiNode.fqdn)  VMs are:$($vms) " -Colour Red
             }
         }
         if (-Not $flag) {
@@ -645,17 +712,12 @@ Try {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
             }
             # End of shutdown
-            Write-LogMessage -Type INFO -Message "End of Shutdown sequence!" -Colour Yellow
-        }
-        else {
-            Write-LogMessage -Type ERROR -Message "Stopping shutdown process, since there are still running VMs! Please, check output above in order to identify ESXi hosts with running VMs." -Colour Red
-            Write-LogMessage -Type ERROR -Message "Please shut down VMs directly from ESXi hosts and run this script again." -Colour Red 
-            Exit
+            Write-PowerManagementLogMessage -Type INFO -Message "End of Shutdown sequence!" -Colour Cyan
         }
     }
 }
 Catch {
-    Debug-CatchWriter -object $_
+    Debug-CatchWriterForPowerManagement -object $_
     Exit
 }
 
@@ -665,9 +727,9 @@ Try {
         $MgmtInput = Get-Content -Path $inputFile | ConvertFrom-JSON
 
 #        Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
-        Write-LogMessage -Type INFO -Message "Setting up the log file to path $logfile"
+        Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
 
-        Write-LogMessage -Type INFO -Message "Gathering System Details from json file"
+        Write-PowerManagementLogMessage -Type INFO -Message "Gathering System Details from json file"
         # Gather Details from SDDC Manager
         $workloadDomain = $MgmtInput.Domain.name
         $workloadDomainType = $MgmtInput.Domain.type
@@ -696,6 +758,7 @@ Try {
             $vchostpassword = $null
         }
         $vcHostPass = $vchostpassword
+
 
         # Gather vRealize Suite Details
         $vrslcm = New-Object -TypeName PSCustomObject
@@ -804,6 +867,7 @@ Try {
             [Array]$nsxtNodes += $node.Split(".")[0]
         }
 
+
         # Gather NSX Edge Node Details
         $nsxtEdgeCluster =  $MgmtInput.NsxEdge
         $nsxtEdgeNodes = $nsxtEdgeCluster.nodes
@@ -825,7 +889,7 @@ Try {
 
         # Startup the Management Domain vCenter Server
         Start-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.Name -timeout 600
-        Write-LogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
+        Write-PowerManagementLogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
 
         #bug-2925594  and bug-2925501 and bug-2925511
         $retries = 20
@@ -845,7 +909,7 @@ Try {
                         break
                     } else {
                        Start-Sleep 60
-                       Write-LogMessage -Type INFO -Message "The services on Virtual Center is still starting. Please wait." -colour Yellow
+                       Write-PowerManagementLogMessage -Type INFO -Message "The services on Virtual Center is still starting. Please wait." -colour Yellow
                     }
                 }
                 $flag =1
@@ -854,28 +918,28 @@ Try {
             }
             Start-Sleep 60
             $retries -= 1
-            Write-LogMessage -Type INFO -Message "The Virtual Center is still starting. Please wait." -colour Yellow
+            Write-PowerManagementLogMessage -Type INFO -Message "The Virtual Center is still starting. Please wait." -colour Yellow
         }
 
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
         if ($flag -and $service_status) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
             if( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0){
-                Write-LogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
             } else {
-                Write-LogMessage -Type ERROR -Message "VSAN Cluster health is BAD. Please check and rerun the script" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "VSAN Cluster health is BAD. Please check and rerun the script" -Colour Red
                 Exit
             }
             if( (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-                Write-LogMessage -Type INFO -Message "VSAN Object Resync is successfull" -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "VSAN Object Resync is successfull" -Colour Green
             } else {
-                Write-LogMessage -Type ERROR -Message "VSAN Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "VSAN Object resync is unsuccessfull. Please check and rerun the script" -Colour Red
                 Exit
             }
 
         }
         else {
-            Write-LogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping startup of vcls vms" -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping startup of vcls vms" -Colour Cyan
             Exit
         }
         
@@ -890,7 +954,7 @@ Try {
         # Startup the NSX Manager Nodes in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
         if (!(Wait-ForStableNsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword)) {
-            Write-LogMessage -Type ERROR -Message "NSX-T Cluster is not in 'STABLE' state. Exiting!" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "NSX-T Cluster is not in 'STABLE' state. Exiting!" -Colour Red
             Exit
         }
 
@@ -899,7 +963,7 @@ Try {
             Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
         }
         else {
-            Write-LogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
         }
 
         # Startup the Standalone WSA in the Management Domain
@@ -907,7 +971,7 @@ Try {
             Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $regionalWSA -timeout 600
         }
         else {
-            Write-LogMessage -Type WARNING -Message "No Standalone Workspace ONE Access instance is present, skipping startup" -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "No Standalone Workspace ONE Access instance is present, skipping startup" -Colour Cyan
         }
 
 
@@ -922,7 +986,7 @@ Try {
             if ($($vrops.status -eq "ACTIVE") -and $vropsNodes) {
                 Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vropsNodes -timeout 600
                 # Sleep before start quering API - TODO needs better handling with a loop.
-                Write-LogMessage -Type INFO -Message "Sleeping 5 min in order to allow vROps API to start..." -colour Yellow
+                Write-PowerManagementLogMessage -Type INFO -Message "Sleeping 5 min in order to allow vROps API to start..." -colour Yellow
                 Start-Sleep -s 300
 
                 $vropsCollectorNodes = @()
@@ -945,10 +1009,10 @@ Try {
         }
 
         # End of startup
-        Write-LogMessage -Type INFO -Message "End of startup sequence. Please check your environment" -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "End of startup sequence. Please check your environment" -Colour Yellow
     }
 }
 Catch {
-    Debug-CatchWriter -object $_
+    Debug-CatchWriterForPowerManagement -object $_
     Exit
 }
