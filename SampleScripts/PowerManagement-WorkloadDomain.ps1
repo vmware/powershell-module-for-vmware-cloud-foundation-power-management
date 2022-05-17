@@ -76,7 +76,6 @@ Catch {
 # Pre-Checks and Log Creation
 Try {
     $Global:ProgressPreference = 'SilentlyContinue'
-    Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
     $str1 = "$PSCommandPath "
     $str2 = "-server $server -user $user -pass ******* -sddcDomain $sddcDomain -powerState $powerState"
     if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $str2 = $str2 + " -shutdownCustomerVm" }
@@ -153,7 +152,7 @@ Try {
         $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id)})
         $vcUser = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).username
         $vcPass = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).password
-        #we are using same user name and password for both workload and management vc, need to change or cross chceck
+        # We are using same user name and password for both workload and management vc, need to change or cross check
         $mgmtVcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($managementDomain.id)})
         $mgmtvcUser = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).username
         $mgmtvcPass = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).password
@@ -173,43 +172,7 @@ Try {
             $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).password 
             $esxiWorkloadDomain += $esxDetails
         }
-
-        # Gather NSX Manager Cluster Details
-        $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id
-        $nsxtMgrfqdn = $nsxtCluster.vipFqdn
-        $nsxMgrVIP = New-Object -TypeName PSCustomObject
-        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).username
-        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API"})).password
-        $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
-        $nsxtNodes = @()
-        foreach ($node in $nsxtNodesfqdn) {
-            [Array]$nsxtNodes += $node.Split(".")[0]
-            [Array]$vcfvms += $node.Split(".")[0]
-        }
-
-        # Gather NSX Edge Node Details
-        Try {
-            [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
-            foreach ($node in $nsxtEdgeNodes) {
-                [Array]$vcfvms += $node
-            }
-        }
-        catch {
-            Write-PowerManagementLogMessage -Type WARNING -Message "Unable to fetch nsx edge nodes information" -Colour CYAN
-        }
-        if($nsxtEdgeNodes.count -ne 0) {
-            Try {
-                $nsxtEdgeCluster = Get-VCFEdgeCluster | Where-Object {$_.nsxtCluster.id -eq $workloadDomain.nsxtCluster.id}
-                $nsxtEdgeNodesfqdn = $nsxtEdgeCluster.edgeNodes.hostname
-                $nsxtEdgeNodes = @()
-                foreach ($node in $nsxtEdgeNodesfqdn) {
-                    [Array]$nsxtEdgeNodes += $node.Split(".")[0]
-                    [Array]$vcfvms += $node.Split(".")[0]
-                }
-            } catch {
-                Write-PowerManagementLogMessage -Type WARNING -Message "Unable to fetch nsx edge nodes information" -Colour CYAN
-            }
-        }
+        # We will get NSX-T details in the respective startup/shutdown sections below. 
     }
     else {
         Write-PowerManagementLogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
@@ -220,9 +183,40 @@ Catch {
     Debug-CatchWriterForPowerManagement -object $_
 }
 
-# Execute the Shutdown procedures
+# Run the Shutdown procedures
 Try {
     if ($powerState -eq "Shutdown") {
+        # Get NSX-T Details
+        ## Gather NSX Manager Cluster Details
+        $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id
+        $nsxtMgrfqdn = $nsxtCluster.vipFqdn
+        $nsxMgrVIP = New-Object -TypeName PSCustomObject
+        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).username
+        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).password
+        $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
+        $nsxtNodes = @()
+        foreach ($node in $nsxtNodesfqdn) {
+            [Array]$nsxtNodes += $node.Split(".")[0]
+            [Array]$vcfvms += $node.Split(".")[0]
+        }
+
+        ## Gather NSX Edge Node Details from NSX-T Manager
+        Try {
+            [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
+            foreach ($node in $nsxtEdgeNodes) {
+                [Array]$vcfvms += $node
+            }
+        }
+        catch {
+            Write-PowerManagementLogMessage -Type WARNING -Message "Unable to fetch nsx edge nodes information" -Colour CYAN
+        }
+        if ($nsxtEdgeNodes.count -ne 0) {
+            $edgeVMs_string = $nsxtEdgeNodes -join "; "
+            Write-PowerManagementLogMessage -Type WARNING -Message "Fund those NSX-T Data Center Edge Nodes managed by '$nsxtMgrfqdn' $edgeVMs_string ." -Colour CYAN
+        } else {
+            Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes found, skipping NSX-T edge nodes shutdown for NSX-T manager cluster '$nsxtMgrfqdn'!" -Colour CYAN
+        }
+
         Write-PowerManagementLogMessage -Type Info -Message "Trying to fetch All PoweredOn VM's from the server $($vcServer.fqdn)"
         [Array]$allvms = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
         $customervms = @()
@@ -236,8 +230,8 @@ Try {
         $vcfvms_string = $vcfvms -join ","
         Write-PowerManagementLogMessage -Type Info -Message "The SDDC manager managed VM's are: $($vcfvms_string)"
         if($customervms.count -ne 0) {
-            $customervms_string = $customervms -join ","
-            Write-PowerManagementLogMessage -Type Info -Message "The SDDC manager non-managed customer VM's are: $($customervms_string)"
+            $customervms_string = $customervms -join ", "
+            Write-PowerManagementLogMessage -Type Info -Message "The SDDC manager non-managed customer VM's are: $($customervms_string) ."
         }
         $VMwareToolsNotRunningVMs = @()
         $VMwareToolsRunningVMs = @()
@@ -342,7 +336,7 @@ Try {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
             }
             else {
-                Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping shutdown" -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes found, skipping NSX-T edge nodes shutdown for NSX-T manager cluster '$nsxtMgrfqdn'!" -Colour Cyan
             }
         }
         else {
@@ -443,7 +437,7 @@ Try {
             if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
                 #Max wait time for services to come up is 10 mins.
                 for ($i=0;  $i -le 10; $i++) {
-                    $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser  -pass $vcPass -service 'vsphere-ui' -nolog
+                    $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service 'vsphere-ui' -nolog
                     if ($status -eq "STARTED") {
                         $service_status = 1
                         break
@@ -490,6 +484,19 @@ Try {
         #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
         Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
 
+        # Get NSX-T Details once VC is started
+        ## Gather NSX Manager Cluster Details
+        $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id
+        $nsxtMgrfqdn = $nsxtCluster.vipFqdn
+        $nsxMgrVIP = New-Object -TypeName PSCustomObject
+        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).username
+        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).password
+        $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
+        $nsxtNodes = @()
+        foreach ($node in $nsxtNodesfqdn) {
+            [Array]$nsxtNodes += $node.Split(".")[0]
+            [Array]$vcfvms += $node.Split(".")[0]
+        }
 
         # Startup the NSX Manager Nodes in the Virtual Infrastructure Workload Domain
         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
@@ -498,25 +505,28 @@ Try {
             Exit
         }
 
-        # Startup the NSX Edge Nodes in the Virtual Infrastructure Workload Domain 
-        if (Test-Connection -ComputerName $vcServer.fqdn -Quiet -Count 1) {
-            if ($nsxtEdgeNodes) {
-                Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
-            }
-            else {
-                [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
-                if ($nsxtEdgeNodes) {
-                    Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
-                } else {
-                    Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
-                }
+        # Gather NSX Edge Node Details and do the startup
+        Try {
+            [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
+            foreach ($node in $nsxtEdgeNodes) {
+                [Array]$vcfvms += $node
             }
         }
-        else {
-            Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes present, skipping startup" -Colour Cyan
+        catch {
+            Write-PowerManagementLogMessage -Type WARNING -Message "Unable to fetch nsx edge nodes information" -Colour CYAN
+        }
+        if ($nsxtEdgeNodes.count -ne 0) {
+            Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
+        } else {
+            Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes found, skipping NSX-T edge nodes startup for NSX-T manager cluster '$nsxtMgrfqdn'!" -Colour CYAN
         }
 
         # End of startup
+        $vcfvms_string = $vcfvms -join "; "
+        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "The following components have been started: $vcfvms_string , " -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "Please check the list above and start any additional VMs, that are required, before you proceed with workload startup!" -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "End of startup sequence!" -Colour Yellow
     }
 }
