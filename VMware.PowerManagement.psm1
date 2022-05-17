@@ -1050,7 +1050,7 @@ Function Get-VamiServiceStatus {
         The Get-VamiServiceStatus cmdlet gets the current status of the service on a given vCenter Server. The status can be STARTED/STOPPED
     
         .EXAMPLE
-        Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp
+        Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -service wcp
         This example connects to a vCenter Server and returns the wcp service status
 
         Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -nolog
@@ -1652,7 +1652,7 @@ Function Wait-ForStableNsxtClusterStatus {
             Try {
                 $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
             } Catch {
-                Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to NSX Manager '$server'. Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt"
+                Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to NSX Manager '$server'! Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt."
                 Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
                 continue
             }
@@ -1741,7 +1741,6 @@ Function Get-EdgeNodeFromNSXManager {
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-NSXTServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-                Write-PowerManagementLogMessage -Type INFO -Message "$edge_nodes_list"
                 return $edge_nodes_list
             }
             else {
