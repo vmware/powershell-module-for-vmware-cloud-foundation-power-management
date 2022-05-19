@@ -92,29 +92,6 @@ Param (
                         Exit
                     }
                 }
-
-            # Gather NSX Edge Node Details
-                Try {
-                    [Array]$edgenodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $vcServer.fqdn)
-                } catch {
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Unable to fetch nsx edge nodes information" -Colour CYAN
-                }
-
-                <#
-                if($edgenodes.count -eq 0) {
-                    Write-Host "";
-                    $edgenodes  = @()
-                    $edgenodesList = Read-Host "Kindly provide space separated list of Virtual Machine names for NSX-T edge nodes. (Enter for none)"
-                    if (([string]::IsNullOrEmpty($edgenodesList))) {
-                        Write-PowerManagementLogMessage -Type WARNING -Message "No Edge nodes have been provided!" -Colour Magenta
-                    }
-                    else {
-                        Write-PowerManagementLogMessage -Type INFO -Message "The list of edgenodes VM name passed are :$edgenodesList"
-                        $edgenodes = $edgenodesList.split()
-                    }
-                }
-                #>
-
             }
             elseif ($powerState -eq "Startup") {
                 $defaultFile = "./ManagementStartupInput.json"
@@ -155,7 +132,7 @@ Param (
             Debug-CatchWriterForPowerManagement -object $_
         }
 
-# Pre-Checks and Log Creation
+# Pre-Checks
 Try {
     $str1 = "$PSCommandPath "
     if ($server -and $user -and $pass) {
@@ -225,8 +202,8 @@ Try {
     Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
     Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to gather system details"
     if ($powerState -eq "Shutdown" -or $genjson) {
-#       Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
-
+        Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
+        Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to gather system details"
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
         if ( $StatusMsg ) { Write-PowerManagementLogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-PowerManagementLogMessage -Type WARNING -Message $WarnMsg -Colour Cyan } if ( $ErrorMsg ) { Write-PowerManagementLogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
         if ($accessToken) {
@@ -324,6 +301,27 @@ Try {
             $var["NsxtManager"]["nodes"] = $nsxtNodesfqdn
             $var["NsxtManager"]["user"] = $nsxMgrVIP.adminUser
             $var["NsxtManager"]["password"] = $Pass_encrypted
+
+            # Gather NSX-T Edge Node Details
+            $nsxManagerPowerOnVMs = 0
+            foreach ($nsxtManager in $nsxtNodes) {
+                $state = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch
+                if ($state) { $nsxManagerPowerOnVMs += 1 }
+                # If we have all NSX-T managers running, or minimum 2 nodes up - query NSX-T for edges.
+                if (($nsxManagerPowerOnVMs -eq $nsxtNodes.count) -or ($nsxManagerPowerOnVMs -eq 2)) { 
+                    $statusOfNsxtClusterVMs = 'running'
+                }
+            }
+            if ($statusOfNsxtClusterVMs -ne 'running') {
+                Write-PowerManagementLogMessage -Type WARNING -Message "NSX-T Manager VMs have been stopped, so NSX-T Edge cluster VMs will not be handled in automatic way" -Colour CYAN
+            }
+            else { 
+                Try {
+                    [Array]$edgenodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
+                } catch {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Something went wrong! Unable to fetch nsx edge nodes information from NSX-T manager '$nsxtMgrfqdn'. Exiting!" -Colour Red
+                }
+            }
 
             if ($edgenodes.count -ne 0)  {
                 $nsxtEdgeNodes = $edgenodes
@@ -563,10 +561,10 @@ Try {
         }
 
         $customervms = $allvms | ?{$vcfvms -notcontains $_}
-        $vcfvms_string = $vcfvms -join ","
+        $vcfvms_string = $vcfvms -join "; "
         Write-PowerManagementLogMessage -Type Info -Message "The SDDC manager managed VM's are: $($vcfvms_string)"
         if($customervms.count -ne 0) {
-            $customervms_string = $customervms -join ","
+            $customervms_string = $customervms -join "; "
             Write-PowerManagementLogMessage -Type Info -Message "The SDDC manager non-managed customer VM's are: $($customervms_string)"
         }
 
@@ -581,23 +579,23 @@ Try {
             }
         }
         if (($VMwareToolsNotRunningVMs.count -ne 0) -and ($PsBoundParameters.ContainsKey("shutdownCustomerVm"))) {
-             Write-PowerManagementLogMessage -Type Warning -Message "There are some non VCF maintained VMs where VMWareTools NotRunning, hence unable to shutdown these VMs:$($VMwareToolsNotRunningVMs)" -colour Cyan
+             Write-PowerManagementLogMessage -Type Warning -Message "There are some non VCF maintained VMs where VMWareTools NotRunning, hence unable to shutdown these VMs:$($VMwareToolsNotRunningVMs) ." -colour Cyan
              Write-PowerManagementLogMessage -Type Error -Message "Unless these VMs are shutdown manually, we cannot proceed. Please shutdown manually and rerun the script" -colour Red
              Exit
         }
 
          if ($customervms.count -ne 0) {
-            $customervms_string = $customervms -join ","
+            $customervms_string = $customervms -join "; "
             if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state. Customer VM Shutdown option is set to true" -Colour Cyan
                 Write-PowerManagementLogMessage -Type WARNING -Message "Hence shutting down Non VCF management VMs, to put host in maintenance mode" -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: $($customervms_string)" -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: $($customervms_string) ." -Colour Cyan
                 foreach ($vm in $customervms) {
                     Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vm -timeout 300
                 }
             } else {
                     Write-PowerManagementLogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state. Customer VM Shutdown option is set to false" -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence not shutting down Non VCF management VMs: $($customervms_string)" -Colour Cyan
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence not shutting down Non VCF management VMs: $($customervms_string) ." -Colour Cyan
                     Write-PowerManagementLogMessage -Type ERROR -Message "The script cannot proceed unless these VMs are shutdown manually or the customer VM Shutdown option is set to true.  Please take the necessary action and rerun the script" -Colour Red
                     Exit
             }
@@ -759,9 +757,7 @@ Try {
     if ($powerState -eq "Startup") {
         $MgmtInput = Get-Content -Path $inputFile | ConvertFrom-JSON
 
-#        Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
         Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
-
         Write-PowerManagementLogMessage -Type INFO -Message "Gathering System Details from json file"
         # Gather Details from SDDC Manager
         $workloadDomain = $MgmtInput.Domain.name

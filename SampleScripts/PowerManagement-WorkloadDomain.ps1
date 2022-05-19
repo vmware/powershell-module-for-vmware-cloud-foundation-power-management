@@ -216,23 +216,37 @@ Try {
             [Array]$vcfvms += $node.Split(".")[0]
         }
 
-        ## Gather NSX Edge Node Details from NSX-T Manager
-        Try {
-            [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
-            foreach ($node in $nsxtEdgeNodes) {
-                [Array]$vcfvms += $node
+        #Check if NSX-T manager VMs are running. If they are stopped skip NSX-T edge shutdown
+        $nsxManagerPowerOnVMs = 0
+        foreach ($nsxtManager in $nsxtNodes) {
+            $state = Get-PoweredOnVMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch
+            if ($state) { $nsxManagerPowerOnVMs += 1 }
+            # If we have all NSX-T managers running or minimum of 2 nodes up - query NSX-T for edges.
+            if (($nsxManagerPowerOnVMs -eq $nsxtNodes.count) -or ($nsxManagerPowerOnVMs -eq 2)) { 
+                $statusOfNsxtClusterVMs = 'running'
             }
         }
-        catch {
-            Write-PowerManagementLogMessage -Type WARNING -Message "Unable to fetch nsx edge nodes information" -Colour CYAN
+        if ($statusOfNsxtClusterVMs -ne 'running') {
+            Write-PowerManagementLogMessage -Type WARNING -Message "NSX-T Manager VMs have been stopped, so NSX-T Edge cluster VMs will not be handled in automatic way" -Colour CYAN
         }
+        else {
+            Try {
+                [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
+                foreach ($node in $nsxtEdgeNodes) {
+                    [Array]$vcfvms += $node
+                }
+            }
+            catch {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Something went wrong! Unable to fetch nsx edge nodes information from NSX-T manager '$nsxtMgrfqdn'. Exiting!" -Colour Red
+            }
+        }
+        ## Gather NSX Edge Node Details from NSX-T Manager
         if ($nsxtEdgeNodes.count -ne 0) {
             $edgeVMs_string = $nsxtEdgeNodes -join "; "
-            Write-PowerManagementLogMessage -Type WARNING -Message "Fund those NSX-T Data Center Edge Nodes managed by '$nsxtMgrfqdn' $edgeVMs_string ." -Colour CYAN
+            Write-PowerManagementLogMessage -Type INFO -Message "Fund those NSX-T Data Center Edge Nodes managed by '$nsxtMgrfqdn' $edgeVMs_string ." -Colour Green
         } else {
             Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Data Center Edge Nodes found, skipping NSX-T edge nodes shutdown for NSX-T manager cluster '$nsxtMgrfqdn'!" -Colour CYAN
         }
-
         Write-PowerManagementLogMessage -Type Info -Message "Trying to fetch All PoweredOn VM's from the server $($vcServer.fqdn)"
         [Array]$allvms = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
         $customervms = @()
