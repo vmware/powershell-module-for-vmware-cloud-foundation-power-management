@@ -894,7 +894,8 @@ Function Get-PoweredOnVMs {
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory=$false)] [ValidateNotNullOrEmpty()] [String]$pattern = $null
+        [Parameter (Mandatory=$false)] [ValidateNotNullOrEmpty()] [String]$pattern = $null ,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$exactMatch
     )
 
     Try {
@@ -909,10 +910,14 @@ Function Get-PoweredOnVMs {
             if ($DefaultVIServer.Name -eq $server) {
                 Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$server' and attempting to get the list of powered on virtual machines"
                 if ($pattern) {
-                    $no_powered_on_vms =  get-vm -Server $server | Where-Object Name -match $pattern  | where PowerState -eq "PoweredOn"
+                    if ($PSBoundParameters.ContainsKey('exactMatch') ) {
+                        $no_powered_on_vms =  get-vm -Server $server | Where-Object Name -EQ $pattern  | Where-Object PowerState -eq "PoweredOn"
+                    } else {
+                        $no_powered_on_vms =  get-vm -Server $server | Where-Object Name -match $pattern  | Where-Object PowerState -eq "PoweredOn"
+                    }
                 }
                 else {
-                    $no_powered_on_vms =  get-vm -Server $server | where PowerState -eq "PoweredOn"
+                    $no_powered_on_vms =  get-vm -Server $server | Where-Object PowerState -eq "PoweredOn"
                 }
                 if ($no_powered_on_vms.count -eq 0){
                     Write-PowerManagementLogMessage -type INFO -Message "No virtual machines in a powered on state"
