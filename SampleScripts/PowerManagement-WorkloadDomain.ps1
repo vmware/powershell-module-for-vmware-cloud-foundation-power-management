@@ -18,7 +18,7 @@
     - 1.0.001   (Gary Blake / 2022-02-22) - Initial release
 
     ===============================================================================================================
-    
+
     .SYNOPSIS
     Connects to the specified SDDC Manager and shutdown/startup a VI Workload Domain
 
@@ -31,7 +31,7 @@
 
     .EXAMPLE
     PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Shutdown -shutdownCustomerVm
-    Initiates a shutdown of the Virtual Infrastructure Workload Domain 'sfo-w01' with shutdown of customer deployed VMs. 
+    Initiates a shutdown of the Virtual Infrastructure Workload Domain 'sfo-w01' with shutdown of customer deployed VMs.
     Note: customer VMs will be stopped (Guest shutdown) only if they have VMware tools running and after NSX-T components, so they will loose networking before shutdown if they are running on overlay network.
 
     .EXAMPLE
@@ -48,7 +48,7 @@ Param (
         [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
 )
 
-# Customer Questions Section 
+# Customer Questions Section
 Try {
     Clear-Host; Write-Host ""
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
@@ -139,7 +139,6 @@ Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Gathering System Details from SDDC Manager Inventory (May take little time)"
 
         # Gather Details from SDDC Manager
-
         $managementDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
         $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.Name -eq $sddcDomain }
         if ([string]::IsNullOrEmpty($workloadDomain)) {
@@ -169,10 +168,10 @@ Try {
             $esxDetails = New-Object -TypeName PSCustomObject
             $esxDetails | Add-Member -Type NoteProperty -Name fqdn -Value $esxiHost
             $esxDetails | Add-Member -Type NoteProperty -Name username -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).username
-            $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).password 
+            $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).password
             $esxiWorkloadDomain += $esxDetails
         }
-        # We will get NSX-T details in the respective startup/shutdown sections below. 
+        # We will get NSX-T details in the respective startup/shutdown sections below.
     }
     else {
         Write-PowerManagementLogMessage -Type ERROR -Message "Unable to obtain access token from SDDC Manager ($server), check credentials" -Colour Red
@@ -186,6 +185,23 @@ Catch {
 # Run the Shutdown procedures
 Try {
     if ($powerState -eq "Shutdown") {
+        #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
+         Try {
+             foreach ($esxiNode in $esxiWorkloadDomain) {
+                $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                if (-Not $status) {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to SSH to host $($esxiNode.fqdn), if SSH is not enabled, follow the steps mentioned in the doc to enable" -colour RED
+                    Exit
+                }
+             }
+         } catch {
+            Write-PowerManagementLogMessage -Type Error -Message "Unable to SSH to the host $($esxiNode.fqdn), if SSH is not enabled, follow the steps mentioned in the doc to enable" -Colour Red
+         }
+        $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster -SDDCManager $server -SDDCuser $user -SDDCpass $pass
+        if($status -eq $True) {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Currently we are not supporting Tanzu enabled domains. Please try on other domains" -Colour Red
+            Exit
+        }
         # Get NSX-T Details
         ## Gather NSX Manager Cluster Details
         $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id
@@ -221,7 +237,7 @@ Try {
         [Array]$allvms = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
         $customervms = @()
         Write-PowerManagementLogMessage -Type Info -Message "Trying to fetch All PoweredOn VCLS VM's from the server $($vcServer.fqdn)"
-        [Array]$vclsvms += Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "vCLS"
+        [Array]$vclsvms += Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)"
         foreach ($vm in $vclsvms) {
             [Array]$vcfvms += $vm
         }
@@ -266,7 +282,7 @@ Try {
             }
         }
 
-
+<# 2963366 : DRS settings in not exactly needed for workload domain, rather needed for management
         # Change the DRS Automation Level to Partially Automated for VI Workload Domain Clusters
         if ($WorkloadDomain.type -ne "MANAGEMENT") {
             $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
@@ -278,7 +294,7 @@ Try {
             Write-PowerManagementLogMessage -Type ERROR -Message "Provided Workload domain '$sddcDomain' is the Management Workload domain. This script handles Workload Domains. Exiting! " -Colour Red
             exit
         }
-        
+ #>
         # Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
         if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
@@ -293,7 +309,7 @@ Try {
         $retries = 30
         foreach ($esxiNode in $esxiWorkloadDomain) {
             while ($counter -ne $retries) {
-                $powerOnVMcount = (Get-PoweredOnVMs -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "vcls").count
+                $powerOnVMcount = (Get-PoweredOnVMs -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
                 if ( $powerOnVMcount ) {
                     start-sleep 10
                     $counter += 1
@@ -314,7 +330,7 @@ Try {
         else {
             Write-PowerManagementLogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping stopping the WCP service" -Colour Cyan
         }
-        
+
         $clusterPattern = "^SupervisorControlPlaneVM.*"
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Stop-CloudComponent -server $esxiNode.fqdn -pattern $clusterPattern -user $esxiNode.username -pass $esxiNode.password -timeout 300
@@ -409,6 +425,19 @@ Try {
         Exit
     }
     if ($powerState -eq "Startup") {
+        #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
+        Try {
+             foreach ($esxiNode in $esxiWorkloadDomain) {
+                $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                if (-Not $status) {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to SSH to host $($esxiNode.fqdn), if SSH is not enabled, follow the steps mentioned in the doc to enable" -colour RED
+                    Exit
+                }
+             }
+         } catch {
+            Write-PowerManagementLogMessage -Type Error -Message "Unable to SSH to the host $($esxiNode.fqdn), if SSH is not enabled, follow the steps mentioned in the doc to enable" -Colour Red
+         }
+
         # Take hosts out of maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
@@ -416,7 +445,7 @@ Try {
 
         # Prepare the vSAN cluster for startup - Performed on a single host only
         Invoke-EsxCommand -server $esxiWorkloadDomain.fqdn[0] -user $esxiWorkloadDomain.username[0] -pass $esxiWorkloadDomain.password[0] -expected "Cluster reboot/poweron is completed successfully!" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py recover"
-        
+
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
         }
@@ -477,10 +506,10 @@ Try {
 
         # Restart vSphere HA to avoid triggering a Cannot find vSphere HA master agent error.
         Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
-
+<# 2963366 : DRS settings in not exactly needed for workload domain, rather needed for management
         # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
         Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
-
+#>
         #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
         Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
 
@@ -526,6 +555,8 @@ Try {
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "The following components have been started: $vcfvms_string , " -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "Please check the list above and start any additional VMs, that are required, before you proceed with workload startup!" -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -colour Yellow
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "End of startup sequence!" -Colour Yellow
     }

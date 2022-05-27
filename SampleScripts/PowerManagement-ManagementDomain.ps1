@@ -59,7 +59,6 @@ Param (
         Try {
             Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
             Clear-Host; Write-Host ""
-            Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
             $Global:ProgressPreference = 'SilentlyContinue'
             if ($powerState -eq "Shutdown" -or $genjson) {
                 # Check if we have all needed inputs for shutdown
@@ -96,11 +95,12 @@ Param (
 
             # Gather NSX Edge Node Details
                 Try {
-                    [Array]$edgenodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
+                    [Array]$edgenodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $vcServer.fqdn)
                 } catch {
                     Write-PowerManagementLogMessage -Type WARNING -Message "Unable to fetch nsx edge nodes information" -Colour CYAN
                 }
 
+                <#
                 if($edgenodes.count -eq 0) {
                     Write-Host "";
                     $edgenodes  = @()
@@ -113,6 +113,8 @@ Param (
                         $edgenodes = $edgenodesList.split()
                     }
                 }
+                #>
+
             }
             elseif ($powerState -eq "Startup") {
                 $defaultFile = "./ManagementStartupInput.json"
@@ -220,10 +222,11 @@ Catch {
 
 # Shutdown procedures
 Try {
+    Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
+    Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to gather system details"
     if ($powerState -eq "Shutdown" -or $genjson) {
 #       Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
-        Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
-        Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to gather system details"
+
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
         if ( $StatusMsg ) { Write-PowerManagementLogMessage -Type INFO -Message $StatusMsg } if ( $WarnMsg ) { Write-PowerManagementLogMessage -Type WARNING -Message $WarnMsg -Colour Cyan } if ( $ErrorMsg ) { Write-PowerManagementLogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
         if ($accessToken) {
@@ -243,6 +246,11 @@ Try {
             $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id)})
             $vcUser = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).username
             $vcPass = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).password
+            $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.Name -SDDCManager $server -SDDCuser $user -SDDCpass $pass
+            if($status -eq $True) {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Currently we are not supporting Tanzu enabled domains. Please try on other domains" -Colour Red
+                Exit
+            }
             if($vcPass) {
                 $vcPass_encrypted = $vcPass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
             } else {
@@ -290,6 +298,7 @@ Try {
                 $esxi_block["password"] = $Pass_encrypted
                 $var["Hosts"] += $esxi_block
             }
+
 
             # Gather NSX Manager Cluster Details
             $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id
@@ -495,6 +504,13 @@ Try {
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
 
             }
+
+            #2963366
+            #Backup DRS Automation level settings into JSON file
+            [string]$level = ""
+            [string]$level = Get-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+            $var["Cluster"]["DrsAutomationLevel"] = [string]$level
+
             $var["Server"]["host"] = $vcHost
             $var["Server"]["vchostuser"] = $vcHostUser
             $var["Server"]["vchostpassword"] = $vcHostPass_encrypted
@@ -524,11 +540,24 @@ Try {
             Exit
         }
 
+        #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
+        Try {
+             foreach ($esxiNode in $esxiWorkloadDomain) {
+                $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                if (-Not $status) {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to SSH to host $($esxiNode.fqdn), if SSH is not enabled, follow the steps mentioned in the doc to enable" -colour RED
+                    Exit
+                }
+             }
+         } catch {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Unable to SSH to the host $($esxiNode.fqdn), if SSH is not enabled, follow the steps mentioned in the doc to enable" -Colour Red
+         }
+
         Write-PowerManagementLogMessage -Type Info -Message "Trying to fetch All PoweredOn VM's from the server $($vcServer.fqdn)"
         [Array]$allvms = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
         $customervms = @()
         Write-PowerManagementLogMessage -Type Info -Message "Trying to fetch All PoweredOn VCLS VM's from the server $($vcServer.fqdn)"
-        [Array]$vclsvms += Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "vCLS"
+        [Array]$vclsvms += Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)"
         foreach ($vm in $vclsvms) {
             [Array]$vcfvms += $vm
         }
@@ -663,7 +692,7 @@ Try {
         $retries = 30
         foreach ($esxiNode in $esxiWorkloadDomain) {
             while ($counter -ne $retries) {
-                $powerOnVMcount = (Get-PoweredOnVMs -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "vcls").count
+                $powerOnVMcount = (Get-PoweredOnVMs -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
                 if ( $powerOnVMcount ) {
                     start-sleep 10
                     $counter += 1
@@ -683,6 +712,10 @@ Try {
 
         # Shutdown vCenter Server
         Stop-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -timeout 600
+        if (Get-VMRunningStatus -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -Status "Running") {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Unable to stop virtual center on the given host. Hence exiting" -Colour Red
+            Exit
+        }
 
 
         # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
@@ -736,6 +769,9 @@ Try {
         $cluster = New-Object -TypeName PSCustomObject
         $cluster | Add-Member -Type NoteProperty -Name Name -Value $MgmtInput.Cluster.name
 
+        #Get DRS automation level settings
+        $DrsAutomationLevel = $MgmtInput.cluster.DrsAutomationLevel
+
         #Getting SDDC manager VM name
         $sddcmVMName =  $MgmtInput.SDDC.name
         $regionalWSA =  $MgmtInput.RegionalWSA.name
@@ -758,7 +794,6 @@ Try {
             $vchostpassword = $null
         }
         $vcHostPass = $vchostpassword
-
 
         # Gather vRealize Suite Details
         $vrslcm = New-Object -TypeName PSCustomObject
@@ -873,6 +908,19 @@ Try {
         $nsxtEdgeNodes = $nsxtEdgeCluster.nodes
         $nsxt_local_url = "https://$nsxtMgrfqdn/login.jsp?local=true"
 
+        #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
+         Try {
+             foreach ($esxiNode in $esxiWorkloadDomain) {
+                $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                if (-Not $status) {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to SSH to host $($esxiNode.fqdn), if SSH is not enabled, follow the steps mentioned in the doc to enable" -colour RED
+                    Exit
+                }
+             }
+         } catch {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Unable to SSH to the host $($esxiNode.fqdn), if SSH is not enabled, follow the steps mentioned in the doc to enable" -Colour Red
+         }
+
         # Take hosts out of maintenance mode
         foreach ($esxiNode in $esxiWorkloadDomain) {
             Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
@@ -889,6 +937,10 @@ Try {
 
         # Startup the Management Domain vCenter Server
         Start-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.Name -timeout 600
+        if (Get-VMRunningStatus -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -Status "NotRunning") {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Unable to start virtual center on the given host. Hence exiting" -Colour Red
+            Exit
+        }
         Write-PowerManagementLogMessage -Type INFO -Message "Waiting for vCenter services to start on $($vcServer.fqdn) (may take some time)"
 
         #bug-2925594  and bug-2925501 and bug-2925511
@@ -942,11 +994,18 @@ Try {
             Write-PowerManagementLogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) is not power on, skipping startup of vcls vms" -Colour Cyan
             Exit
         }
-        
-        # Change the DRS Automation Level to Fully Automated for both the Management Domain Clusters
 
+        # Restart vSphere HA to avoid triggering a Cannot find vSphere HA master agent error.
+        Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
 
-        Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
+        #2963366: restore the DRS Automation Level to the mode backed up for both the Management Domain Clusters during shutdown
+        if([string]::IsNullOrEmpty($DrsAutomationLevel)){
+            Write-PowerManagementLogMessage -Type ERROR -Message "DrsAutomationLevel value seem empty in the json file. Exiting!" -Colour Red
+            Exit
+        } else {
+            Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level $DrsAutomationLevel
+        }
+
 
         #Startup the SDDC Manager Virtual Machine in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600
@@ -974,7 +1033,7 @@ Try {
             Write-PowerManagementLogMessage -Type WARNING -Message "No Standalone Workspace ONE Access instance is present, skipping startup" -Colour Cyan
         }
 
-
+<#  Vrealize is not supported
         # Startup vRealize Suite
         if ($($WorkloadDomainType) -eq "MANAGEMENT") {
             if ($($vrslcm.status -eq "ACTIVE")) {
@@ -1007,8 +1066,11 @@ Try {
                 Set-vROPSClusterState -server $vrops.master -user $vrops.adminUser -pass $vrops.adminPassword -mode ONLINE
             }
         }
-
+#>
         # End of startup
+        Write-PowerManagementLogMessage -Type INFO -Message "Kindly Power On customer deployed Virtual Machines not managed by SDDC Manager manually" -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -colour Yellow
         Write-PowerManagementLogMessage -Type INFO -Message "End of startup sequence. Please check your environment" -Colour Yellow
     }
 }
