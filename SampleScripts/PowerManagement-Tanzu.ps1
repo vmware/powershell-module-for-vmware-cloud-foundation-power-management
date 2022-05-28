@@ -35,11 +35,11 @@
 #>
 
 Param (
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$sddcDomain,
-        [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
+    [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+    [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+    [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+    [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$sddcDomain,
+    [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
 )
 
 
@@ -54,7 +54,7 @@ Try {
     Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
 
     if (!(Test-NetConnection -ComputerName $server).PingSucceeded) {
-        Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
+        Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address."
         Exit
     }
     else {
@@ -64,7 +64,7 @@ Try {
         }
         elseif ($ErrorMsg) {
             if ($ErrorMsg -match "4\d\d") {
-                Write-PowerManagementLogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry" -colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry." -colour Red
                 Exit
             }
             else {
@@ -90,18 +90,17 @@ Try {
         $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
 
         # Gather vCenter Server Details and Credentials
-        $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id)})
-        $vcUser = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).username
-        $vcPass = (Get-VCFCredential | Where-Object {$_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO"}).password
+        $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id) })
+        $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).username
+        $vcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).password
 
         # Gather ESXi Host Details for the Tanzu Domain
         $esxiWorkloadDomain = @()
-        foreach ($esxiHost in (Get-VCFHost | Where-Object {$_.domain.id -eq $workloadDomain.id}).fqdn)
-        {
+        foreach ($esxiHost in (Get-VCFHost | Where-Object { $_.domain.id -eq $workloadDomain.id }).fqdn) {
             $esxDetails = New-Object -TypeName PSCustomObject
             $esxDetails | Add-Member -Type NoteProperty -Name fqdn -Value $esxiHost
-            $esxDetails | Add-Member -Type NoteProperty -Name username -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).username
-            $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({$_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER"})).password 
+            $esxDetails | Add-Member -Type NoteProperty -Name username -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER" })).username
+            $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER" })).password 
             $esxiWorkloadDomain += $esxDetails
         } 
     }

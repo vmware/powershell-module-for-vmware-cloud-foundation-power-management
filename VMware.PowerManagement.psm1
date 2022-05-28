@@ -33,8 +33,8 @@ if ($PSEdition -eq 'Desktop') {
         }
     }
 "@
-    [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertificatePolicy
-}
+        [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertificatePolicy
+    }
 }
 
 Function Stop-CloudComponent {
@@ -58,19 +58,19 @@ Function Stop-CloudComponent {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$noWait,
         [Parameter (ParameterSetName = 'Node', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes,
         [Parameter (ParameterSetName = 'Pattern', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$pattern
     )
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting run of the Stop-CloudComponent cmdlet" -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting run of the Stop-CloudComponent cmdlet." -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -79,8 +79,8 @@ Function Stop-CloudComponent {
                     Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to shutdown nodes '$nodes_string'"
                     if ($nodes.Count -ne 0) {
                         foreach ($node in $nodes) {
-                            $count=0
-                            if (Get-VM | Where-Object {$_.Name -eq $node}) {
+                            $count = 0
+                            if (Get-VM | Where-Object { $_.Name -eq $node }) {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 if ($vm_obj.State -eq 'NotRunning') {
                                     Write-PowerManagementLogMessage -Type INFO -Message "Node '$node' is already in Powered Off state" -Colour Cyan
@@ -123,7 +123,7 @@ Function Stop-CloudComponent {
                     }
                     if ($patternNodes.Name.Count -ne 0) {
                         foreach ($node in $patternNodes) {
-                            $count=0
+                            $count = 0
                             $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             if ($vm_obj.State -eq 'NotRunning') {
                                 Write-PowerManagementLogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered Off state" -Colour Cyan
@@ -155,7 +155,7 @@ Function Stop-CloudComponent {
                     }
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -166,7 +166,7 @@ Function Stop-CloudComponent {
         }
     }
     Catch {
-		Debug-CatchWriterForPowerManagement -object $_
+        Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
         Write-PowerManagementLogMessage -Type INFO -Message "Finishing run of Stop-CloudComponent cmdlet" -Colour Yellow
@@ -195,7 +195,7 @@ Function Start-CloudComponent {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
         [Parameter (ParameterSetName = 'Node', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes,
         [Parameter (ParameterSetName = 'Pattern', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$pattern
     )
@@ -206,7 +206,7 @@ Function Start-CloudComponent {
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -214,10 +214,10 @@ Function Start-CloudComponent {
                     Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to start nodes '$nodes'"
                     if ($nodes.Count -ne 0) {
                         foreach ($node in $nodes) {
-                                $count=0
-                            if (Get-VM | Where-Object {$_.Name -eq $node}) {
+                            $count = 0
+                            if (Get-VM | Where-Object { $_.Name -eq $node }) {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
-                                if($vm_obj.State -eq 'Running'){
+                                if ($vm_obj.State -eq 'Running') {
                                     Write-PowerManagementLogMessage -Type INFO -Message "Node '$node' is already in Powered On state" -Colour Green
                                     Continue
                                 }
@@ -255,7 +255,7 @@ Function Start-CloudComponent {
                     }
                     if ($patternNodes.Name.Count -ne 0) {
                         foreach ($node in $patternNodes) {
-                            $count=0
+                            $count = 0
                             $vm_obj = Get-VMGuest -server $server -VM $node.Name | Where-Object VmUid -match $server
                             if ($vm_obj.State -eq 'Running') {
                                 Write-PowerManagementLogMessage -Type INFO -Message "Node '$($node.name)' is already in Powered On state" -Colour Green
@@ -283,7 +283,7 @@ Function Start-CloudComponent {
                     }
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -294,7 +294,7 @@ Function Start-CloudComponent {
         }
     }
     Catch {
-		Debug-CatchWriterForPowerManagement -object $_
+        Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
         Write-PowerManagementLogMessage -Type INFO -Message "Finishing run of Start-CloudComponent cmdlet" -Colour Yellow
@@ -323,7 +323,7 @@ Function Set-MaintenanceMode {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateSet("ENABLE", "DISABLE")] [String]$state
+        [Parameter (Mandatory = $true)] [ValidateSet("ENABLE", "DISABLE")] [String]$state
     )
 
     Try {
@@ -332,7 +332,7 @@ Function Set-MaintenanceMode {
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -341,7 +341,7 @@ Function Set-MaintenanceMode {
                 if ($state -eq "ENABLE") {
                     if ($hostStatus.ConnectionState -eq "Connected") {
                         Write-PowerManagementLogMessage -type INFO -Message "Attempting to enter maintenance mode for $server"
-                        Get-View -Server $server -ViewType HostSystem -Filter @{"Name" = $server }| Where-Object {!$_.Runtime.InMaintenanceMode} | ForEach-Object {$_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode=(new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction=[VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction})}))} | Out-Null
+                        Get-View -Server $server -ViewType HostSystem -Filter @{"Name" = $server } | Where-Object { !$_.Runtime.InMaintenanceMode } | ForEach-Object { $_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode = (new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction = [VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction }) })) } | Out-Null
                         $hostStatus = (Get-VMHost -Server $server)
                         if ($hostStatus.ConnectionState -eq "Maintenance") {
                             Write-PowerManagementLogMessage -Type INFO -Message "The host $server has entered maintenance mode successfully" -Colour Green
@@ -379,7 +379,7 @@ Function Set-MaintenanceMode {
                     }
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -411,12 +411,12 @@ Function Set-DrsAutomationLevel {
         Thi examples sets the DRS Automation level for the sfo-m01-cl01 cluster to Partially Automated
     #>
 
-	Param (
+    Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster,
-		[Parameter (Mandatory = $true)] [ValidateSet("FullyAutomated", "Manual", "PartiallyAutomated", "Disabled")] [String]$level
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster,
+        [Parameter (Mandatory = $true)] [ValidateSet("FullyAutomated", "Manual", "PartiallyAutomated", "Disabled")] [String]$level
     )
 
     Try {
@@ -426,7 +426,7 @@ Function Set-DrsAutomationLevel {
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -444,7 +444,7 @@ Function Set-DrsAutomationLevel {
                             Write-PowerManagementLogMessage -Type ERROR -Message "The DRS automation level for cluster '$cluster' could not be set to '$level'" -Colour Red
                         }
                     }
-                    Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                    Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                 }
                 else {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Cluster '$cluster' not found on server '$server', please check your details and try again" -Colour Red
@@ -485,7 +485,7 @@ Function Get-VMRunningStatus {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pattern,
-        [Parameter (Mandatory = $false)] [ValidateSet("Running","NotRunning")] [String]$Status="Running"
+        [Parameter (Mandatory = $false)] [ValidateSet("Running", "NotRunning")] [String]$Status = "Running"
     )
 
     Try {
@@ -494,7 +494,7 @@ Function Get-VMRunningStatus {
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -506,7 +506,7 @@ Function Get-VMRunningStatus {
                 else {
                     foreach ($node in $nodes) {	
                         $vm_obj = Get-VMGuest -server $server -VM $node.Name -ErrorAction SilentlyContinue | Where-Object VmUid -match $server
-                        if ($vm_obj.State -eq $status){
+                        if ($vm_obj.State -eq $status) {
                             Write-PowerManagementLogMessage -Type INFO -Message "Node $($node.Name) in correct running state '$($status.ToUpper())'" -Colour Green
                             return $true
                         }
@@ -519,7 +519,7 @@ Function Get-VMRunningStatus {
                     }
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -573,14 +573,15 @@ Function Invoke-EsxCommand {
             if ($expected ) {
                 if (($commandOutput.Output -match $expected)) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Command '$cmd' ran with expected output on server '$server' successfully" -Colour Green
-                } else {
+                }
+                else {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Failure. The `"$($expected)`" is not present in `"$($commandOutput.Output)`" output" -Colour Red
                 }
             }
             elseif ($commandOutput.exitStatus -eq 0) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Success. The command ran successfully" -Colour Green
             }
-            else  {
+            else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Failure. The command could not be run" -Colour Red
             }
             Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
@@ -671,13 +672,13 @@ Function Get-VsanClusterMember {
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and checking vSAN cluster members are present"
                 $esxcli = Get-EsxCli -Server $server -VMHost (Get-VMHost $server) -V2
-                $out =  $esxcli.vsan.cluster.get.Invoke()
+                $out = $esxcli.vsan.cluster.get.Invoke()
                 foreach ($member in $members) {
                     if ($out.SubClusterMemberHostNames -eq $member) {
                         Write-PowerManagementLogMessage -Type INFO -Message "vSAN cluster member '$member' matches" -Colour Green
@@ -687,7 +688,7 @@ Function Get-VsanClusterMember {
                     }
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message  "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -720,10 +721,10 @@ Function Test-VsanHealth {
     #>
     
     Param (
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$cluster
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster
     )
 
     Try {
@@ -732,7 +733,7 @@ Function Test-VsanHealth {
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -743,7 +744,7 @@ Function Test-VsanHealth {
                     Try {
                         $Error.clear()
                         Get-vSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system" -erroraction stop | Out-Null
-                        if(-Not $Error) {
+                        if (-Not $Error) {
                             $flag = 1
                             Break
                         }
@@ -762,27 +763,27 @@ Function Test-VsanHealth {
                     Start-Sleep -s 60
                     $vchs = Get-VSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
                     $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
-                    $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view,$null,$null,$true,$null,$null,'defaultView')
+                    $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view, $null, $null, $true, $null, $null, 'defaultView')
                     $healthCheckGroups = $results.groups
                     $health_status = 'GREEN'
                     $healthCheckResults = @()
                     foreach ($healthCheckGroup in $healthCheckGroups) {
                         Switch ($healthCheckGroup.GroupHealth) {
-                            red {$healthStatus = "error"}
-                            yellow {$healthStatus = "warning"}
-                            green {$healthStatus = "passed"}
-                            info {$healthStatus = "passed"}
+                            red { $healthStatus = "error" }
+                            yellow { $healthStatus = "warning" }
+                            green { $healthStatus = "passed" }
+                            info { $healthStatus = "passed" }
                         }
                         if ($healthStatus -eq "red") {
                             $health_status = 'RED'
                         }
                         $healtCheckGroupResult = [pscustomobject] @{
                             HealthCHeck = $healthCheckGroup.GroupName
-                            Result = $healthStatus
-                            }
-                            $healthCheckResults+=$healtCheckGroupResult
-                            }
-                    if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red'){
+                            Result      = $healthStatus
+                        }
+                        $healthCheckResults += $healtCheckGroupResult
+                    }
+                    if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red') {
                         Write-PowerManagementLogMessage -Type INFO -Message "The vSAN Health Status for $cluster is GOOD" -Colour Green
                         return 0
                     }
@@ -791,7 +792,7 @@ Function Test-VsanHealth {
                         return 1
                     }
                     Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                    Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                    Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                 }
             }
             else {
@@ -825,10 +826,10 @@ Function Test-VsanObjectResync {
     #>
 
     Param(
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$cluster
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster
     )
     
     Try {
@@ -837,14 +838,14 @@ Function Test-VsanObjectResync {
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to check status of resync"
                 $no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster -ErrorAction Ignore
                 Write-PowerManagementLogMessage -Type INFO -Message "The number of resyncing objects are $no_resyncing_objects"
-                if ($no_resyncing_objects.count -eq 0){
+                if ($no_resyncing_objects.count -eq 0) {
                     Write-PowerManagementLogMessage -Type INFO -Message "No resyncing objects" -Colour Green
                     return 0
                 }
@@ -853,7 +854,7 @@ Function Test-VsanObjectResync {
                     return 1
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -891,10 +892,10 @@ Function Get-PoweredOnVMs {
     #>
 
     Param(
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory=$false)] [ValidateNotNullOrEmpty()] [String]$pattern = $null ,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pattern = $null ,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$exactMatch
     )
 
@@ -904,22 +905,23 @@ Function Get-PoweredOnVMs {
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$server' and attempting to get the list of powered on virtual machines"
                 if ($pattern) {
                     if ($PSBoundParameters.ContainsKey('exactMatch') ) {
-                        $no_powered_on_vms =  get-vm -Server $server | Where-Object Name -EQ $pattern  | Where-Object PowerState -eq "PoweredOn"
-                    } else {
-                        $no_powered_on_vms =  get-vm -Server $server | Where-Object Name -match $pattern  | Where-Object PowerState -eq "PoweredOn"
+                        $no_powered_on_vms = get-vm -Server $server | Where-Object Name -EQ $pattern  | Where-Object PowerState -eq "PoweredOn"
+                    }
+                    else {
+                        $no_powered_on_vms = get-vm -Server $server | Where-Object Name -match $pattern  | Where-Object PowerState -eq "PoweredOn"
                     }
                 }
                 else {
-                    $no_powered_on_vms =  get-vm -Server $server | Where-Object PowerState -eq "PoweredOn"
+                    $no_powered_on_vms = get-vm -Server $server | Where-Object PowerState -eq "PoweredOn"
                 }
-                if ($no_powered_on_vms.count -eq 0){
+                if ($no_powered_on_vms.count -eq 0) {
                     Write-PowerManagementLogMessage -type INFO -Message "No virtual machines in a powered on state"
                 }
                 else {
@@ -927,7 +929,7 @@ Function Get-PoweredOnVMs {
                     Write-PowerManagementLogMessage -type INFO -Message "There are virtual machines in a powered on state: $no_powered_on_vms_string"
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                 Return $no_powered_on_vms
             }
             else {
@@ -961,10 +963,10 @@ Function Get-VMwareToolsStatus {
     #>
 
     Param(
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$vm
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$vm
     )
 
     Try {
@@ -975,10 +977,11 @@ Function Get-VMwareToolsStatus {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$server' and trying to get VMwareTools Status"
-                $vm_data =  get-vm -Name $vm
+                $vm_data = get-vm -Name $vm
                 if ($vm_data.ExtensionData.Guest.ToolsRunningStatus -eq "guestToolsRunning") {
                     return "RUNNING"
-                } else {
+                }
+                else {
                     return "NOTRUNNING"
                 }
             }
@@ -1033,12 +1036,12 @@ Function Test-WebUrl {
                 $count += 1
             }
         }
-		if ($StatusCode -eq 200) {
+        if ($StatusCode -eq 200) {
             Write-PowerManagementLogMessage -Type INFO -Message "Response Code: $($StatusCode) for URL '$url' - SUCCESS" -Colour Green
-		}
+        }
         else {
             Write-PowerManagementLogMessage -Type ERROR -Message "Response Code: $($StatusCode) for URL '$url'" -Colour Red
-		}
+        }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
@@ -1066,12 +1069,12 @@ Function Get-VamiServiceStatus {
         This example connects to a vCenter Server and returns the wcp service status and also suppress any log messages inside the function
     #>
 
-	Param (
+    Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$nolog,
-		[Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service
+        [Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service
     )
 
     Try {
@@ -1084,7 +1087,7 @@ Function Get-VamiServiceStatus {
                 Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             }
             if ($DefaultCisServers) {
-                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             #bug-2925594  and bug-2925501 and bug-2925511
             $retries = 20
@@ -1103,7 +1106,7 @@ Function Get-VamiServiceStatus {
             }
             if ($flag) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
-                $serviceStatus = $vMonAPI.Get($service,0)
+                $serviceStatus = $vMonAPI.Get($service, 0)
                 return $serviceStatus.state
             }
             else {
@@ -1121,7 +1124,7 @@ Function Get-VamiServiceStatus {
         if (-Not $nolog) {
             Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
         }
-        Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+        Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
         if (-Not $nolog) {
             Write-PowerManagementLogMessage -Type INFO -Message "Finishing run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
         }
@@ -1146,11 +1149,11 @@ Function Set-VamiServiceStatus {
         This example connects to a vCenter Server and attempts to START the wcp service
     #>
 
-	Param (
+    Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service,
+        [Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service,
         [Parameter (Mandatory = $true)] [ValidateSet("START", "STOP")] [String]$action
     )
 
@@ -1158,14 +1161,14 @@ Function Set-VamiServiceStatus {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-VAMIServiceStatus cmdlet" -Colour Yellow
         if ((Test-NetConnection -ComputerName $server).PingSucceeded) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
-            if ($action -eq "START") { $requestedState = "STARTED"} elseif ($action -eq "STOP") { $requestedState = "STOPPED" }
+            if ($action -eq "START") { $requestedState = "STARTED" } elseif ($action -eq "STOP") { $requestedState = "STOPPED" }
             if ($DefaultCisServers) {
-                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-CisServer -Server $server -User $user -Password $pass -ErrorAction SilentlyContinue | Out-Null
             if ($DefaultCisServers.Name -eq $server) {
                 $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
-                $serviceStatus = $vMonAPI.Get($service,0)                
+                $serviceStatus = $vMonAPI.Get($service, 0)                
                 if ($serviceStatus.state -match $requestedState) {
                     Write-PowerManagementLogMessage -Type INFO -Message "The service $service is already set to '$requestedState'" -Colour Green
                 }
@@ -1179,7 +1182,7 @@ Function Set-VamiServiceStatus {
                         $vMonAPI.stop($service)
                     }
                     Do {
-                        $serviceStatus = $vMonAPI.Get($service,0)
+                        $serviceStatus = $vMonAPI.Get($service, 0)
                     } Until ($serviceStatus -match $requestedState)
                     if ($serviceStatus.state -match $requestedState) {
                         Write-PowerManagementLogMessage -Type INFO -Message "Service '$service' has been '$requestedState' Successfully" -Colour Green
@@ -1189,7 +1192,7 @@ Function Set-VamiServiceStatus {
                     }
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message  "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -1243,7 +1246,7 @@ Function Set-vROPSClusterState {
                     Write-PowerManagementLogMessage -Type INFO -Message "The vRealize Operations Manager cluster is already in the $mode state"
                 }
                 else {
-                    $params = @{"online_state" = $mode; "online_state_reason" = "Maintenance Window";}
+                    $params = @{"online_state" = $mode; "online_state_reason" = "Maintenance Window"; }
                     $uri = "https://$server/casa/public/cluster/online_state"
                     $response = Invoke-RestMethod -Method POST -URI $uri -headers $vropsHeader -ContentType application/json -body ($params | ConvertTo-Json)
                     Write-PowerManagementLogMessage -Type INFO -Message "The vRealize Operations Manager cluster is set to $mode state, waiting for operation to complete"
@@ -1320,24 +1323,24 @@ Function Get-EnvironmentId {
     #>
 
     Param (
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (ParameterSetName = 'Environments', Mandatory=$false)] [ValidateNotNullOrEmpty()] [Switch]$all,
-		[Parameter (ParameterSetName = 'Name', Mandatory=$false)] [ValidateNotNullOrEmpty()] [String]$name,
-        [Parameter (ParameterSetName = 'Product', Mandatory=$false)] [ValidateSet("vidm", "vra", "vrops", "vrli")] [String]$product
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (ParameterSetName = 'Environments', Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$all,
+        [Parameter (ParameterSetName = 'Name', Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$name,
+        [Parameter (ParameterSetName = 'Product', Mandatory = $false)] [ValidateSet("vidm", "vra", "vrops", "vrli")] [String]$product
     )
     
     Try {
-		$vrslcmHeaders = createHeader $user $pass
+        $vrslcmHeaders = createHeader $user $pass
         $uri = "https://$server/lcm/lcops/api/v2/environments"
         $response = Invoke-RestMethod -Method GET -URI $uri -headers $vrslcmHeaders -ContentType application/json
         if ($PsBoundParameters.ContainsKey("name")) {
-            $envId = $response | foreach-object -process { if($_.environmentName -match $name) { $_.environmentId }} 
+            $envId = $response | foreach-object -process { if ($_.environmentName -match $name) { $_.environmentId } } 
             Return $envId
         }
-        if ($PsBoundParameters.ContainsKey("product")){
-            $envId = $response | foreach-object -process { if($_.products.id -match $product) { $_.environmentId }}
+        if ($PsBoundParameters.ContainsKey("product")) {
+            $envId = $response | foreach-object -process { if ($_.products.id -match $product) { $_.environmentId } }
             Return $envId
         }
         else {
@@ -1376,20 +1379,20 @@ Function Request-PowerStateViaVRSLCM {
     #>
 
     Param (
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$server,
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$user,
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$pass,
-		[Parameter (Mandatory=$true)] [ValidateSet("power-on", "power-off")] [String]$mode,
-        [Parameter (Mandatory=$true)] [ValidateSet("VRA", "VIDM")] [String]$product,
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [Int]$timeout
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateSet("power-on", "power-off")] [String]$mode,
+        [Parameter (Mandatory = $true)] [ValidateSet("VRA", "VIDM")] [String]$product,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout
     )
     
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Request-PowerStateViaVRSLCM" -Colour Yellow
-		Write-PowerManagementLogMessage -Type INFO -Message "Obtaining the vRealize Suite Lifecycle Manager Environment ID for '$product'"
+        Write-PowerManagementLogMessage -Type INFO -Message "Obtaining the vRealize Suite Lifecycle Manager Environment ID for '$product'"
         $environmentId = Get-EnvironmentId -server $server -user $user -pass $pass -product $product
-		$vrslcmHeaders = createHeader $user $pass
-		$uri = "https://$server/lcm/lcops/api/v2/environments/$environmentId/products/$product/$mode"
+        $vrslcmHeaders = createHeader $user $pass
+        $uri = "https://$server/lcm/lcops/api/v2/environments/$environmentId/products/$product/$mode"
         $json = {}
         $response = Invoke-RestMethod -Method POST -URI $uri -headers $vrslcmHeaders -ContentType application/json -body $json
         Start-Sleep 10
@@ -1399,10 +1402,10 @@ Function Request-PowerStateViaVRSLCM {
         else {
             Write-PowerManagementLogMessage -Type ERROR -Message "Unable to $mode for $product due to response" -Colour Red
         }
-		$id = $response.requestId
-		$uri = "https://$server/lcm/request/api/v2/requests/$id"
+        $id = $response.requestId
+        $uri = "https://$server/lcm/request/api/v2/requests/$id"
         Do {
-            $requestStatus = (Invoke-RestMethod -Method GET -URI $uri -headers $vrslcmHeaders -ContentType application/json | Where-Object {$_.vmid -eq $id}).state
+            $requestStatus = (Invoke-RestMethod -Method GET -URI $uri -headers $vrslcmHeaders -ContentType application/json | Where-Object { $_.vmid -eq $id }).state
         } 
         Until ($requestStatus -ne "INPROGRESS")
         if ($requestStatus -eq "COMPLETED") {
@@ -1433,13 +1436,13 @@ Function Start-EsxiUsingILO {
     #>
 
     Param (
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_ip,
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_user,
-		[Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$ilo_pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String]$exe_path
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$ilo_ip,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$ilo_user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$ilo_pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$exe_path
     )
 	
-	Try {
+    Try {
         $default_path = 'C:\Program Files\Dell\SysMgt\rac5\racadm.exe'
         if (Test-path $exe_path) {
             Write-PowerManagementLogMessage -Type INFO -Message "The racadm.exe is present in $exe_path" -Colour Yellow
@@ -1451,16 +1454,16 @@ Function Start-EsxiUsingILO {
         else {
             Write-PowerManagementLogMessage -Type Error -Message "The racadm.exe is not present in $exe_path or the default path $default_path" -Colour Red
         }
-		$out = cmd /c $default_path -r $ilo_ip -u $ilo_user -p $ilo_pass  --nocertwarn serveraction powerup
-		if ( $out.contains("Server power operation successful")) {
+        $out = cmd /c $default_path -r $ilo_ip -u $ilo_user -p $ilo_pass  --nocertwarn serveraction powerup
+        if ( $out.contains("Server power operation successful")) {
             Write-PowerManagementLogMessage -Type INFO -Message "power on of host $ilo_ip is successfully initiated" -Colour Yellow
-			Start-Sleep -Seconds 600
+            Start-Sleep -Seconds 600
             Write-PowerManagementLogMessage -Type INFO -Message "bootup complete." -Colour Yellow
-		}
+        }
         else {
             Write-PowerManagementLogMessage -Type Error -Message "Could not power on the server $ilo_ip" -Colour Red
-		}
-	}
+        }
+    }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
@@ -1483,20 +1486,20 @@ Function Restart-VsphereHA {
         This example restarts vSphere High Availability if enabled
     #>
 
-	Param(
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $cluster
+    Param(
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster
     )
 
-	Try {
+    Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Restart-VsphereHA cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -1517,7 +1520,7 @@ Function Restart-VsphereHA {
                     }
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -1526,7 +1529,7 @@ Function Restart-VsphereHA {
         else {
             Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-	}
+    }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
@@ -1550,20 +1553,20 @@ Function Get-DrsAutomationLevel {
         This example connects to the management vcenter server and returns the drs settings configured on the management cluster
     #>
 
-	Param(
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $cluster
+    Param(
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster
     )
 
-	Try {
+    Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-DrsAutomationLevel cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -1572,11 +1575,12 @@ Function Get-DrsAutomationLevel {
                 if ($ClusterData.DrsEnabled) {
                     $clsdrsvalue = $ClusterData.DrsAutomationLevel
                     Write-PowerManagementLogMessage -type INFO -Message "The cluster DRS value is: $clsdrsvalue"
-                } else {
+                }
+                else {
                     Write-PowerManagementLogMessage -type INFO -Message "The DRS is not enabled on the cluster $cluster"
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                 return $clsdrsvalue
             }
             else {
@@ -1586,7 +1590,7 @@ Function Get-DrsAutomationLevel {
         else {
             Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-	}
+    }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
@@ -1616,21 +1620,21 @@ Function Set-Retreatmode {
         This example takes places the vSphere Cluster virtual machines (vCLS) out of retreat mode
     #>
 
-	Param(
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $cluster,
-        [Parameter (Mandatory=$true)] [ValidateSet("enable", "disable")] [String] $mode
+    Param(
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster,
+        [Parameter (Mandatory = $true)] [ValidateSet("enable", "disable")] [String] $mode
     )
 
-	Try {
+    Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-Retreatmode cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
@@ -1652,16 +1656,16 @@ Function Set-Retreatmode {
                 }
                 else {
                     if ($mode -eq 'enable') {
-                    New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'false' -Confirm:$false  | Out-Null
-                    Write-PowerManagementLogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false" -Colour Green
+                        New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'false' -Confirm:$false  | Out-Null
+                        Write-PowerManagementLogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to false" -Colour Green
                     }
                     else {
-                    New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'true' -Confirm:$false  | Out-Null
-                    Write-PowerManagementLogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true" -Colour Green
+                        New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'true' -Confirm:$false  | Out-Null
+                        Write-PowerManagementLogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true" -Colour Green
                     }
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -1670,7 +1674,7 @@ Function Set-Retreatmode {
         else {
             Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-	}
+    }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
@@ -1694,10 +1698,10 @@ Function Wait-ForStableNsxtClusterStatus {
         This example gets the cluster status of the sfo-m01-nsx01.sfo.rainpole.io NSX Management Cluster
     #>
 
-	Param (
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass
     )
 
     Try {
@@ -1722,7 +1726,8 @@ Function Wait-ForStableNsxtClusterStatus {
             # Retry connection if NSX Manager is not online
             Try {
                 $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
-            } Catch {
+            }
+            Catch {
                 Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to NSX Manager '$server'! Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt."
                 Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
                 continue
@@ -1773,20 +1778,20 @@ Function Get-EdgeNodeFromNSXManager {
         This example returns list of edge nodes virtual machines name from a given virtual center only
     #>
 
-	Param(
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
-        [Parameter (Mandatory=$false)] [ValidateNotNullOrEmpty()] [String] $VCfqdn
+    Param(
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String] $VCfqdn
     )
 
-	Try {
+    Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting Execution of Get-EdgeNodeFromNSXManager cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultNSXTServers) {
-                Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-NsxTServer -server $server -user $user -password $pass | Out-Null
             $edge_nodes_list = @()
@@ -1799,14 +1804,14 @@ Function Get-EdgeNodeFromNSXManager {
                 $compute_manager_var = Get-NsXtService com.vmware.nsx.fabric.compute_managers
                 $compute_manager_list = $compute_manager_var.list().results
                 foreach ($compute_resource in $compute_manager_list) {
-                 if ($compute_resource.display_name -match $VCfqdn) {
-                    $compute_resource_id = $compute_resource.id
-                 }
+                    if ($compute_resource.display_name -match $VCfqdn) {
+                        $compute_resource_id = $compute_resource.id
+                    }
                 }
                 foreach ($resource in $transport_nodes_list) {
                     if ($resource.node_deployment_info.resource_type -eq "EdgeNode") {
                         if ($resource.node_deployment_info.deployment_config.GetStruct('vm_deployment_config').GetFieldValue("vc_id") -match $compute_resource_id) {
-                         [Array]$edge_nodes_list += $resource.display_name
+                            [Array]$edge_nodes_list += $resource.display_name
                         }
                     }
                 }
@@ -1818,15 +1823,17 @@ Function Get-EdgeNodeFromNSXManager {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
 
-         } else {
+        }
+        else {
             Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-   } Catch {
+    }
+    Catch {
         Debug-CatchWriterForPowerManagement -object $_
-   }
-   Finally {
+    }
+    Finally {
         Write-PowerManagementLogMessage -Type INFO -Message "Finishing Execution of Get-EdgeNodeFromNSXManager cmdlet" -Colour Yellow
-   }
+    }
 }
 Export-ModuleMember -Function Get-EdgeNodeFromNSXManager
 
@@ -1843,40 +1850,43 @@ Function Get-TanzuEnabledClusterStatus {
         This example returns True if the given cluster is Tanzu enabled else false
     #>
 
-	Param(
-	    [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $SDDCManager,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $SDDCuser,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $SDDCpass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $server,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $pass,
-        [Parameter (Mandatory=$true)] [ValidateNotNullOrEmpty()] [String] $cluster
+    Param(
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $SDDCManager,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $SDDCuser,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $SDDCpass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster
     )
 
-	Try {
+    Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting Execution of Get-TanzuEnabledClusterStatus cmdlet" -Colour Yellow
         $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
         if ($checkServer -eq "True") {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue| Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -server $server -user $user -password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 $StatusMsg = Request-VCFToken -fqdn $SDDCManager -username $SDDCuser -password $SDDCpass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
                 if ($StatusMsg) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Connection to SDDC Manager is validated successfully"
-                } elseif ($ErrorMsg) {
+                }
+                elseif ($ErrorMsg) {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Connection could not be made to SDDC manager" -colour RED
                 }
                 $out = get-wmcluster -cluster $cluster -server $server  -ErrorVariable ErrorMsg -ErrorAction SilentlyContinue
-                if($out.count -gt 0) {
+                if ($out.count -gt 0) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Tanzu is enabled" -Colour GREEN
                     return $True
-                } elseif($ErrorMsg -match "does not have Workloads enabled" -or ([string]::IsNullOrEmpty($ErrorMsg))) {
+                }
+                elseif ($ErrorMsg -match "does not have Workloads enabled" -or ([string]::IsNullOrEmpty($ErrorMsg))) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Tanzu is not enabled"
                     return $False
-                } else {
+                }
+                else {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Unable to fetch Tanzu related information" -colour RED
                 }
             }
@@ -1884,27 +1894,29 @@ Function Get-TanzuEnabledClusterStatus {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
             }
 
-         } else {
+        }
+        else {
             Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
         }
-   } Catch {
+    }
+    Catch {
         Debug-CatchWriterForPowerManagement -object $_
-   }
-   Finally {
+    }
+    Finally {
         Write-PowerManagementLogMessage -Type INFO -Message "Finishing Execution of Get-TanzuEnabledClusterStatus cmdlet" -Colour Yellow
-   }
+    }
 }
 Export-ModuleMember -Function Get-TanzuEnabledClusterStatus
 
 ######### Start Useful Script Functions ##########
-Function createHeader  {
+Function createHeader {
     Param (
-        [Parameter (Mandatory=$true)] [String] $user,
-        [Parameter (Mandatory=$true)] [String] $pass
+        [Parameter (Mandatory = $true)] [String] $user,
+        [Parameter (Mandatory = $true)] [String] $pass
     )
 
-    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user,$pass))) # Create Basic Authentication Encoded Credentials
-    $headers = @{"Accept" = "application/json"}
+    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $pass))) # Create Basic Authentication Encoded Credentials
+    $headers = @{"Accept" = "application/json" }
     $headers.Add("Authorization", "Basic $base64AuthInfo")
     
     Return $headers
