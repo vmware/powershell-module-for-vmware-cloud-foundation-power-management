@@ -1717,17 +1717,22 @@ Function Wait-ForStableNsxtClusterStatus {
         $aditionalWaitMultiplier = 3
         $successfulConnecitons = 0
         While (-not $completed) {
+            Write-Host "iivanov-While start"
+            Write-Host "iivanov-retryCount: $retryCount"
             # Check iteration number
             if ($retrycount -ge $Retries) {
                 Write-PowerManagementLogMessage -Type Warning -Message "Request to $uri failed after $retryCount attempts." -Colour Cyan
                 return $false
             }
-            $retrycount++
+            $retryCount++
             # Retry connection if NSX Manager is not online
             Try {
-                $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json
+                Write-Host "iivanov-Try to connect to NSX-T"
+                $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json -TimeoutSec 60
+                Write-Host "iivanov-Response from connection: $response"
             }
             Catch {
+                Write-Host "iivanov-In catch block"
                 Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to NSX Manager '$server'! Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt."
                 Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
                 continue
@@ -1791,7 +1796,7 @@ Function Get-EdgeNodeFromNSXManager {
         if ($checkServer -eq "True") {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultNSXTServers) {
-                Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+                Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
             }
             Connect-NsxTServer -server $server -user $user -password $pass | Out-Null
             $edge_nodes_list = @()
@@ -1816,7 +1821,7 @@ Function Get-EdgeNodeFromNSXManager {
                     }
                 }
                 Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-NSXTServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                Disconnect-NSXTServer * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
                 return $edge_nodes_list
             }
             else {
@@ -1851,9 +1856,6 @@ Function Get-TanzuEnabledClusterStatus {
     #>
 
     Param(
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $SDDCManager,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $SDDCuser,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $SDDCpass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
@@ -1866,23 +1868,17 @@ Function Get-TanzuEnabledClusterStatus {
         if ($checkServer -eq "True") {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -server $server -user $user -password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                $StatusMsg = Request-VCFToken -fqdn $SDDCManager -username $SDDCuser -password $SDDCpass -WarningVariable WarnMsg -ErrorVariable ErrorMsg
-                if ($StatusMsg) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Connection to SDDC Manager is validated successfully"
-                }
-                elseif ($ErrorMsg) {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Connection could not be made to SDDC manager" -colour RED
-                }
-                $out = get-wmcluster -cluster $cluster -server $server  -ErrorVariable ErrorMsg -ErrorAction SilentlyContinue
+                $out = get-wmcluster -cluster $cluster -server $server -ErrorVariable ErrorMsg -ErrorAction SilentlyContinue
+                Write-Host "iivanov-Error Variable: $ErrorMsg"
                 if ($out.count -gt 0) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Tanzu is enabled" -Colour GREEN
                     return $True
                 }
-                elseif ($ErrorMsg -match "does not have Workloads enabled" -or ([string]::IsNullOrEmpty($ErrorMsg))) {
+                elseif (([string]$ErrorMsg -match "does not have Workloads enabled") -or ([string]::IsNullOrEmpty($ErrorMsg))) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Tanzu is not enabled"
                     return $False
                 }

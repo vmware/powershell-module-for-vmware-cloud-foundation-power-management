@@ -43,10 +43,10 @@ domain.
 - Run PowerShell as Administrator and install the VMware.PowerManagement PowerShell
 module together with the supporting modules from the PowerShell Gallery by running the
 following commands:  
-    > `Install-Module -Name VMware.PowerCLI -MinimumVersion 12.3.0`  
+    > `Install-Module -Name VMware.PowerCLI -MinimumVersion 12.6.0`  
     > `Install-Module -Name VMware.PowerManagement -MinimumVersion 0.6.0`  
-    > `Install-Module -Name PowerVCF -MinimumVersion 2.1.7`  
-    > `Install-Module -Name Posh-SSH -MinimumVersion 2.3.0`  
+    > `Install-Module -Name PowerVCF -MinimumVersion 2.2.0`  
+    > `Install-Module -Name Posh-SSH -MinimumVersion 3.0.4`  
 - Verify that SDDC Manager is running.
 - Before you shut down the management domain, get the credentials for the management
 domain hosts and vCenter Server from SDDC Manager and save them for troubleshooting or a
