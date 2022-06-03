@@ -173,7 +173,7 @@ Try {
 
     # Check connection to SDDC Manager only in case of shutdown, for startup we are using information from input json
     if ($powerState -eq "Shutdown") { 
-        if (!(Test-NetConnection -ComputerName $server).PingSucceeded) {
+        if (!(Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded) {
             Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
             Exit
         }
@@ -639,7 +639,7 @@ Try {
         #>
 
         # Shutdown the NSX Edge Nodes
-        $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded
         if ($checkServer) {
             # Shutdown Standalone WSA
             if ($regionalWSA) {
@@ -662,7 +662,7 @@ Try {
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
         #bug-2925318
-        $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded
         if ($checkServer) {
             if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                 Write-PowerManagementLogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
@@ -1008,8 +1008,10 @@ Try {
             Exit
         }
 
-        # Restart vSphere HA to avoid triggering a Cannot find vSphere HA master agent error.
-        Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+        # Start vSphere HA
+        if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'." -Colour Red
+        }
 
         #2963366: restore the DRS Automation Level to the mode backed up for both the Management Domain Clusters during shutdown
         if ([string]::IsNullOrEmpty($DrsAutomationLevel)) {

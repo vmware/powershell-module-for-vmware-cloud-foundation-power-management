@@ -66,7 +66,7 @@ Function Stop-CloudComponent {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of the Stop-CloudComponent cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -202,7 +202,7 @@ Function Start-CloudComponent {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Start-CloudComponent cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -328,7 +328,7 @@ Function Set-MaintenanceMode {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-MaintenanceMode cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -422,7 +422,7 @@ Function Set-DrsAutomationLevel {
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-DrsAutomationLevel cmdlet" -Colour Yellow
 
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -490,7 +490,7 @@ Function Get-VMRunningStatus {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-VMRunningStatus cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -668,7 +668,7 @@ Function Get-VsanClusterMember {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-VsanClusterMember cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -729,7 +729,7 @@ Function Test-VsanHealth {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Test-VsanHealth cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -834,7 +834,7 @@ Function Test-VsanObjectResync {
     
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Test-VsanObjectResync cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -901,7 +901,7 @@ Function Get-PoweredOnVMs {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-PoweredOnVMsCount cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -1081,7 +1081,7 @@ Function Get-VamiServiceStatus {
         if (-Not $nolog) {
             Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-VAMIServiceStatus cmdlet" -Colour Yellow
         }
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             if (-Not $nolog) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
@@ -1159,7 +1159,7 @@ Function Set-VamiServiceStatus {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-VAMIServiceStatus cmdlet" -Colour Yellow
-        if ((Test-NetConnection -ComputerName $server).PingSucceeded) {
+        if ((Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($action -eq "START") { $requestedState = "STARTED" } elseif ($action -eq "STOP") { $requestedState = "STOPPED" }
             if ($DefaultCisServers) {
@@ -1235,7 +1235,7 @@ Function Set-vROPSClusterState {
 	
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-vROPSClusterState cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             $vropsHeader = createHeader $user $pass
@@ -1473,30 +1473,34 @@ Function Start-EsxiUsingILO {
 }
 Export-ModuleMember -Function Start-EsxiUsingILO
 
-Function Restart-VsphereHA {
+Function Set-VsphereHA {
     <#
         .SYNOPSIS
-        Restart vSphere High Availability
+        Set vSphere High Availability
 
         .DESCRIPTION
-        Restart vSphere High Availability to avoid "Cannot find vSphere HA master agent error".
+        Set vSphere High Availability to enabled or disabled
 
         .EXAMPLE
-        Restart-VsphereHA -server $server -user $user -pass $pass -cluster $cluster
-        This example restarts vSphere High Availability if enabled
+        Set-VsphereHA -server $server -user $user -pass $pass -cluster $cluster -enable
+        This example sets vSphere High Availability to enabled/active
+
+        Set-VsphereHA -server $server -user $user -pass $pass -cluster $cluster -disable
+        This example sets vSphere High Availability to disabled/stopped
     #>
 
     Param(
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster,
+        [Parameter (Mandatory = $true, ParameterSetName = "enable")] [Switch] $enableHA,
+        [Parameter (Mandatory = $true, ParameterSetName = "disable")] [Switch] $disableHA
     )
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Restart-VsphereHA cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
-        if ($checkServer) {
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-VsphereHA cmdlet" -Colour Yellow
+        if ($(Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
@@ -1504,23 +1508,84 @@ Function Restart-VsphereHA {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'"
-                $HAStatus = Get-Cluster -Name $cluster | Select-Object HAEnabled
-                if ($HAStatus) {
-                    Write-PowerManagementLogMessage -type INFO -Message "vSphere High Availability is enabled on the vSAN cluster, restarting vSphere High Availability"
-                    Set-Cluster -Server $server -Cluster $cluster -HAEnabled:$false -Confirm:$false | Out-Null
-                    $var1 = get-cluster -Name $cluster | Select-Object HAEnabled
-                    if (-Not  $var1) {
-                        Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability is disabled"
+                $retryCount = 0
+                $completed = $false
+                $SecondsDelay = 10
+                $Retries = 60
+                if ($enableHA) {
+                    if ($(get-cluster -Name $cluster).HAEnabled) {
+                        Write-PowerManagementLogMessage -type INFO -Message "vSphere High Availability is already enabled on the vSAN cluster. Nothing to do."
+                        return $true
                     }
-                    Start-Sleep -s 5
-                    Set-Cluster -Cluster $cluster -HAEnabled:$true -Confirm:$false | Out-Null
-                    $var2 = get-cluster -Name $cluster | Select-Object HAEnabled
-                    if ($var2) {
-                        Write-PowerManagementLogMessage -type INFO -Message 'vSphere High Availability is enabled. vSphere High Availability is restarted'  -Colour GREEN
+                    else {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Enabling vSphere High Availability for cluster '$cluster'."
+                        Set-Cluster -Server $server -Cluster $cluster -HAEnabled:$true -Confirm:$false | Out-Null
+                        While (-not $completed) {
+                            # Check iteration number
+                            if ($retrycount -ge $Retries) {
+                                Write-PowerManagementLogMessage -Type Warning -Message "Set vSphere High Availability timeouted after $($SecondsDelay * $Retries) seconds. There are still reconfiguratons in progress." -Colour Cyan
+                                return $false
+                            }
+                            $retryCount++
+                            # Get running tasks
+                            Start-Sleep 5
+                            $runningTasks = get-task -Status Running
+                            if (($runningTasks -match "Update vSAN configuration") -or ($runningTasks -match "Configuring vSphere HA")) {
+                                Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability configuration changes are not applyed. Sleeping for $SecondsDelay seconds...."
+                                Start-Sleep $SecondsDelay
+                                continue
+                            }
+                            else {
+                                $completed = $true
+                                if ($(get-cluster -Name $cluster).HAEnabled) {
+                                    Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability for cluster '$cluster' changed to 'Enabled'." -Colour Green
+                                    return $true
+                                }
+                                else {
+                                    Write-PowerManagementLogMessage -Type WARNING -Message "Failed to set vSphere High Availability for cluster '$cluster' to 'Enabled'" -Colour CYAN
+                                    return $false
+                                }
+                            }
+                        }
                     }
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+                if ($disableHA) {
+                    if (!$(get-cluster -Name $cluster).HAEnabled) {
+                        Write-PowerManagementLogMessage -type INFO -Message "vSphere High Availability is already disabled on the vSAN cluster. Nothing to do."
+                        return $true
+                    }
+                    else {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Disabling vSphere High Availability for cluster '$cluster'."
+                        Set-Cluster -Server $server -Cluster $cluster -HAEnabled:$false -Confirm:$false | Out-Null
+                        While (-not $completed) {
+                            # Check iteration number
+                            if ($retrycount -ge $Retries) {
+                                Write-PowerManagementLogMessage -Type Warning -Message "Set vSphere High Availability timeouted after $($SecondsDelay * $Retries) seconds. There are still reconfiguratons in progress." -Colour Cyan
+                                return $false
+                            }
+                            $retryCount++
+                            # Get running tasks
+                            Start-Sleep 5
+                            $runningTasks = get-task -Status Running
+                            if (($runningTasks -match "Update vSAN configuration") -or ($runningTasks -match "Configuring vSphere HA")) {
+                                Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability configuration changes are not applyed. Sleeping for $SecondsDelay seconds...."
+                                Start-Sleep $SecondsDelay
+                                continue
+                            }
+                            else {
+                                $completed = $true
+                                if (!$(get-cluster -Name $cluster).HAEnabled) {
+                                    Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability for cluster '$cluster' changed to 'Disabled'." -Colour Green
+                                    return $true
+                                }
+                                else {
+                                    Write-PowerManagementLogMessage -Type WARNING -Message "Failed to set vSphere High Availability for cluster '$cluster' to 'Disabled'" -Colour CYAN
+                                    return $false
+                                }
+                            }
+                        }
+                    }
+                }
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to server $server, Please check and retry." -Colour Red
@@ -1534,11 +1599,11 @@ Function Restart-VsphereHA {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Finishing run of Restart-VsphereHA cmdlet" -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Finishing run of Set-VsphereHA cmdlet" -Colour Yellow
     }
 
 }
-Export-ModuleMember -Function Restart-VsphereHA
+Export-ModuleMember -Function Set-VsphereHA
 
 Function Get-DrsAutomationLevel {
     <#
@@ -1562,7 +1627,7 @@ Function Get-DrsAutomationLevel {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-DrsAutomationLevel cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -1630,7 +1695,7 @@ Function Set-Retreatmode {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-Retreatmode cmdlet" -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server).PingSucceeded
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
             if ($DefaultVIServers) {
@@ -1717,8 +1782,6 @@ Function Wait-ForStableNsxtClusterStatus {
         $aditionalWaitMultiplier = 3
         $successfulConnecitons = 0
         While (-not $completed) {
-            Write-Host "iivanov-While start"
-            Write-Host "iivanov-retryCount: $retryCount"
             # Check iteration number
             if ($retrycount -ge $Retries) {
                 Write-PowerManagementLogMessage -Type Warning -Message "Request to $uri failed after $retryCount attempts." -Colour Cyan
@@ -1727,12 +1790,9 @@ Function Wait-ForStableNsxtClusterStatus {
             $retryCount++
             # Retry connection if NSX Manager is not online
             Try {
-                Write-Host "iivanov-Try to connect to NSX-T"
                 $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json -TimeoutSec 60
-                Write-Host "iivanov-Response from connection: $response"
             }
             Catch {
-                Write-Host "iivanov-In catch block"
                 Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to NSX Manager '$server'! Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt."
                 Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
                 continue
@@ -1873,7 +1933,6 @@ Function Get-TanzuEnabledClusterStatus {
             Connect-VIServer -server $server -user $user -password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 $out = get-wmcluster -cluster $cluster -server $server -ErrorVariable ErrorMsg -ErrorAction SilentlyContinue
-                Write-Host "iivanov-Error Variable: $ErrorMsg"
                 if ($out.count -gt 0) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Tanzu is enabled" -Colour GREEN
                     return $True

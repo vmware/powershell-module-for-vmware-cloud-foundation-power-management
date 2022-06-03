@@ -51,7 +51,7 @@ Try {
     Write-PowerManagementLogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
     Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
 
-    if (!(Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded) {
+    if (!(Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Exit
     }

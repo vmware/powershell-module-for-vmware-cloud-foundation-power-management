@@ -105,7 +105,7 @@ Try {
         # }
     }
 
-    if (!(Test-NetConnection -ComputerName $server).PingSucceeded) {
+    if (!(Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded) {
         Write-Error "Unable to communicate with SDDC Manager ($server), check fqdn/ip address"
         Exit
     }
@@ -324,7 +324,7 @@ Try {
         # }
 
         ## Shutdown the NSX Edge Nodes
-        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
             if ($nsxtEdgeNodes) {
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
             }
@@ -340,7 +340,7 @@ Try {
         Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
         ## Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
         }
         else {
@@ -371,7 +371,7 @@ Try {
         }
 
         # Check the health and sync status of the vSAN cluster -- bug-2925318
-        if ((Test-NetConnection -ComputerName $vcServer.fqdn).PingSucceeded ) {
+        if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
             if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                 Write-PowerManagementLogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
             }
@@ -401,6 +401,11 @@ Try {
             Write-PowerManagementLogMessage -Type ERROR -Message "There are running VMs in environment: $($runningVMs). We could not continue with vSAN shutdown while there are running VMs. Exiting! " -Colour Red
         }
         else {
+            # Stop vSphere HA to avoid "orphaned" VMs during vSAN shutdown
+            if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -disableHA)) {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Could not disable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
+            }
+
             ## Actual vSAN and ESXi shutdown happens here - once we are sure that there are no VMs running on hosts
             # Disable cluster member updates from vCenter Server
             foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -519,8 +524,11 @@ Try {
             Exit
         }
 
-        # Restart vSphere HA to avoid triggering a "Cannot find vSphere HA master agent" error.
-        Restart-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+        # Start vSphere HA to avoid triggering a "Cannot find vSphere HA master agent" error.
+        if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
+        }
+
         <# 2963366 : DRS settings in not exactly needed for workload domain, rather needed for management
         # Change the DRS Automation Level to Fully Automated for VI Workload Domain Clusters
         Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level FullyAutomated
@@ -570,6 +578,7 @@ Try {
         $vcfvms_string = $vcfvms -join "; "
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "The following components have been started: $vcfvms_string , " -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "vSphere vSphere High Availability has been enabled by the script, please disable it if it is not desired" -Colour Cyan
         Write-PowerManagementLogMessage -Type INFO -Message "Please check the list above and start any additional VMs, that are required, before you proceed with workload startup!" -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -colour Yellow
         Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -colour Yellow
