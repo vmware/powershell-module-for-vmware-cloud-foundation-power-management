@@ -1942,7 +1942,7 @@ Function Get-TanzuEnabledClusterStatus {
                     return $False
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to fetch Tanzu related information" -colour RED
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to fetch Tanzu related information. Error message from 'get-wmcluster' command: '$ErrorMsg'" -colour RED
                 }
             }
             else {
