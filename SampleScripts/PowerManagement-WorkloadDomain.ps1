@@ -26,48 +26,56 @@
     This script connects to the specified SDDC Manager and either shutdowns or startups a Virtual Infrastructure Workload Domain
 
     .EXAMPLE
-    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Shutdown
+    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -Shutdown
     Initiates a shutdown of the Virtual Infrastructure Workload Domain 'sfo-w01'
 
     .EXAMPLE
-    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Shutdown -shutdownCustomerVm
+    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -Shutdown -shutdownCustomerVm
     Initiates a shutdown of the Virtual Infrastructure Workload Domain 'sfo-w01' with shutdown of customer deployed VMs.
     Note: customer VMs will be stopped (Guest shutdown) only if they have VMware tools running and after NSX-T components, so they will loose networking before shutdown if they are running on overlay network.
 
     .EXAMPLE
-    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -powerState Startup
+    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -Startup
     Initiates the startup of the Virtual Infrastructure Workload Domain 'sfo-w01'
 #>
 
 Param (
-    [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
-    [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-    [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-    [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$sddcDomain,
-    [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$shutdownCustomerVm,
-    [Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
+    [Parameter (Mandatory = $true, ParameterSetName = "startup")]
+    [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [String]$server,
+    [Parameter (Mandatory = $true, ParameterSetName = "startup")]
+    [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [String]$user,
+    [Parameter (Mandatory = $true, ParameterSetName = "startup")]
+    [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [String]$pass,
+    [Parameter (Mandatory = $true, ParameterSetName = "startup")]
+    [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [String]$sddcDomain,
+    [Parameter (Mandatory = $false, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [Switch]$shutdownCustomerVm,
+    [Parameter (Mandatory = $true, ParameterSetName = "startup")] [ValidateNotNullOrEmpty()] [Switch]$startup,
+    [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [Switch]$shutdown
+    #[Parameter (Mandatory = $true)] [ValidateSet("Shutdown", "Startup")] [String]$powerState
 )
 
 # Customer Questions Section
 Try {
     Clear-Host; Write-Host ""
     Start-SetupLogFile -Path $PSScriptRoot -ScriptName $MyInvocation.MyCommand.Name
-    if ($powerState -eq "Shutdown") {
-        if (-Not $PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
-            Write-Host "";
-            $proceed_force = Read-Host " Would you like to gracefully shutdown customer deployed Virtual Machines not managed by SDDC Manager (Yes/No)? [No]"; Write-Host ""
-            if ($proceed_force -Match "yes") {
-                $PSBoundParameters.Add('shutdownCustomerVm', 'Yes')
-                $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Workload Domain."
-            }
-            else {
-                $customerVmMessage = "Process WILL NOT gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Workload Domain."
-            }
-        }
-        else {
-            $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Workload Domain"
-        }
+    if ($PsBoundParameters.ContainsKey("Shutdown")) {
+        if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Workload Domain." }
+        else { $customerVmMessage = "Process WILL NOT gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Workload Domain." }
     }
+    #         Write-Host "";
+    #         $proceed_force = Read-Host " Would you like to gracefully shutdown customer deployed Virtual Machines not managed by SDDC Manager (Yes/No)? [No]"; Write-Host ""
+    #         if ($proceed_force -Match "yes") {
+    #             $PSBoundParameters.Add('shutdownCustomerVm', 'Yes')
+    #             $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Workload Domain."
+    #         }
+    #         else {
+    #             $customerVmMessage = "Process WILL NOT gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Workload Domain."
+    #         }
+    #     }
+    #     else {
+    #         $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Workload Domain"
+    #     }
+    # }
 }
 Catch {
     Debug-CatchWriterForPowerManagement -object $_
@@ -77,7 +85,9 @@ Catch {
 Try {
     $Global:ProgressPreference = 'SilentlyContinue'
     $str1 = "$PSCommandPath "
-    $str2 = "-server $server -user $user -pass ******* -sddcDomain $sddcDomain -powerState $powerState"
+    $str2 = "-server $server -user $user -pass ******* -sddcDomain $sddcDomain "
+    if ($PsBoundParameters.ContainsKey("startup")) { $str2 = $str2 + " -startup" }
+    if ($PsBoundParameters.ContainsKey("shutdown")) { $str2 = $str2 + " -shutdown" }
     if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $str2 = $str2 + " -shutdownCustomerVm" }
     Write-PowerManagementLogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
     Write-PowerManagementLogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
@@ -86,7 +96,7 @@ Try {
 
     if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 3.0.4 -ErrorAction Ignore)) {
         Write-PowerManagementLogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 3.0.4' to install from PS Gallery" -Colour Yellow
-        Write-PowerManagementLogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 3.0.4 or greater, Please install before proceeding" -Colour Red
+        Write-PowerManagementLogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 3.0.4 or greater. Exiting!" -Colour Red
         Exit
     }
     else {
@@ -183,7 +193,7 @@ Catch {
 
 # Run the Shutdown procedures
 Try {
-    if ($powerState -eq "Shutdown") {
+    if ($PsBoundParameters.ContainsKey("shutdown")) {
         #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
         Try {
             foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -347,12 +357,11 @@ Try {
             Write-PowerManagementLogMessage -Type WARNING -Message "Looks like that $($vcServer.fqdn) may already be shutdown, skipping Setting Retreat Mode" -Colour Cyan
         }
 
-        # Waiting for VCLS VMs to be stopped for ($retries*10) seconds
+        # Waiting for vCLS VMs to be stopped for ($retries*10) seconds
         Write-PowerManagementLogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) shutdown will take time...please wait" -Colour Yellow
         $counter = 0
         $retries = 10
         $sleep_time = 30
-        # foreach ($esxiNode in $esxiWorkloadDomain) {
         while ($counter -ne $retries) {
             $powerOnVMcount = (Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
             if ( $powerOnVMcount ) {
@@ -364,7 +373,6 @@ Try {
                 Break
             }
         }
-        # }
         if ($counter -eq $retries) {
             Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS vms did't get shutdown within stipulated timeout value. Stopping the script" -Colour RED
             Exit
@@ -392,10 +400,8 @@ Try {
         }
         
         # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
-        $flag = 0
         $runningVMs = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
         if ($runningVMs.count) {
-            $flag = 1
             Write-PowerManagementLogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state." -Colour Cyan
             Write-PowerManagementLogMessage -Type WARNING -Message "Unable to proceed unless they are shutdown. Kindly shutdown them manually and rerun the script" -Colour Cyan
             Write-PowerManagementLogMessage -Type ERROR -Message "There are running VMs in environment: $($runningVMs). We could not continue with vSAN shutdown while there are running VMs. Exiting! " -Colour Red
@@ -441,7 +447,7 @@ Try {
         Write-PowerManagementLogMessage -Type ERROR -Message "Provided Workload domain '$sddcDomain' is the Management Workload domain. This script handles Worload Domains. Exiting! " -Colour Red
         Exit
     }
-    if ($powerState -eq "Startup") {
+    if ($PsBoundParameters.ContainsKey("startup")) {
         # Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
         Try {
             foreach ($esxiNode in $esxiWorkloadDomain) {

@@ -512,9 +512,8 @@ Function Get-VMRunningStatus {
                         }
                         else {
 
-                            Write-PowerManagementLogMessage -Type Warning -Message "Node $($node.Name) in incorrect running state '$($status.ToUpper())'" -Colour Cyan
+                            Write-PowerManagementLogMessage -Type WARNING -Message "Node $($node.Name) in incorrect running state '$($status.ToUpper())'" -Colour Cyan
                             return $false
-
                         }
                     }
                 }
