@@ -64,7 +64,7 @@ Try {
         }
         elseif ($ErrorMsg) {
             if ($ErrorMsg -match "4\d\d") {
-                Write-PowerManagementLogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry." -colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "The authentication/authorization failed, please check credentials once again and then retry." -Colour Red
                 Exit
             }
             else {

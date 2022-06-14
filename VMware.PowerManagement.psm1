@@ -68,7 +68,7 @@ Function Stop-CloudComponent {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of the Stop-CloudComponent cmdlet." -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -151,10 +151,10 @@ Function Stop-CloudComponent {
                         }
                     }
                     elseif ($pattern) {
-                        Write-PowerManagementLogMessage -Type Warning -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Cyan
+                        Write-PowerManagementLogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Cyan
                     }
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
@@ -162,7 +162,7 @@ Function Stop-CloudComponent {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }
     Catch {
@@ -204,7 +204,7 @@ Function Start-CloudComponent {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Start-CloudComponent cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -282,7 +282,7 @@ Function Start-CloudComponent {
                         Write-PowerManagementLogMessage -Type WARNING -Message "There are no nodes matching the pattern '$pattern' on host $server" -Colour Cyan
                     }
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
@@ -290,7 +290,7 @@ Function Start-CloudComponent {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }
     Catch {
@@ -330,7 +330,7 @@ Function Set-MaintenanceMode {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-MaintenanceMode cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -378,7 +378,7 @@ Function Set-MaintenanceMode {
                         Write-PowerManagementLogMessage -Type ERROR -Message "The host $server is not currently connected" -Colour Red
                     }
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
@@ -386,7 +386,7 @@ Function Set-MaintenanceMode {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     } 
     Catch {
@@ -424,7 +424,7 @@ Function Set-DrsAutomationLevel {
 
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -455,7 +455,7 @@ Function Set-DrsAutomationLevel {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server '$server' failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     } 
     Catch {
@@ -492,7 +492,7 @@ Function Get-VMRunningStatus {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-VMRunningStatus cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -517,7 +517,7 @@ Function Get-VMRunningStatus {
                         }
                     }
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
@@ -525,7 +525,7 @@ Function Get-VMRunningStatus {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }  
     Catch {
@@ -562,7 +562,7 @@ Function Invoke-EsxCommand {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Invoke-EsxCommand cmdlet" -Colour Yellow
         $password = ConvertTo-SecureString $pass -AsPlainText -Force
         $Cred = New-Object System.Management.Automation.PSCredential ($user, $password)
-        Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
         $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue
         if ($session) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to run command '$cmd' on server '$server'"
@@ -583,7 +583,7 @@ Function Invoke-EsxCommand {
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Failure. The command could not be run" -Colour Red
             }
-            Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+            # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
             Remove-SSHSession -Index $session.SessionId | Out-Null   
         }
         else {
@@ -625,7 +625,7 @@ Function Get-SSHEnabledStatus {
         Write-PowerManagementLogMessage -Type INFO -Message "Attempting to SSH to server '$server'"
         $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
         if ($session) {
-            Write-PowerManagementLogMessage -Type INFO -Message "SSH is enabled on the server '$server'" -colour GREEN
+            Write-PowerManagementLogMessage -Type INFO -Message "SSH is enabled on the server '$server'" -Colour Green
             Remove-SSHSession -Index $session.SessionId | Out-Null
             return $True
         }
@@ -669,7 +669,7 @@ Function Get-VsanClusterMember {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-VsanClusterMember cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -686,7 +686,7 @@ Function Get-VsanClusterMember {
                         Write-PowerManagementLogMessage -Type INFO -Message "vSAN cluster member '$member' does not match" -Colour Red
                     }
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
@@ -730,7 +730,7 @@ Function Test-VsanHealth {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Test-VsanHealth cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -790,7 +790,7 @@ Function Test-VsanHealth {
                         Write-PowerManagementLogMessage -Type ERROR -Message "The vSAN Health Status for $cluster is BAD" -Colour Red
                         return 1
                     }
-                    Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                    # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                     Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                 }
             }
@@ -799,7 +799,7 @@ Function Test-VsanHealth {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }
     Catch {
@@ -835,7 +835,7 @@ Function Test-VsanObjectResync {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Test-VsanObjectResync cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -852,7 +852,7 @@ Function Test-VsanObjectResync {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Resyncing of objects in progress" -Colour Red
                     return 1
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
@@ -860,7 +860,7 @@ Function Test-VsanObjectResync {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red 
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red 
         }
     }
     Catch {
@@ -902,7 +902,7 @@ Function Get-PoweredOnVMs {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-PoweredOnVMsCount cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -927,7 +927,7 @@ Function Get-PoweredOnVMs {
                     $no_powered_on_vms_string = $no_powered_on_vms -join ","
                     Write-PowerManagementLogMessage -type INFO -Message "There are virtual machines in a powered on state: $no_powered_on_vms_string"
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                 Return $no_powered_on_vms
             }
@@ -936,7 +936,7 @@ Function Get-PoweredOnVMs {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }
     Catch {
@@ -970,9 +970,8 @@ Function Get-VMwareToolsStatus {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-VMwareToolsStatus cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        if (( Test-NetConnection -ComputerName $server -Port 443 ).TcpTestSucceeded) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$server' and trying to get VMwareTools Status"
@@ -985,11 +984,11 @@ Function Get-VMwareToolsStatus {
                 }
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check console output for more details." -Colour Red
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }
     Catch {
@@ -1083,7 +1082,7 @@ Function Get-VamiServiceStatus {
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             if (-Not $nolog) {
-                Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+                Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             }
             if ($DefaultCisServers) {
                 Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
@@ -1100,7 +1099,7 @@ Function Get-VamiServiceStatus {
                 Start-Sleep 60
                 $retries -= 1
                 if (-Not $nolog) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Getting Service status is taking time, Please wait." -colour Yellow
+                    Write-PowerManagementLogMessage -Type INFO -Message "Getting Service status is taking time, Please wait." -Colour Yellow
                 }
             }
             if ($flag) {
@@ -1121,7 +1120,7 @@ Function Get-VamiServiceStatus {
     }
     Finally {
         if (-Not $nolog) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+            # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
         }
         Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
         if (-Not $nolog) {
@@ -1159,7 +1158,7 @@ Function Set-VamiServiceStatus {
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-VAMIServiceStatus cmdlet" -Colour Yellow
         if ((Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($action -eq "START") { $requestedState = "STARTED" } elseif ($action -eq "STOP") { $requestedState = "STOPPED" }
             if ($DefaultCisServers) {
                 Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
@@ -1190,7 +1189,7 @@ Function Set-VamiServiceStatus {
                         Write-PowerManagementLogMessage -Type ERROR -Message "Service '$service' has NOT been '$requestedState'. Actual status: $($serviceStatus.state)" -Colour Red
                     }
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
@@ -1236,7 +1235,7 @@ Function Set-vROPSClusterState {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-vROPSClusterState cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             $vropsHeader = createHeader $user $pass
             $statusUri = "https://$server/casa/deployment/cluster/info"
             $clusterStatus = Invoke-RestMethod -Method GET -URI $statusUri -Headers $vropsHeader -ContentType application/json
@@ -1451,7 +1450,7 @@ Function Start-EsxiUsingILO {
             Write-PowerManagementLogMessage -Type INFO -Message "The racadm.exe is present in the default path" -Colour Yellow
         }
         else {
-            Write-PowerManagementLogMessage -Type Error -Message "The racadm.exe is not present in $exe_path or the default path $default_path" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "The racadm.exe is not present in $exe_path or the default path $default_path" -Colour Red
         }
         $out = cmd /c $default_path -r $ilo_ip -u $ilo_user -p $ilo_pass  --nocertwarn serveraction powerup
         if ( $out.contains("Server power operation successful")) {
@@ -1460,7 +1459,7 @@ Function Start-EsxiUsingILO {
             Write-PowerManagementLogMessage -Type INFO -Message "bootup complete." -Colour Yellow
         }
         else {
-            Write-PowerManagementLogMessage -Type Error -Message "Could not power on the server $ilo_ip" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Could not power on the server $ilo_ip" -Colour Red
         }
     }
     Catch {
@@ -1500,7 +1499,7 @@ Function Set-VsphereHA {
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-VsphereHA cmdlet" -Colour Yellow
         if ($(Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -1522,7 +1521,7 @@ Function Set-VsphereHA {
                         While (-not $completed) {
                             # Check iteration number
                             if ($retrycount -ge $Retries) {
-                                Write-PowerManagementLogMessage -Type Warning -Message "Set vSphere High Availability timeouted after $($SecondsDelay * $Retries) seconds. There are still reconfiguratons in progress." -Colour Cyan
+                                Write-PowerManagementLogMessage -Type WARNING -Message "Set vSphere High Availability timeouted after $($SecondsDelay * $Retries) seconds. There are still reconfiguratons in progress." -Colour Cyan
                                 return $false
                             }
                             $retryCount++
@@ -1541,7 +1540,7 @@ Function Set-VsphereHA {
                                     return $true
                                 }
                                 else {
-                                    Write-PowerManagementLogMessage -Type WARNING -Message "Failed to set vSphere High Availability for cluster '$cluster' to 'Enabled'" -Colour CYAN
+                                    Write-PowerManagementLogMessage -Type WARNING -Message "Failed to set vSphere High Availability for cluster '$cluster' to 'Enabled'" -Colour Cyan
                                     return $false
                                 }
                             }
@@ -1559,7 +1558,7 @@ Function Set-VsphereHA {
                         While (-not $completed) {
                             # Check iteration number
                             if ($retrycount -ge $Retries) {
-                                Write-PowerManagementLogMessage -Type Warning -Message "Set vSphere High Availability timeouted after $($SecondsDelay * $Retries) seconds. There are still reconfiguratons in progress." -Colour Cyan
+                                Write-PowerManagementLogMessage -Type WARNING -Message "Set vSphere High Availability timeouted after $($SecondsDelay * $Retries) seconds. There are still reconfiguratons in progress." -Colour Cyan
                                 return $false
                             }
                             $retryCount++
@@ -1578,7 +1577,7 @@ Function Set-VsphereHA {
                                     return $true
                                 }
                                 else {
-                                    Write-PowerManagementLogMessage -Type WARNING -Message "Failed to set vSphere High Availability for cluster '$cluster' to 'Disabled'" -Colour CYAN
+                                    Write-PowerManagementLogMessage -Type WARNING -Message "Failed to set vSphere High Availability for cluster '$cluster' to 'Disabled'" -Colour Cyan
                                     return $false
                                 }
                             }
@@ -1591,7 +1590,7 @@ Function Set-VsphereHA {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }
     Catch {
@@ -1628,7 +1627,7 @@ Function Get-DrsAutomationLevel {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Get-DrsAutomationLevel cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -1643,7 +1642,7 @@ Function Get-DrsAutomationLevel {
                 else {
                     Write-PowerManagementLogMessage -type INFO -Message "The DRS is not enabled on the cluster $cluster"
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                 return $clsdrsvalue
             }
@@ -1652,7 +1651,7 @@ Function Get-DrsAutomationLevel {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }
     Catch {
@@ -1696,7 +1695,7 @@ Function Set-Retreatmode {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting run of Set-Retreatmode cmdlet" -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -1728,7 +1727,7 @@ Function Set-Retreatmode {
                         Write-PowerManagementLogMessage -Type INFO -Message "The value of advanced setting $advanced_setting is set to true" -Colour Green
                     }
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
@@ -1736,7 +1735,7 @@ Function Set-Retreatmode {
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }
     Catch {
@@ -1783,7 +1782,7 @@ Function Wait-ForStableNsxtClusterStatus {
         While (-not $completed) {
             # Check iteration number
             if ($retrycount -ge $Retries) {
-                Write-PowerManagementLogMessage -Type Warning -Message "Request to $uri failed after $retryCount attempts." -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "Request to $uri failed after $retryCount attempts." -Colour Cyan
                 return $false
             }
             $retryCount++
@@ -1811,7 +1810,7 @@ Function Wait-ForStableNsxtClusterStatus {
             }
             else {
                 $completed = $true
-                Write-PowerManagementLogMessage -Type INFO -Message "The NSX Manager cluster '$server' state is 'STABLE'" -Colour GREEN
+                Write-PowerManagementLogMessage -Type INFO -Message "The NSX Manager cluster '$server' state is 'STABLE'" -Colour Green
                 return $true
             }
         }
@@ -1851,9 +1850,8 @@ Function Get-EdgeNodeFromNSXManager {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting Execution of Get-EdgeNodeFromNSXManager cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        if (( Test-NetConnection -ComputerName $server -Port 443 ).TcpTestSucceeded) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultNSXTServers) {
                 Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
             }
@@ -1879,17 +1877,17 @@ Function Get-EdgeNodeFromNSXManager {
                         }
                     }
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
+                # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from server '$server'"
                 Disconnect-NSXTServer * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
                 return $edge_nodes_list
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check console output for more details." -Colour Red
             }
 
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }
     Catch {
@@ -1923,9 +1921,8 @@ Function Get-TanzuEnabledClusterStatus {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting Execution of Get-TanzuEnabledClusterStatus cmdlet" -Colour Yellow
-        $checkServer = Test-Connection -ComputerName $server -Quiet -Count 1
-        if ($checkServer -eq "True") {
-            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to server '$server'"
+        if (( Test-NetConnection -ComputerName $server -Port 443 ).TcpTestSucceeded) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
             }
@@ -1933,7 +1930,7 @@ Function Get-TanzuEnabledClusterStatus {
             if ($DefaultVIServer.Name -eq $server) {
                 $out = get-wmcluster -cluster $cluster -server $server -ErrorVariable ErrorMsg -ErrorAction SilentlyContinue
                 if ($out.count -gt 0) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Tanzu is enabled" -Colour GREEN
+                    Write-PowerManagementLogMessage -Type INFO -Message "Tanzu is enabled" -Colour Green
                     return $True
                 }
                 elseif (([string]$ErrorMsg -match "does not have Workloads enabled") -or ([string]::IsNullOrEmpty($ErrorMsg))) {
@@ -1941,16 +1938,16 @@ Function Get-TanzuEnabledClusterStatus {
                     return $False
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to fetch Tanzu related information. Error message from 'get-wmcluster' command: '$ErrorMsg'" -colour RED
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to fetch Tanzu related information. ERROR message from 'get-wmcluster' command: '$ErrorMsg'" -Colour Red
                 }
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Not connected to server $server, due to an incorrect user name or password. Verify your credentials and try again" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check console output for more details." -Colour Red
             }
 
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Testing a connection to server $server failed, please check your details and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed, please check your environment and try again" -Colour Red
         }
     }
     Catch {
@@ -2014,9 +2011,9 @@ Function Debug-CatchWriterForPowerManagement {
     $lineNumber = $object.InvocationInfo.ScriptLineNumber
     $lineText = $object.InvocationInfo.Line.trim()
     $errorMessage = $object.Exception.Message
-    Write-PowerManagementLogMessage -message " Error at Script Line $lineNumber" -colour Red
-    Write-PowerManagementLogMessage -message " Relevant Command: $lineText" -colour Red
-    Write-PowerManagementLogMessage -message " Error Message: $errorMessage" -colour Red
+    Write-PowerManagementLogMessage -message " ERROR at Script Line $lineNumber" -Colour Red
+    Write-PowerManagementLogMessage -message " Relevant Command: $lineText" -Colour Red
+    Write-PowerManagementLogMessage -message " ERROR Message: $errorMessage" -Colour Red
     Write-Error -Message $errorMessage
 }
 Export-ModuleMember -Function Debug-CatchWriterForPowerManagement
