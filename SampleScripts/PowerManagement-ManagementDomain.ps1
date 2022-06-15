@@ -708,6 +708,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             #Write-PowerManagementLogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
         }
         else {
+            Write-PowerManagementLogMessage -Type WARNING -Message "vSAN Cluster health is BAD. Please check vSAN status in vCenter Server '$($vcServer.fqdn)'. Once vSAN is fixed, please restart the script." -Colour Red
+            Write-PowerManagementLogMessage -Type WARNING -Message "If script have reached ESXi vSAN Showdown previously, this error is expected. Please continue by following the VCF Documentation. " -Colour Red
             Write-PowerManagementLogMessage -Type ERROR -Message "vSAN Cluster health is BAD. Please check vSAN status in vCenter Server '$($vcServer.fqdn)'. Once vSAN is fixed, please restart the script. Exiting!" -Colour Red
             Exit
         }
@@ -715,7 +717,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             #Write-PowerManagementLogMessage -Type INFO -Message "VSAN Object Resync is successfully" -Colour Green
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "VSAN Object resync is running. Stopping the script. Please wait for a successfully vSAN resync and then start script again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN Object resync is running. Stopping the script. Please wait for a successfully vSAN resync and then start script again" -Colour Red
             Exit
         }
 

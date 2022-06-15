@@ -377,7 +377,9 @@ Try {
                 Write-PowerManagementLogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "VSAN Cluster health is BAD. Please check and rerun the script" -Colour Red
+                Write-PowerManagementLogMessage -Type WARNING -Message "vSAN Cluster health is BAD. Please check vSAN status in vCenter Server '$($vcServer.fqdn)'. Once vSAN is fixed, please restart the script." -Colour Red
+                Write-PowerManagementLogMessage -Type WARNING -Message "If script have reached ESXi vSAN Showdown previously, this error is expected. Please continue by following the VCF Documentation. " -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "VSAN Cluster health is BAD. Please check console messages above for possible solution." -Colour Red
                 Exit
             }
             if ( (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
@@ -475,7 +477,7 @@ Try {
         }
 
         # Startup the Virtual Infrastructure Workload Domain vCenter Server
-        #Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
+        Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
         Write-PowerManagementLogMessage -Type INFO -Message "Waiting for vCenter Server services to start on $($vcServer.fqdn) (may take some time)" -Colour Yellow
         $retries = 20
         $flag = 0
