@@ -708,9 +708,9 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             #Write-PowerManagementLogMessage -Type INFO -Message "VSAN Cluster health is Good." -Colour Green
         }
         else {
-            Write-PowerManagementLogMessage -Type WARNING -Message "vSAN Cluster health is BAD. Please check vSAN status in vCenter Server '$($vcServer.fqdn)'. Once vSAN is fixed, please restart the script." -Colour Red
-            Write-PowerManagementLogMessage -Type WARNING -Message "If script have reached ESXi vSAN Showdown previously, this error is expected. Please continue by following the VCF Documentation. " -Colour Red
-            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN Cluster health is BAD. Please check vSAN status in vCenter Server '$($vcServer.fqdn)'. Once vSAN is fixed, please restart the script. Exiting!" -Colour Red
+            Write-PowerManagementLogMessage -Type WARNING -Message "vSAN Cluster health is BAD. Please check vSAN status in vCenter Server '$($vcServer.fqdn)'. Once vSAN is fixed, please restart the script." -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "If script have reached ESXi vSAN Showdown previously, this error is expected. Please continue by following the VCF Documentation. " -Colour Cyan
+            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN Cluster health is BAD. Please check console messages above for possible solution." -Colour Red
             Exit
         }
         if ((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
@@ -725,7 +725,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         $runningVMs = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
         if ($runningVMs.count -gt 1 ) {
             Write-PowerManagementLogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state." -Colour Cyan
-            Write-PowerManagementLogMessage -Type WARNING -Message "Unable to proceed unless they are shutdown. Kindly shutdown them manually and continue with shutdown by following VMware Cloud Foundation Documentation." -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "Unable to proceed unless they are stopped. Kindly shutdown them manually and continue with shutdown by following VMware Cloud Foundation Documentation." -Colour Cyan
             Write-PowerManagementLogMessage -Type ERROR -Message "There are running VMs in environment: $($runningVMs). Exiting! " -Colour Red
         }
         else {
@@ -981,7 +981,10 @@ if ($PsBoundParameters.ContainsKey("startup")) {
             Start-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.Name -timeout 600
             Start-Sleep 5
             if (-Not (Get-VMRunningStatus -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -Status "Running")) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Unable to start virtual center on the given host. Hence exiting" -Colour Red
+
+                Write-PowerManagementLogMessage -Type Warning -Message "Unable to start virtual center server on the given host. Please check iv vCenter Server is located on host $vcHost. " -Colour Red
+                Write-PowerManagementLogMessage -Type Warning -Message "Please, start vCenter Server manually and re-run the script." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Could not start vCenter Server on host $vcHost. Check console for more details." -Colour Red
                 Exit
             }
         }
@@ -1023,11 +1026,11 @@ if ($PsBoundParameters.ContainsKey("startup")) {
 
         # Check vSAN Status
         if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -ne 0) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN Cluster health is BAD. Please check and rerun the script" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN Cluster health is BAD. Please check and rerun the script." -Colour Red
             Exit
         }
         if ( (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -ne 0) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "VSAN Object resync is in progress. Please check and rerun the script" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN Object resync is in progress. Please check and rerun the script." -Colour Red
             Exit
         }
 
@@ -1048,7 +1051,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
         Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
         # Waiting for vCLS VMs to be started for ($retries*10) seconds
-        Write-PowerManagementLogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) startup will take time...please wait" -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Retreat Mode has been set, vSphere Cluster Services Virtual Machines (vCLS) startup will take some time, please wait" -Colour Yellow
         $counter = 0
         $retries = 10
         $sleep_time = 30
@@ -1064,7 +1067,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
             }
         }
         if ($counter -eq $retries) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS vms did't get started within stipulated timeout value. Stopping the script" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS virtual machines did not started within stipulated timeout value. Stopping the script" -Colour Red
             Exit
         }
 
@@ -1129,10 +1132,15 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         }
 #>
         # End of startup
-        Write-PowerManagementLogMessage -Type INFO -Message "Kindly Power On customer deployed Virtual Machines not managed by SDDC Manager manually" -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "vSphere vSphere High Availability has been enabled by the script, please disable it if it is not desired" -Colour Cyan
+        Write-PowerManagementLogMessage -Type INFO -Message "Please check your environment and start any aditional virtual machines that you host in Management Domain" -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -Colour Yellow
         Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -Colour Yellow
-        Write-PowerManagementLogMessage -Type INFO -Message "End of startup sequence. Please check your environment" -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts in MGMT domina, please make sure that you disable it at this point." -Colour Cyan
+        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "End of startup sequence!" -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
