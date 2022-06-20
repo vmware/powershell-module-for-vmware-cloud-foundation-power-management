@@ -75,8 +75,8 @@ Function Stop-CloudComponent {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 if ($PSCmdlet.ParameterSetName -eq "Node") {
-                    $nodes_string = $nodes -join ","
-                    Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to shutdown nodes '$nodes_string'"
+                    $nodes_string = $nodes -join "; "
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to shutdown nodes '$nodes_string'."
                     if ($nodes.Count -ne 0) {
                         foreach ($node in $nodes) {
                             $count = 0
@@ -211,7 +211,8 @@ Function Start-CloudComponent {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 if ($PSCmdlet.ParameterSetName -eq "Node") {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to start nodes '$nodes'"
+                    $nodes_string = $nodes -join "; "
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to start nodes '$nodes_string'."
                     if ($nodes.Count -ne 0) {
                         foreach ($node in $nodes) {
                             $count = 0

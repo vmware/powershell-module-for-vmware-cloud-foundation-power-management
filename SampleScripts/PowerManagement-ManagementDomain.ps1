@@ -168,15 +168,26 @@ Try {
     Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile" -Colour Yellow
     if (-Not $null -eq $customerVmMessage) { Write-PowerManagementLogMessage -Type INFO -Message $customerVmMessage -Colour Yellow }
 
-    if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 3.0.4 -ErrorAction Ignore)) {
-        Write-PowerManagementLogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 3.0.4' to install from PS Gallery" -Colour Yellow
+    $poshSSHVersion = (Get-Module -ListAvailable -All | Where-Object { ($_.Name -eq "Posh-SSH") -and ($_.ModuleType -eq "Manifest") }).Version
+    if (([int]$poshSSHVersion.Major -ge 3) -and ([int]$poshSSHVersion.Minor -ge 0) -and ([int]$poshSSHVersion.Build -ge 4)) {
+        Write-PowerManagementLogMessage -Type INFO -Message "The version of Posh-SSH found on the system is: $poshSSHVersion" -Colour Green
+    }
+    else {
+        if ($poshSSHVersion) { Write-PowerManagementLogMessage -Type WARNING -Message "Found the following Posh-SSH version in the system: $poshSSHVersion." -Colour Cyan }
+        Write-PowerManagementLogMessage -Type WARNING -Message "Please use the command 'Install-Module Posh-SSH -MinimumVersion 3.0.4' to install Posh-SSH module from PS Gallery." -Colour Cyan
         Write-PowerManagementLogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 3.0.4 or greater. Exiting!" -Colour Red
         Exit
     }
-    else {
-        $ver = Get-InstalledModule -Name Posh-SSH -MinimumVersion 3.0.4
-        Write-PowerManagementLogMessage -Type INFO -Message "The version of Posh-SSH found on the system is: $($ver.Version)" -Colour Green
-    }
+
+    #    if (-Not (Get-InstalledModule -Name Posh-SSH -MinimumVersion 3.0.4 -ErrorAction Ignore)) {
+    #        Write-PowerManagementLogMessage -Type INFO -Message "Use the command 'Install-Module Posh-SSH -MinimumVersion 3.0.4' to install from PS Gallery" -Colour Yellow
+    #        Write-PowerManagementLogMessage -Type ERROR -Message "Unable to find Posh-SSH module with version 3.0.4 or greater. Exiting!" -Colour Red
+    #        Exit
+    #    }
+    #    else {
+    #        $ver = Get-InstalledModule -Name Posh-SSH -MinimumVersion 3.0.4
+    #        Write-PowerManagementLogMessage -Type INFO -Message "The version of Posh-SSH found on the system is: $($ver.Version)" -Colour Green
+    #    }
 }
 Catch {
     Debug-CatchWriterForPowerManagement -object $_
@@ -571,21 +582,43 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             Write-PowerManagementLogMessage -Type INFO -Message "The SDDC manager non-managed customer virtual machines are: '$($customervms_string)' ." -Colour Cyan
         }
 
-        $VMwareToolsNotRunningVMs = @()
-        $VMwareToolsRunningVMs = @()
-        foreach ($vm in $customervms) {
-            $status = Get-VMwareToolsStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -vm $vm
-            if ($status -eq "RUNNING") {
-                [Array]$VMwareToolsRunningVMs += $vm
+        # Check if VMware Tools are running in the customer VMs - if not we could not stop them gracefully
+        if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { 
+            $VMwareToolsNotRunningVMs = @()
+            $VMwareToolsRunningVMs = @()
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
-            else {
-                [Array]$VMwareToolsNotRunningVMs += $vm
+            if (( Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 ).TcpTestSucceeded) {
+                Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
+                Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
+                if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
+                    Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$($vcServer.fqdn)' and trying to get VMwareTools Status."
+                    foreach ($vm in $customervms) {
+                        Write-PowerManagementLogMessage -type INFO -Message "Checking VMwareTools Status for '$vm'..."
+                        $vm_data = Get-VM -Name $vm
+                        if ($vm_data.ExtensionData.Guest.ToolsRunningStatus -eq "guestToolsRunning") {
+                            [Array]$VMwareToolsRunningVMs += $vm
+                        }
+                        else {
+                            [Array]$VMwareToolsNotRunningVMs += $vm
+                        }
+                    }
+                }
+                else {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to vCenter Server '$($vcServer.fqdn)'. Command returned the following error: '$vcConnectError'." -Colour Red
+                }
             }
-        }
-        if (($VMwareToolsNotRunningVMs.count -ne 0) -and ($PsBoundParameters.ContainsKey("shutdownCustomerVm"))) {
-            Write-PowerManagementLogMessage -Type WARNING -Message "There are some non VCF maintained virtual machines where VMWareTools NotRunning, hence unable to shutdown these VMs:$($VMwareToolsNotRunningVMs) ." -Colour Cyan
-            Write-PowerManagementLogMessage -Type ERROR -Message "Unless these virtual machines are shutdown manually, we cannot proceed. Please, shutdown manually and rerun the script" -Colour Red
-            Exit
+            # Disconnect from the VC
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
+            if ($VMwareToolsNotRunningVMs.count -ne 0) {
+                $noToolsVMs = $VMwareToolsNotRunningVMs -join "; "
+                Write-PowerManagementLogMessage -Type WARNING -Message "There are some non VCF maintained VMs where VMwareTools NotRunning, hence unable to shutdown these VMs:'$noToolsVMs'." -Colour cyan
+                Write-PowerManagementLogMessage -Type ERROR -Message "Unless these VMs are shutdown manually, we cannot proceed. Please shutdown manually and rerun the script." -Colour Red
+                Exit
+            }
         }
 
         if ($customervms.count -ne 0) {
@@ -593,10 +626,9 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Looks like there are some virtual machines still in powered On state. Customer VM Shutdown option is set to true" -Colour Cyan
                 Write-PowerManagementLogMessage -Type WARNING -Message "Hence shutting down Non VCF management virtual machines, to put host in maintenance mode" -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management virtual machines: $($customervms_string) ." -Colour Cyan
-                foreach ($vm in $customervms) {
-                    Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $vm -timeout 300
-                }
+                Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: '$customervms_string'." -Colour Cyan
+                # Stop Customer VMs with one call to VC:
+                Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $customervms -timeout 300
             }
             else {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Looks like there are some VMs still in powered On state. Customer VM Shutdown option is set to false" -Colour Cyan
