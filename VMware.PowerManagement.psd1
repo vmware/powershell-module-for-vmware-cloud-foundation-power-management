@@ -12,28 +12,28 @@
     RootModule = 'VMware.PowerManagement.psm1'
 
     # Version number of this module.
-    ModuleVersion = '0.6.0.1000'
+    ModuleVersion     = '1.0.0.1000'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
 
     # ID used to uniquely identify this module
-    GUID = '4dfce98f-e82f-43ef-965d-47273cacc485'
+    GUID              = '4dfce98f-e82f-43ef-965d-47273cacc485'
 
     # Author of this module
-    Author = 'Sowjanya V / Gary Blake, Cloud Infrastructure Business Group (CIBG)'
+    Author            = 'Sowjanya V / Gary Blake, Cloud Infrastructure Business Group (CIBG)'
 
     # Company or vendor of this module
-    CompanyName = 'VMware Inc.'
+    CompanyName       = 'VMware Inc.'
 
     # Copyright statement for this module
-    Copyright = '(c) 2022 VMware All rights reserved'
+    Copyright         = '(c) 2022 VMware All rights reserved'
 
     # Description of the functionality provided by this module
-    Description = 'PowerShell Module for Power Management of VMware Cloud Foundation'
+    Description       = 'PowerShell Module for Power Management of VMware Cloud Foundation'
 
     # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion = '5.1'
+    PowerShellVersion = '7.2.4'
 
     # Name of the Windows PowerShell host required by this module
     # PowerShellHostName = ''
@@ -51,7 +51,11 @@
     # ProcessorArchitecture = ''
 
     # Modules that must be imported into the global environment prior to importing this module
-    # RequiredModules = @()
+    RequiredModules   = @(
+        @{"ModuleName" = "Posh-SSH"; "ModuleVersion" = "3.0.4" }
+        @{"ModuleName" = "VMware.PowerCLI"; "ModuleVersion" = "12.6.0" }
+        @{"ModuleName" = "PowerVCF"; "ModuleVersion" = "2.2.0" }
+    )
 
     # Assemblies that must be loaded prior to importing this module
     # RequiredAssemblies = @()

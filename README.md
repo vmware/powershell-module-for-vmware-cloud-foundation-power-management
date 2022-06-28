@@ -6,7 +6,7 @@ OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHE
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # Supported Platforms
-- Tested on: Windows 10 and Windows 2016 running Windows PowerShell 5.1.  
+- Tested on: Windows 10, Windows 2016, Windows 2019 and Windows 2022 running Windows PowerShell 7.2.4  
 - Supported target systems: vSAN ready nodes running VMware Cloud Foundation 4.4 or VMware Cloud Foundation 4.3.  
 
 # Limitations
@@ -41,12 +41,12 @@ components.
 domain.
 # Prerequisites
 - Run PowerShell as Administrator and install the VMware.PowerManagement PowerShell
-module together with the supporting modules from the PowerShell Gallery by running the
+module together with module dependencies from the PowerShell Gallery by running the
 following commands:  
     > `Install-Module -Name VMware.PowerCLI -MinimumVersion 12.6.0`  
-    > `Install-Module -Name VMware.PowerManagement -MinimumVersion 0.6.0`  
     > `Install-Module -Name PowerVCF -MinimumVersion 2.2.0`  
     > `Install-Module -Name Posh-SSH -MinimumVersion 3.0.4`  
+    > `Install-Module -Name VMware.PowerManagement -MinimumVersion 1.0.0`  
 - Verify that SDDC Manager is running.
 - Before you shut down the management domain, get the credentials for the management
 domain hosts and vCenter Server from SDDC Manager and save them for troubleshooting or a
@@ -73,8 +73,9 @@ PowerShell command.
     > `(Get-Module -ListAvailable VMware.PowerManagement*).path`  
 
 > For example, the full path to the module might be `C:\Program
-Files\WindowsPowerShell\Modules\VMware.PowerManagement\0.6.0\VMware.PowerM
+Files\WindowsPowerShell\Modules\VMware.PowerManagement\1.0.0.1000\VMware.PowerM
 anagement.psd1`.  
+C:\Program Files\WindowsPowerShell\Modules\VMware.PowerManagement\1.0.0.1000\VMware.PowerManagement.psd1
 4. Go to the SampleScripts folder that is located in the same folder as the
 `VMware.PowerManagement.psd1` file.
 5. To shut down or start up a VI workload domain, perform these steps.  
