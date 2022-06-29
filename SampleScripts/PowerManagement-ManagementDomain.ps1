@@ -35,7 +35,10 @@
 
     .EXAMPLE
     PowerManagement-ManagementDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -genjson
-    Initiates a *.json generation that could be used for startup. Existing file in the same directory will be overwritten
+    Initiates a *.json generation that could be used for startup.
+    Notes:
+        File generated earlier may not have all needed details for startup, since the environment may have changed (e.g. ESXi hosts that vCenter Server is running on)
+        The file will be generated in the current directory and any file with the same name "ManagementStartupInput.json" will be overwritten
 
     .EXAMPLE
     PowerManagement-ManagementDomain.ps1 -Startup

@@ -473,7 +473,7 @@ Function Get-VMRunningStatus {
         Gets the running state of a virtual machine
     
         .DESCRIPTION
-        The Get-VMRunningStatus cmdlet gets the runnnig status of the given nodes matching the pattern on an ESXi host
+        The Get-VMRunningStatus cmdlet gets the running status of the given nodes matching the pattern on an ESXi host
     
         .EXAMPLE
         Get-VMRunningStatus -server sfo-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -pattern "^vCLS*"
@@ -771,11 +771,11 @@ Function Test-VsanHealth {
                         if ($healthStatus -eq "red") {
                             $health_status = 'RED'
                         }
-                        $healtCheckGroupResult = [pscustomobject] @{
+                        $healthCheckGroupResult = [pscustomobject] @{
                             HealthCHeck = $healthCheckGroup.GroupName
                             Result      = $healthStatus
                         }
-                        $healthCheckResults += $healtCheckGroupResult
+                        $healthCheckResults += $healthCheckGroupResult
                     }
                     if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red') {
                         Write-PowerManagementLogMessage -Type INFO -Message "The vSAN health status for $cluster is good." -Colour Green
