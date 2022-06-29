@@ -90,7 +90,7 @@ Try {
         if ( $WarnMsg ) { Write-PowerManagementLogMessage -Type WARNING -Message $WarnMsg -Colour Cyan } 
         if ( $ErrorMsg ) { Write-PowerManagementLogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
         if ($accessToken) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Connection to SDDC Manager has been validated successfully."
+            Write-PowerManagementLogMessage -Type INFO -Message "Connection to SDDC Manager has been validated successfully."-Colour Green
         }
     }
 }
@@ -228,10 +228,10 @@ Try {
 
         $customervms = $allvms | ? { $vcfvms -notcontains $_ }
         $vcfvms_string = $vcfvms -join "; "
-        Write-PowerManagementLogMessage -Type INFO -Message "The SDDC manager managed virtual machines are: '$($vcfvms_string)'." -Colour Cyan
+        Write-PowerManagementLogMessage -Type INFO -Message "Virtual machines managed by SDDC Manager:: '$($vcfvms_string)'." -Colour Cyan
         if ($customervms.count -ne 0) {
             $customervms_string = $customervms -join "; "
-            Write-PowerManagementLogMessage -Type INFO -Message "The SDDC manager non-managed customer virtual machines are: '$($customervms_string)'." -Colour Cyan
+            Write-PowerManagementLogMessage -Type INFO -Message "Customer virtual machines not managed by SDDC Manager: '$($customervms_string)'." -Colour Cyan
         }
 
         # Check if VMware Tools are running in the customer VMs - if not we could not stop them gracefully
