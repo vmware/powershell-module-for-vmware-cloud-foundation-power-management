@@ -228,10 +228,10 @@ Try {
 
         $customervms = $allvms | ? { $vcfvms -notcontains $_ }
         $vcfvms_string = $vcfvms -join "; "
-        Write-PowerManagementLogMessage -Type INFO -Message "Virtual machines managed by SDDC Manager:: '$($vcfvms_string)'." -Colour Cyan
+        Write-PowerManagementLogMessage -Type INFO -Message "Management virtual machines covered by the script: '$($vcfvms_string)'." -Colour Cyan
         if ($customervms.count -ne 0) {
             $customervms_string = $customervms -join "; "
-            Write-PowerManagementLogMessage -Type INFO -Message "Customer virtual machines not managed by SDDC Manager: '$($customervms_string)'." -Colour Cyan
+            Write-PowerManagementLogMessage -Type INFO -Message "Virtual machines not covered by the script: '$($customervms_string)' . Those VMs will be stopped in a random order if the 'shutdownCustomerVm' flag is passed." -Colour Cyan
         }
 
         # Check if VMware Tools are running in the customer VMs - if not we could not stop them gracefully

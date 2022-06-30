@@ -33,7 +33,7 @@
     Description       = 'PowerShell Module for Power Management of VMware Cloud Foundation'
 
     # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion = '7.2.4'
+    PowerShellVersion = '7.2.0'
 
     # Name of the Windows PowerShell host required by this module
     # PowerShellHostName = ''

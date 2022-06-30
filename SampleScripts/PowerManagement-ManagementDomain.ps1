@@ -35,7 +35,7 @@
 
     .EXAMPLE
     PowerManagement-ManagementDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -genjson
-    Initiates a *.json generation that could be used for startup.
+    Initiates a ManagementStartupInput.json generation that could be used for startup.
     Notes:
         File generated earlier may not have all needed details for startup, since the environment may have changed (e.g. ESXi hosts that vCenter Server is running on)
         The file will be generated in the current directory and any file with the same name "ManagementStartupInput.json" will be overwritten
@@ -128,7 +128,6 @@ Try {
     if ($json) { $str2 = $str2 + " -json $json" }
     Write-PowerManagementLogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
     Write-PowerManagementLogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
-    Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile" -Colour Yellow
     if (-Not $null -eq $customerVmMessage) { Write-PowerManagementLogMessage -Type INFO -Message $customerVmMessage -Colour Yellow }
 }
 Catch {
@@ -363,10 +362,10 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
 
         $customervms = $allvms | ? { $vcfvms -notcontains $_ }
         $vcfvms_string = $vcfvms -join "; "
-        Write-PowerManagementLogMessage -Type INFO -Message "Virtual machines managed by SDDC Manager: '$($vcfvms_string)' ." -Colour Cyan
+        Write-PowerManagementLogMessage -Type INFO -Message "Management virtual machines covered by the script: '$($vcfvms_string)' ." -Colour Cyan
         if ($customervms.count -ne 0) {
             $customervms_string = $customervms -join "; "
-            Write-PowerManagementLogMessage -Type INFO -Message "Customer virtual machines not managed by SDDC Manager: '$($customervms_string)' ." -Colour Cyan
+            Write-PowerManagementLogMessage -Type INFO -Message "Virtual machines not covered by the script: '$($customervms_string)' . Those VMs will be stopped in a random order if the 'shutdownCustomerVm' flag is passed." -Colour Cyan
         }
 
         # Check if VMware Tools are running in the customer VMs - if not we could not stop them gracefully
@@ -554,8 +553,6 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
 if ($PsBoundParameters.ContainsKey("startup")) {
     Try {
         $MgmtInput = Get-Content -Path $inputFile | ConvertFrom-JSON
-
-        Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path '$logfile'"
         Write-PowerManagementLogMessage -Type INFO -Message "Gathering system details from JSON file..."
         # Gather Details from SDDC Manager
         $workloadDomain = $MgmtInput.Domain.name
