@@ -6,7 +6,7 @@ OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHE
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # Supported Platforms
-- Tested on up-to-date versions of Windows 10, Windows 2016, Windows 2019 and Windows 2022, each running Windows PowerShell Desktop 7.2.4  
+- Tested on up-to-date versions of Windows 10, Windows 2016, Windows 2019 and Windows 2022, each running Windows PowerShell 7.2.4  
 - Supported target systems: vSAN ReadyNodes running VMware Cloud Foundation 4.4.x or VMware Cloud Foundation 4.3.x.  
 
 # Limitations
@@ -30,7 +30,7 @@ workload domain. The script does not support vSphere with Tanzu.
 
 # Prerequisites
 - Add forward and reverse DNS records for the client machine running the scripts must be added to the DNS server.
-- Run the scripts on PowerShell Desktop 7.2.x or later.
+- Run the scripts on PowerShell 7.2.x or later.
 - Run PowerShell as Administrator and install the VMware.PowerManagement PowerShell
 module together with module dependencies from the PowerShell Gallery by running the
 following commands:  
