@@ -52,8 +52,8 @@
 
     # Modules that must be imported into the global environment prior to importing this module
     RequiredModules   = @(
+        #@{"ModuleName" = "VMware.PowerCLI"; "ModuleVersion" = "12.6.0" }
         @{"ModuleName" = "Posh-SSH"; "ModuleVersion" = "3.0.4" }
-        @{"ModuleName" = "VMware.PowerCLI"; "ModuleVersion" = "12.6.0" }
         @{"ModuleName" = "PowerVCF"; "ModuleVersion" = "2.2.0" }
     )
 
