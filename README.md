@@ -37,7 +37,7 @@ following commands:
     > `Install-Module -Name VMware.PowerCLI -MinimumVersion 12.6.0`  
     > `Install-Module -Name PowerVCF -MinimumVersion 2.2.0`  
     > `Install-Module -Name Posh-SSH -MinimumVersion 3.0.4`  
-    > `Install-Module -Name VMware.PowerManagement -MinimumVersion 1.0.0`  
+    > `Install-Module -Name VMware.PowerManagement`  
 - Verify that SDDC Manager is running.
 - Before you shut down the management domain, get the credentials for the management
 domain hosts and vCenter Server from SDDC Manager and save them for troubleshooting or a

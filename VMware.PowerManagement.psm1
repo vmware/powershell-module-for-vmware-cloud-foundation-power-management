@@ -1476,7 +1476,10 @@ Function Write-PowerManagementLogMessage {
         Write-Host -ForegroundColor $colour " $Type $Message"
     }
     $logContent = '[' + $timeStamp + '] ' + $Type + ' ' + $Message
-    Add-Content -Path $logFile $logContent
+    # Log into file only case we have a "$logFile" variable
+    if ($logFile) {
+        Add-Content -Path $logFile $logContent
+    }
     if ($type -match "ERROR") {
         Write-Error -Message $Message
     }
