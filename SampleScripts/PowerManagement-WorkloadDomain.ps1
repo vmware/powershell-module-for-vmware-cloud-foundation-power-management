@@ -113,6 +113,11 @@ Try {
             Write-PowerManagementLogMessage -Type ERROR -Message "Domain $sddcDomain doesn't exist. Check your environment and try again. " -Colour Red
             Exit
         }
+        # Check if there are multiple clusters in the WLD
+        if ($workloadDomain.clusters.id.count -gt 1) {
+            Write-PowerManagementLogMessage -Type ERROR -Message "There are multiple clusters in VI domain '$sddcDomain'. This script supports only a single cluster per domain. Exiting!" -Colour Red
+            Exit
+        }
         $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
 
         # Gather vCenter Server Details and Credentials

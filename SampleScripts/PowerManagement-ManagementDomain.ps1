@@ -152,6 +152,11 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             Write-PowerManagementLogMessage -Type INFO -Message "Connection to SDDC Manager has been validated successfully." -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "Gathering system details from the SDDC Manager inventory. It will take some time."
             $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
+            # Check if we have single cluster in the MGMT domain
+            if ($workloadDomain.clusters.id.count -gt 1) {
+                Write-PowerManagementLogMessage -Type ERROR -Message "There are multiple clusters in Management domain. This script supports only a single cluster per domain. Exiting!" -Colour Red
+                Exit
+            }
             $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
 
             $var = @{}
