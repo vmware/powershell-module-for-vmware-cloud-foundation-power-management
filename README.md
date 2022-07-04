@@ -31,7 +31,7 @@ workload domain. The script does not support vSphere with Tanzu.
 # Prerequisites
 - Add forward and reverse DNS records for the client machine running the scripts must be added to the DNS server.
 - Run the scripts on PowerShell 7.2.x or later.
-- Run PowerShell as Administrator and install the VMware.PowerManagement PowerShell
+- Run PowerShell and install the VMware.PowerManagement PowerShell
 module together with module dependencies from the PowerShell Gallery by running the
 following commands:  
     > `Install-Module -Name VMware.PowerCLI -MinimumVersion 12.6.0`  
