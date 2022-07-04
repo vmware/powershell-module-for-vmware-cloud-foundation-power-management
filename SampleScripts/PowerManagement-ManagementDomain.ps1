@@ -73,8 +73,8 @@ Try {
     Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile"
     $Global:ProgressPreference = 'SilentlyContinue'
     if ($PsBoundParameters.ContainsKey("shutdown")) {
-        if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Management Domain" }
-        else { $customerVmMessage = "Process WILL NOT gracefully shutdown customer deployed Virtual Machines not managed by VCF running if deployed within the Management Domain" }
+        if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $customerVmMessage = "Process WILL gracefully shutdown customer deployed Virtual Machines, if deployed within the Management Domain" }
+        else { $customerVmMessage = "Process WILL NOT gracefully shutdown customer deployed Virtual Machines not managed by VCF, if deployed within the Management Domain" }
     }
     if ($PsBoundParameters.ContainsKey("startup")) {
         $defaultFile = "./ManagementStartupInput.json"
