@@ -5,6 +5,8 @@ WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEM
 OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+# Overview
+Instead of the default step-by-step approach by using product user interface, you can shut down the management domain or a VI workload domain in an automated way by running a Windows PowerShell script. To shut down or start up the management domain or a VI workload domain, you run sample PowerShell scripts that come with the VMware.PowerManagement module. The scripts follow the order for manual shutdown and startup of VMware Cloud Foundation. You can complete the workflow manually at any point. You can also run the scripts multiple times. Please, check limitations section below.
 # Supported Platforms
 - Tested on up-to-date versions of Windows 10, Windows 2016, Windows 2019 and Windows 2022, each running Windows PowerShell 7.2.4  
 - Supported target systems: vSAN ReadyNodes running VMware Cloud Foundation 4.4.x or VMware Cloud Foundation 4.3.x.  
