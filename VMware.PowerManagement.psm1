@@ -1251,8 +1251,11 @@ Function Wait-ForStableNsxtClusterStatus {
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Wait-ForStableNsxtClusterStatus cmdlet." -Colour Yellow
         Write-PowerManagementLogMessage -Type INFO -Message "Waiting the cluster to become 'STABLE' for NSX Manager '$server'... This could take up to 20 min."
+        # Create NSX-T header
+        $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $pass))) # Create Basic Authentication Encoded Credentials
+        $headers = @{"Accept" = "application/json" }
+        $headers.Add("Authorization", "Basic $base64AuthInfo")
         $uri = "https://$server/api/v1/cluster/status"
-        $nsxHeaders = createHeader $user $pass
         $retryCount = 0
         $completed = $false
         $response = $null
@@ -1269,7 +1272,7 @@ Function Wait-ForStableNsxtClusterStatus {
             $retryCount++
             # Retry connection if NSX Manager is not online
             Try {
-                $response = Invoke-RestMethod -Method GET -URI $uri -headers $nsxHeaders -ContentType application/json -TimeoutSec 60
+                $response = Invoke-RestMethod -Method GET -URI $uri -headers $headers -ContentType application/json -TimeoutSec 60
             }
             Catch {
                 Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to NSX Manager '$server'! Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt."
@@ -1440,20 +1443,6 @@ Function Get-TanzuEnabledClusterStatus {
 Export-ModuleMember -Function Get-TanzuEnabledClusterStatus
 
 ######### Start Useful Script Functions ##########
-Export-ModuleMember -Function Test-PowerManagementPrereq
-Function createHeader {
-    Param (
-        [Parameter (Mandatory = $true)] [String] $user,
-        [Parameter (Mandatory = $true)] [String] $pass
-    )
-
-    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $pass))) # Create Basic Authentication Encoded Credentials
-    $headers = @{"Accept" = "application/json" }
-    $headers.Add("Authorization", "Basic $base64AuthInfo")
-    
-    Return $headers
-}
-
 Function Write-PowerManagementLogMessage {
     Param (
         [Parameter (Mandatory = $true)] [AllowEmptyString()] [String]$Message,
