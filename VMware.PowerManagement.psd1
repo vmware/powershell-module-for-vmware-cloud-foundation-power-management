@@ -51,11 +51,11 @@
     # ProcessorArchitecture = ''
 
     # Modules that must be imported into the global environment prior to importing this module
-    RequiredModules   = @(
-        #@{"ModuleName" = "VMware.PowerCLI"; "ModuleVersion" = "12.6.0" }
-        @{"ModuleName" = "Posh-SSH"; "ModuleVersion" = "3.0.4" }
-        @{"ModuleName" = "PowerVCF"; "ModuleVersion" = "2.2.0" }
-    )
+    #RequiredModules   = @(
+    #@{"ModuleName" = "VMware.PowerCLI"; "ModuleVersion" = "12.6.0" }
+    #@{"ModuleName" = "Posh-SSH"; "ModuleVersion" = "3.0.4" }
+    #@{"ModuleName" = "PowerVCF"; "ModuleVersion" = "2.2.0" }
+    #)
 
     # Assemblies that must be loaded prior to importing this module
     # RequiredAssemblies = @()
