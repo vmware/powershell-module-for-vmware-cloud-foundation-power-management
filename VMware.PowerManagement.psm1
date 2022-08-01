@@ -97,7 +97,7 @@ Function Stop-CloudComponent {
                                     Write-PowerManagementLogMessage -Type INFO -Message "Waiting for node '$node' to shut down..."
                                     While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
                                         Start-Sleep -Seconds 5
-                                        $count = $count + 1
+                                        $count = $count + 5
                                         $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                     }
                                     if ($count -eq $timeout) {
@@ -226,10 +226,11 @@ Function Start-CloudComponent {
                                 Write-PowerManagementLogMessage -Type INFO -Message "Attempting to start up node '$node'..."
                                 Start-VM -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
                                 Start-Sleep -Seconds 5
+                                $count = $count + 5
                                 Write-PowerManagementLogMessage -Type INFO -Message "Waiting for node '$node' to start up..."
                                 While (($vm_obj.State -ne 'Running') -and ($count -ne $timeout)) {
                                     Start-Sleep -Seconds 10
-                                    $count = $count + 1
+                                    $count = $count + 10
                                     $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 }
                                 if ($count -eq $timeout) {
@@ -684,7 +685,7 @@ Function Test-VsanHealth {
                     Catch {
                         Write-PowerManagementLogMessage -Type INFO -Message "The vSAN health service is yet to come up, please wait ..."
                         Start-Sleep -s 60
-                        $count += 1
+                        $count += 60
                     }
                 }
 
