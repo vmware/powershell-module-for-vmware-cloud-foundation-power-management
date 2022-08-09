@@ -1230,6 +1230,72 @@ Function Set-Retreatmode {
 }
 Export-ModuleMember -Function Set-Retreatmode
 
+Function Get-VMToClusterMapping {
+    <#
+        .SYNOPSIS
+        Get the list of all Virtual Machines which are mapped for a given vSphere Cluster
+
+        .DESCRIPTION
+        The Get-VMToClusterMapping cmdlet gets all Virtual Machines belonging to a given  vSphere Cluster
+
+        .EXAMPLE
+        Get-VMToClusterMapping -server $server -user $user -pass $pass -cluster $cluster -folder "VCLS"
+        This example gets all virtual machines (vCLS) belonging to a given vSphere Cluster $cluster
+
+        Get-VMToClusterMapping -server $server -user $user -pass $pass -cluster $cluster -folder "VCLS" -powerstate "poweredon"
+        This example gets all virtual machines (vCLS) belonging to a given vSphere Cluster $cluster in the powered on state only
+
+    #>
+
+    Param(
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $folder,
+        [Parameter (Mandatory = $false)] [ValidateSet("poweredn","poweredoff")] [String] $powerstate
+
+    )
+
+    Try {
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMToClusterMapping cmdlet." -Colour Yellow
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        if ($checkServer) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+            }
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..."
+                if ($powerstate) {
+                    $VMs = get-vm -location $cluster  | where {(Get-VM -location $folder) -contains $_} | where PowerState -eq $powerstate
+                } else {
+                    $VMs = get-vm -location $cluster  | where  {(Get-VM -location $folder) -contains $_}
+                }
+                Write-PowerManagementLogMessage -Type INFO -Message "list of VM's mapped to cluster $cluster is $VMs"
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+                return $VMs
+
+            }
+            else {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+            }
+        }
+        else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+        }
+    }
+    Catch {
+        Debug-CatchWriterForPowerManagement -object $_
+    }
+    Finally {
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMToClusterMapping cmdlet." -Colour Yellow
+    }
+
+}
+Export-ModuleMember -Function Get-VMToClusterMapping
+
 Function Wait-ForStableNsxtClusterStatus {
     <#
         .SYNOPSIS
@@ -1382,6 +1448,61 @@ Function Get-EdgeNodeFromNSXManager {
     }
 }
 Export-ModuleMember -Function Get-EdgeNodeFromNSXManager
+
+Function Get-NSXTComputeManger {
+    <#
+        .SYNOPSIS
+        This method reads list of compute managers mapped to NSX-T from from NSX manager
+
+        .DESCRIPTION
+        The Get-NSXTComputeManger used to read  list of compute managers mapped to NSX-T from NSX manager
+
+        .EXAMPLE
+        Get-NSXTComputeManger -server $server -user $user -pass $pass
+        This example returns list of edge nodes virtual machines name
+    #>
+
+    Param(
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass
+    )
+
+    Try {
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-NSXTComputeManger cmdlet." -Colour Yellow
+        if (( Test-NetConnection -ComputerName $server -Port 443 ).TcpTestSucceeded) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            if ($DefaultNSXTServers) {
+                Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+            }
+            Connect-NsxTServer -server $server -user $user -password $pass | Out-Null
+            if ($DefaultNsxTServers.Name -eq $server) {
+                Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..."
+                #get compute managers info
+                $compute_manager_var = Get-NsXtService com.vmware.nsx.fabric.compute_managers
+                $compute_manager_list = $compute_manager_var.list().results
+                write-host  $compute_manager_list
+                Disconnect-NSXTServer * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                return $compute_manager_list
+            }
+            else {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details." -Colour Red
+            }
+
+        }
+        else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+        }
+    }
+    Catch {
+        Debug-CatchWriterForPowerManagement -object $_
+    }
+    Finally {
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-NSXTComputeManger cmdlet." -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Get-NSXTComputeManger
+
 
 Function Get-TanzuEnabledClusterStatus {
     <#
