@@ -804,19 +804,19 @@ Function Test-VsanObjectResync {
 }
 Export-ModuleMember -Function Test-VsanObjectResync
 
-Function Get-PoweredOnVMs {
+Function Get-VMs {
     <#
         .SYNOPSIS
-        Return list of virtual machines that are in a powered on state
+        Return list of virtual machines that are in a given power state
 
         .DESCRIPTION
-        The Get-PoweredOnVMs cmdlet return list of virtual machines virtual machines are in a powered on state on a given server/host
+        The Get-VMs cmdlet return list of virtual machines virtual machines are in a powered on state on a given server/host
 
         .EXAMPLE
-        Get-PoweredOnVMs -server sfo01-m01-esx01.sfo.rainpole.io -user root -pass VMw@re1!
+        Get-VMs -server sfo01-m01-esx01.sfo.rainpole.io -user root -pass VMw@re1!
         This example connects to a ESXi host and returns the list of powered on virtual machines
 
-        Get-PoweredOnVMs -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1!
+        Get-VMs -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1!
         This example connects to a management virtual center and returns the list of powered on virtual machines
 
 
@@ -826,12 +826,15 @@ Function Get-PoweredOnVMs {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pattern = $null ,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$exactMatch
+        [Parameter (Mandatory = $true)] [ValidateSet("poweredon","poweredoff")] [String] $powerstate,
+        [Parameter (Mandatory = $false, ParameterSetName = "Cluster")] [ValidateNotNullOrEmpty()] [String]$cluster,
+        [Parameter (Mandatory = $false, ParameterSetName = "Cluster")] [ValidateNotNullOrEmpty()] [String]$folder,
+        [Parameter (Mandatory = $false, ParameterSetName = "NonCluster"))] [ValidateNotNullOrEmpty()] [String]$pattern = $null ,
+        [Parameter (Mandatory = $false, ParameterSetName = "NonCluster"))] [ValidateNotNullOrEmpty()] [Switch]$exactMatch
     )
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-PoweredOnVMsCount cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMs cmdlet." -Colour Yellow
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -841,26 +844,42 @@ Function Get-PoweredOnVMs {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$server' and attempting to get the list of powered-on virtual machines..."
-                if ($pattern) {
-                    if ($PSBoundParameters.ContainsKey('exactMatch') ) {
-                        $no_powered_on_vms = get-vm -Server $server | Where-Object Name -EQ $pattern  | Where-Object PowerState -eq "PoweredOn"
+                if ($PSCmdlet.ParameterSetName -eq "NonCluster") {
+                    if ($pattern) {
+                        if ($PSBoundParameters.ContainsKey('exactMatch') ) {
+                            $no_powered_on_vms = get-vm -Server $server | Where-Object Name -EQ $pattern  | Where-Object PowerState -eq "PoweredOn"
+                        }
+                        else {
+                            $no_powered_on_vms = get-vm -Server $server | Where-Object Name -match $pattern  | Where-Object PowerState -eq "PoweredOn"
+                        }
                     }
                     else {
-                        $no_powered_on_vms = get-vm -Server $server | Where-Object Name -match $pattern  | Where-Object PowerState -eq "PoweredOn"
+                        $no_powered_on_vms = get-vm -Server $server | Where-Object PowerState -eq "PoweredOn"
                     }
-                }
-                else {
-                    $no_powered_on_vms = get-vm -Server $server | Where-Object PowerState -eq "PoweredOn"
-                }
-                if ($no_powered_on_vms.count -eq 0) {
-                    Write-PowerManagementLogMessage -type INFO -Message "No virtual machines in the powered-on state."
-                }
-                else {
-                    $no_powered_on_vms_string = $no_powered_on_vms -join ","
-                    Write-PowerManagementLogMessage -type INFO -Message "Number of virtual machines in the powered-on state: $no_powered_on_vms_string"
-                }
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
-                Return $no_powered_on_vms
+                                    }
+                    if ($no_powered_on_vms.count -eq 0) {
+                        Write-PowerManagementLogMessage -type INFO -Message "No virtual machines in the powered-on state."
+                    }
+                    else {
+                        $no_powered_on_vms_string = $no_powered_on_vms -join ","
+                        Write-PowerManagementLogMessage -type INFO -Message "Number of virtual machines in the powered-on state: $no_powered_on_vms_string"
+                    }
+                    Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+                    Return $no_powered_on_vms
+                } else {
+                    if ($folder -and $cluster) {
+                        Write-PowerManagementLogMessage -type INFO -Message "Trying to fetch vms from folder:$folder for a given cluster :$cluster"
+                        if ($powerstate) {
+                            $VMs = get-vm -location $cluster  | where {(Get-VM -location $folder) -contains $_} | where PowerState -eq $powerstate
+                        } else {
+                            $VMs = get-vm -location $cluster  | where  {(Get-VM -location $folder) -contains $_}
+                        }
+                        Write-PowerManagementLogMessage -Type INFO -Message "list of VM's mapped to cluster $cluster is $VMs"
+                        Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+                        return $VMs
+                    } else {
+                        Write-PowerManagementLogMessage -type ERROR -Message "Either cluster or folder information not given." -colour Red
+                    }
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
@@ -874,10 +893,10 @@ Function Get-PoweredOnVMs {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-PoweredOnVMs cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMs cmdlet." -Colour Yellow
     }
 }
-Export-ModuleMember -Function Get-PoweredOnVMs
+Export-ModuleMember -Function Get-VMs
 
 Function Get-VamiServiceStatus {
     <#
