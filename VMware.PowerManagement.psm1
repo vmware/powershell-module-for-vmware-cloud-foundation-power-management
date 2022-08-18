@@ -810,14 +810,20 @@ Function Get-VMs {
         Return list of virtual machines that are in a given power state
 
         .DESCRIPTION
-        The Get-VMs cmdlet return list of virtual machines virtual machines are in a powered on state on a given server/host
+        The Get-VMs cmdlet return list of virtual machines virtual machines are in a given powerstate on a given server/host
 
         .EXAMPLE
-        Get-VMs -server sfo01-m01-esx01.sfo.rainpole.io -user root -pass VMw@re1!
+        Get-VMs -server sfo01-m01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -powerstate "poweredon"
         This example connects to a ESXi host and returns the list of powered on virtual machines
 
-        Get-VMs -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1!
+        Get-VMs -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -powerstate "poweredon"
         This example connects to a management virtual center and returns the list of powered on virtual machines
+
+        Get-VMs -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -powerstate "poweredon" -cluster sfo-w01-cl01 -folder "vm"
+        This example connects to a management virtual center and returns the list of all powered on virtual machines in a "sfo-w01-cl01" cluster
+
+        Get-VMs -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -powerstate "poweredon" -cluster sfo-w01-cl01 -folder "vcls"
+        This example connects to a management virtual center and returns the list of powered on vCLS virtual machines in a "sfo-w01-cl01" cluster
 
 
     #>
@@ -826,11 +832,9 @@ Function Get-VMs {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory = $true)] [ValidateSet("poweredon","poweredoff")] [String] $powerstate,
-        [Parameter (Mandatory = $false, ParameterSetName = "Cluster")] [ValidateNotNullOrEmpty()] [String]$cluster,
-        [Parameter (Mandatory = $false, ParameterSetName = "Cluster")] [ValidateNotNullOrEmpty()] [String]$folder,
-        [Parameter (Mandatory = $false, ParameterSetName = "NonCluster"))] [ValidateNotNullOrEmpty()] [String]$pattern = $null ,
-        [Parameter (Mandatory = $false, ParameterSetName = "NonCluster"))] [ValidateNotNullOrEmpty()] [Switch]$exactMatch
+        [Parameter (Mandatory = $true)] [ValidateSet("poweredon","poweredoff")] [String]$powerstate,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pattern = $null ,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$exactMatch
     )
 
     Try {
@@ -844,7 +848,6 @@ Function Get-VMs {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
                 Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$server' and attempting to get the list of powered-on virtual machines..."
-                if ($PSCmdlet.ParameterSetName -eq "NonCluster") {
                     if ($pattern) {
                         if ($PSBoundParameters.ContainsKey('exactMatch') ) {
                             $no_powered_on_vms = get-vm -Server $server | Where-Object Name -EQ $pattern  | Where-Object PowerState -eq "PoweredOn"
@@ -856,7 +859,6 @@ Function Get-VMs {
                     else {
                         $no_powered_on_vms = get-vm -Server $server | Where-Object PowerState -eq "PoweredOn"
                     }
-                                    }
                     if ($no_powered_on_vms.count -eq 0) {
                         Write-PowerManagementLogMessage -type INFO -Message "No virtual machines in the powered-on state."
                     }
@@ -866,20 +868,6 @@ Function Get-VMs {
                     }
                     Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                     Return $no_powered_on_vms
-                } else {
-                    if ($folder -and $cluster) {
-                        Write-PowerManagementLogMessage -type INFO -Message "Trying to fetch vms from folder:$folder for a given cluster :$cluster"
-                        if ($powerstate) {
-                            $VMs = get-vm -location $cluster  | where {(Get-VM -location $folder) -contains $_} | where PowerState -eq $powerstate
-                        } else {
-                            $VMs = get-vm -location $cluster  | where  {(Get-VM -location $folder) -contains $_}
-                        }
-                        Write-PowerManagementLogMessage -Type INFO -Message "list of VM's mapped to cluster $cluster is $VMs"
-                        Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
-                        return $VMs
-                    } else {
-                        Write-PowerManagementLogMessage -type ERROR -Message "Either cluster or folder information not given." -colour Red
-                    }
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
@@ -1272,7 +1260,7 @@ Function Get-VMToClusterMapping {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $folder,
-        [Parameter (Mandatory = $false)] [ValidateSet("poweredn","poweredoff")] [String] $powerstate
+        [Parameter (Mandatory = $false)] [ValidateSet("poweredon","poweredoff")] [String] $powerstate
 
     )
 
@@ -1495,6 +1483,7 @@ Function Get-NSXTComputeManger {
                 Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
             }
             Connect-NsxTServer -server $server -user $user -password $pass | Out-Null
+            Start-Sleep 60
             if ($DefaultNsxTServers.Name -eq $server) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..."
                 #get compute managers info

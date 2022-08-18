@@ -154,7 +154,7 @@ Try {
                 }
                 $ClusterDetails = $userClusterDetails
                 if (($userClusterDetails.count -eq $sddcClusterDetails.count) -and (((Compare-Object $userClusterDetails $sddcClusterDetails -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=='}).InputObject).count -eq $sddcClusterDetails.count)) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "User has passed all clusters information correctly"
+                    Write-PowerManagementLogMessage -Type INFO -Message "User has passed all clusters information correctly" -colour green
                     $allClusterShutdown = $true
                 }
                 if(((Compare-Object $sddcClusterarray $userClusterarray -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=>'}).InputObject).count){
@@ -277,6 +277,7 @@ Try {
 
             #Check if NSX-T manager VMs are running. If they are stopped skip NSX-T edge shutdown
             $nsxManagerPowerOnVMs = 0
+            [Array]$nsxtEdgeNodes = @()
             foreach ($nsxtManager in $nsxtNodes) {
                 $state = Get-VMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch -powerstate "poweredon"
                 if ($state) { $nsxManagerPowerOnVMs += 1 }
@@ -525,7 +526,7 @@ Try {
         $NSXTSpawnedAcrossWld = ((Get-NSXTComputeManger -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword).count -gt 1)
 
         #From here the looping of all clusters begin.
-        $count = $ClusterDetails.count()
+        $count = $ClusterDetails.count
         $index = 1
 
         foreach ($cluster in $ClusterDetails) {
@@ -534,9 +535,9 @@ Try {
                 $lastelement = $true
             }
 
-            $esxiDetails = $esxiWorkloadCluster[$cluster]
+            $esxiDetails = $esxiWorkloadCluster[$cluster.name]
             #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
-            Try {
+            <#Try {
                 foreach ($esxiNode in $esxiDetails) {
                     $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
                     if (-Not $status) {
@@ -546,7 +547,7 @@ Try {
             }
             catch {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn), If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
-            }
+            }#>
 
             # Check if Tanzu is enabled in WLD
             $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
@@ -579,18 +580,25 @@ Try {
                 }
             }
             ## Gather NSX Edge Node Details from NSX-T Manager
-            if ( $nsxtEdgeNodes.count -ne 0 ) {
+            if ( ($nsxtEdgeNodes.count -ne 0) -and ($clusterallvms.count -ne 0))  {
                 $edgeVMs_string = $nsxtEdgeNodes -join "; "
                 Write-PowerManagementLogMessage -Type INFO -Message "Found NSX Edge nodes managed by '$nsxtMgrfqdn': $edgeVMs_string." -Colour Green
+                $nxtClusterEdgeNodes = @()
+                foreach ($node in $nsxtEdgeNodes) {
+                    if($clusterallvms.contains($node)) {
+                        $nxtClusterEdgeNodes += $node
+                    }
+                }
+                $nsxtEdgeNodes = $nxtClusterEdgeNodes
             }
             else {
                 Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes found. Skipping edge nodes shutdown for NSX manager '$nsxtMgrfqdn'!" -Colour Cyan
             }
 
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines for a given vsphere cluster $($cluster.name)..."
-            [Array]$clusterallvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "VM"
+            [Array]$clusterallvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "VM" -powerstate "poweredon"
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on vCLS virtual machines for a given vsphere cluster $($cluster.name)..."
-            [Array]$clustervclsvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls"
+            [Array]$clustervclsvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon"
             foreach ($vm in $clustervclsvms) {
                 [Array]$clustervcfvms += $vm
             }
@@ -653,16 +661,6 @@ Try {
                     Exit
                 }
             }
-
-            ## Shutdown the NSX Edge Nodes
-            $nxtClusterEdgeNodes = @()
-            foreach ($node in $nsxtEdgeNodes) {
-                if($clusterallvms.contains($node)) {
-                    $nxtClusterEdgeNodes += $node
-                }
-            }
-            $nsxtEdgeNodes = $nxtClusterEdgeNodes
-
             if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
                 if ($nsxtEdgeNodes) {
                     Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
@@ -704,11 +702,11 @@ Try {
             $retries = 10
             $sleep_time = 30
             while ($counter -ne $retries) {
-                #if (multiClusterEnvironment) {
-                $powerOnVMcount = (Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster cluster.name -folder "vcls" -powerstate "poweredon").count
-                #else {
-                #    $powerOnVMcount = (Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
-                #}
+                if ($multiClusterEnvironment) {
+                    $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon").count
+                } else {
+                    $powerOnVMcount = (Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
+                }
 
                 if ( $powerOnVMcount ) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until next check."
@@ -748,11 +746,11 @@ Try {
             }
 
             # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
-            #if ($multiClusterEnvironment) {
-                $runningVMs = Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vm" -powerstate "poweredon"
-            #} else {
-            #    $runningVMs = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
-            #}
+            if ($multiClusterEnvironment) {
+                $runningVMs = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vm" -powerstate "poweredon"
+            } else {
+                $runningVMs = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
+            }
             if ($runningVMs.count) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
                 Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed unless all VMs are shut down. Shut down them manually and run the script again." -Colour Cyan
@@ -789,14 +787,12 @@ Try {
                 # End of shutdown
                 Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
                 Write-PowerManagementLogMessage -Type INFO -Message "Note: ESXi hosts are still in power-on state. Please stop them manually." -Colour Green
-                Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence for a given cluster $($cluster.name)!" -Colour Green
                 Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
             }
         }
         $index += 1
-      }
-
-    }
+        }
    }
 }
 Catch {
