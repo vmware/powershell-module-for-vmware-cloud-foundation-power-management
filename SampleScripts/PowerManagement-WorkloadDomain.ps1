@@ -522,7 +522,7 @@ Try {
         $NSXTSpawnedAcrossWld = ((Get-NSXTComputeManger -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword).count -gt 1)
 
         #From here the looping of all clusters begin.
-        $count = $ClusterDetails.count
+        $count = $sddcClusterDetails.count
         $index = 1
 
         foreach ($cluster in $ClusterDetails) {
@@ -783,8 +783,8 @@ Try {
 
                 ## TODO Add ESXi shutdown here
 
-                ## Shutdown vCenter Server --  check with IVO, if VC shutdown to be stopped if NSXT is spanned, I don't think so.
-                if ( $lastelement) {
+                ## sowjanya debug log Shutdown vCenter Server --  check with IVO, if VC shutdown to be stopped if NSXT is spanned, I don't think so.
+                if ($lastelement) {
                     Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
                 }
                 # End of shutdown
