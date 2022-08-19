@@ -516,11 +516,7 @@ Try {
 
         $customervms = $allvms | ? { $vcfvms -notcontains $_ }
         $vcfvms_string = $vcfvms -join "; "
-        Write-PowerManagementLogMessage -Type INFO -Message "Management virtual machines covered by the script: '$($vcfvms_string)'." -Colour Cyan
-        if ($customervms.count -ne 0) {
-            $customervms_string = $customervms -join "; "
-            Write-PowerManagementLogMessage -Type INFO -Message "Virtual machines not covered by the script: '$($customervms_string)' . Those VMs will be stopped in a random order if the 'shutdownCustomerVm' flag is passed." -Colour Cyan
-        }
+
 
         #This variable holds True of False based on if NSX-T is spanned across workloads or not.
         $NSXTSpawnedAcrossWld = ((Get-NSXTComputeManger -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword).count -gt 1)
@@ -604,6 +600,13 @@ Try {
             }
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on customer virtual machines for a given vsphere cluster $($cluster.name)..."
             $clustercustomervms = $clusterallvms | ? { $vcfvms -notcontains $_ }
+            $clustervcfvms_string = $clustervcfvms -join "; "
+
+            Write-PowerManagementLogMessage -Type INFO -Message "Management virtual machines covered by the script for the cluster $($cluster.name): '$($clustervcfvms_string)' ." -Colour Cyan
+            if ($clustercustomervms.count -ne 0) {
+                $clustercustomervms_string = $clustercustomervms -join "; "
+                Write-PowerManagementLogMessage -Type INFO -Message "Virtual machines not covered by the script for the cluster $($cluster.name): '$($clustercustomervms_string)'. Those VMs will be stopped in a random order if the 'shutdownCustomerVm' flag is passed." -Colour Cyan
+            }
 
             # Check if VMware Tools are running in the customer VMs - if not we could not stop them gracefully
             if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) {

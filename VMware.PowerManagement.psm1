@@ -1483,20 +1483,17 @@ Function Get-NSXTComputeManger {
                 Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
             }
             Connect-NsxTServer -server $server -user $user -password $pass | Out-Null
-            Start-Sleep 60
             if ($DefaultNsxTServers.Name -eq $server) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..."
                 #get compute managers info
                 $compute_manager_var = Get-NsXtService com.vmware.nsx.fabric.compute_managers
                 $compute_manager_list = $compute_manager_var.list().results
-                write-host  $compute_manager_list
                 Disconnect-NSXTServer * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
                 return $compute_manager_list
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details." -Colour Red
             }
-
         }
         else {
             Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
