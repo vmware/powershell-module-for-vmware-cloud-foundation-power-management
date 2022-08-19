@@ -649,7 +649,7 @@ Try {
             }
 
             if ($clustercustomervms.count -ne 0) {
-                $clustercustomervms = $clustercustomervms -join "; "
+                $clustercustomervms_string = $clustercustomervms -join "; "
                 if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
                     Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still powered on. -shutdownCustomerVm is passed to the script." -Colour Cyan
                     Write-PowerManagementLogMessage -Type WARNING -Message "Hence shutting down VMs not managed by SDDC Manager to put the host in maintenance mode." -Colour Cyan
@@ -814,10 +814,11 @@ Try {
         #From here the looping of all clusters begin.
         $nsxMgrVIP = New-Object -TypeName PSCustomObject
         $nsxtMgrfqdn = ""
-        $count = $userClusterDetails.count()
+        $count = $ClusterDetails.count()
         $index = 1
 
-        foreach ($cluster in $userClusterDetails) {
+        foreach ($cluster in $ClusterDetails) {
+            $esxiDetails = $esxiWorkloadCluster[$cluster.name]
             # Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
             Try {
                 foreach ($esxiNode in $esxiWorkloadDomain) {
