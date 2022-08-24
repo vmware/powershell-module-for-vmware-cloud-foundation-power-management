@@ -179,16 +179,6 @@ Try {
             }
 
 
-            foreach ($ClusterName in $hostsClusterMapping) {
-                $HostsInMaintenanaceOrDisconnectedState = Get-VMHost $hosts | Where-Object {($_.ConnectionState -eq 'Maintenance') -or ($_.ConnectionState -eq 'Disconnected')}
-                $HostsInConnectedMode = Get-VMHost $hosts | Where-Object {$_.ConnectionState -eq 'Connected'}
-                $HostsInDisconnectedMode = Get-VMHost $hosts | Where-Object {$_.ConnectionState -eq 'Disconnected'}
-                if ( $HostsInMaintenanaceMode.count -eq $hostsClusterMapping[$ClusterName].count) {
-                    $ClusterStatusMapping['$ClusterName'] = 'DOWN'
-                } else {
-                    $HostsInDisconnectedMode['$ClusterName'] = 'UP'
-                }
-            }
 
         } else {
              $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
@@ -233,11 +223,33 @@ Try {
             $esxiWorkloadDomain += $esxDetails
             #Gather ESXi Host to Cluster mapping info for the given VI Workload domain
             foreach ($clustername in $hostsClusterMapping.keys) {
-                if ($hostsClusterMapping[$clustername] -contains $esxiHost.id) {
+                if ($hostsClusterMapping[$clustername] -contains $esxiHost.fqdn) {
                     $esxiWorkloadCluster[$clustername] += $esxDetails
                 }
             }
         }
+
+        foreach ($ClusterName in $hostsClusterMapping.keys) {
+            $hostsName = @()
+            Write-Host "Keys: $ClusterName"
+            $hostsIds = $hostsClusterMapping[$ClusterName]
+            foreach ($id in $hostsIds) {
+                $hostsName += (get-vcfhost | where id -eq $id).fqdn
+            }
+            Write-Host "H:$hostsName"
+            $HostsInMaintenanaceOrDisconnectedState = Get-VMHost $hostsName | Where-Object {($_.ConnectionState -eq 'Maintenance') -or ($_.ConnectionState -eq 'Disconnected')}
+            Write-Host "MorD - $HostsInMaintenanaceOrDisconnectedState"
+            $HostsInConnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Connected'}
+            Write-Host "C - $HostsInConnectedMode"
+            $HostsInDisconnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Disconnected'}
+            Write-Host "D - $HostsInDisconnectedMode"
+            if ( $HostsInMaintenanaceMode.count -eq $hostsClusterMapping[$ClusterName].count) {
+                $ClusterStatusMapping['$ClusterName'] = 'DOWN'
+            } else {
+                $ClusterStatusMapping['$ClusterName'] = 'UP'
+            }
+        }
+        Write-host $HostsInDisconnectedMode
         # We will get NSX-T details in the respective startup/shutdown sections below.
     }
     else {
