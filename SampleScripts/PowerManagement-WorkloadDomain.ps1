@@ -132,6 +132,7 @@ Try {
         $allClusterShutdown = $false
         $hostsClusterMapping = @{}
         $esxiWorkloadCluster = @{}
+        $ClusterStatusMapping = @{}
 
 
         Write-PowerManagementLogMessage -Type INFO -Message "The clusters got from SDDC: '$($workloadDomain.clusters.id)'"
@@ -175,6 +176,18 @@ Try {
                 $ClusterDetails = $sddcClusterDetails
                 $allClusterShutdown = $true
                 #$sddcShutdownOrder = $true
+            }
+
+
+            foreach ($ClusterName in $hostsClusterMapping) {
+                $HostsInMaintenanaceOrDisconnectedState = Get-VMHost $hosts | Where-Object {($_.ConnectionState -eq 'Maintenance') -or ($_.ConnectionState -eq 'Disconnected'))}
+                $HostsInConnectedMode = Get-VMHost $hosts | Where-Object {$_.ConnectionState -eq 'Connected'}
+                $HostsInDisconnectedMode = Get-VMHost $hosts | Where-Object {$_.ConnectionState -eq 'Disconnected'}
+                if ( $HostsInMaintenanaceMode.count -eq $hostsClusterMapping[$ClusterName].count) {
+                    $ClusterStatusMapping['$ClusterName'] = 'DOWN'
+                } else {
+                    $HostsInDisconnectedMode['$ClusterName'] = 'UP'
+                }
             }
 
         } else {
@@ -524,16 +537,23 @@ Try {
         #From here the looping of all clusters begin.
         $count = $sddcClusterDetails.count
         $index = 1
+        $DownCount = 0
+        $lastclusterelement = $false
+
 
         foreach ($cluster in $ClusterDetails) {
-
-            if ($index -eq $count) {
-                $lastelement = $true
+            foreach ($cluster in $ClusterDetails) {
+                if ($ClusterStatusMapping[$cluster.name] -eq 'DOWN') {
+                    $DownCount += 1
+                }
+            }
+            if ($DownCount -eq ($count -1)) {
+                $lastelement = $True
             }
 
             $esxiDetails = $esxiWorkloadCluster[$cluster.name]
             #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
-            <#Try {
+            Try {
                 foreach ($esxiNode in $esxiDetails) {
                     $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
                     if (-Not $status) {
@@ -543,7 +563,7 @@ Try {
             }
             catch {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn), If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
-            }#>
+            }
 
             # Check if Tanzu is enabled in WLD
             $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
@@ -670,7 +690,7 @@ Try {
                     Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nxtClusterEdgeNodes -timeout 600
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes found. Skipping edge nodes shutdown for NSX manager '$nsxtMgrfqdn'!" -Colour Cyan
+                    Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes found for a given cluster '$($cluster.name)' . Skipping edge nodes shutdown.!" -Colour Cyan
                 }
             }
             else {
@@ -788,6 +808,9 @@ Try {
                 if ($lastelement) {
                     Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
                 }
+
+                $ClusterStatusMapping[$cluster.name] = 'DOWN'
+
                 # End of shutdown
                 Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
                 Write-PowerManagementLogMessage -Type INFO -Message "Note: ESXi hosts are still in power-on state. Please stop them manually." -Colour Green
