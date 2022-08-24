@@ -180,7 +180,7 @@ Try {
 
 
             foreach ($ClusterName in $hostsClusterMapping) {
-                $HostsInMaintenanaceOrDisconnectedState = Get-VMHost $hosts | Where-Object {($_.ConnectionState -eq 'Maintenance') -or ($_.ConnectionState -eq 'Disconnected'))}
+                $HostsInMaintenanaceOrDisconnectedState = Get-VMHost $hosts | Where-Object {($_.ConnectionState -eq 'Maintenance') -or ($_.ConnectionState -eq 'Disconnected')}
                 $HostsInConnectedMode = Get-VMHost $hosts | Where-Object {$_.ConnectionState -eq 'Connected'}
                 $HostsInDisconnectedMode = Get-VMHost $hosts | Where-Object {$_.ConnectionState -eq 'Disconnected'}
                 if ( $HostsInMaintenanaceMode.count -eq $hostsClusterMapping[$ClusterName].count) {
