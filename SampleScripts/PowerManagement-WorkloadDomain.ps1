@@ -571,8 +571,8 @@ Try {
 
 
         foreach ($cluster in $ClusterDetails) {
-            foreach ($cluster in $ClusterDetails) {
-                if ($ClusterStatusMapping[$cluster.name] -eq 'DOWN') {
+            foreach ($clusterdetail in $ClusterDetails) {
+                if ($ClusterStatusMapping[$clusterdetail.name] -eq 'DOWN') {
                     $DownCount += 1
                 }
             }
