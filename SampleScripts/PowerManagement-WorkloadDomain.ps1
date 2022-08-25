@@ -223,7 +223,7 @@ Try {
             $esxiWorkloadDomain += $esxDetails
             #Gather ESXi Host to Cluster mapping info for the given VI Workload domain
             foreach ($clustername in $hostsClusterMapping.keys) {
-                if ($hostsClusterMapping[$clustername] -contains $esxiHost.fqdn) {
+                if ($hostsClusterMapping[$clustername] -contains $esxiHost.id) {
                     $esxiWorkloadCluster[$clustername] += $esxDetails
                 }
             }
@@ -906,7 +906,9 @@ Try {
             foreach ($esxiNode in $esxiDetails) {
                 Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Local Node Health State: HEALTHY" -cmd "esxcli vsan cluster get"
             }
-
+        }
+        Exit
+        foreach ($cluster in $ClusterDetails) {
             if ($index -eq 1) {
                 # Startup the Virtual Infrastructure Workload Domain vCenter Server
                 Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
