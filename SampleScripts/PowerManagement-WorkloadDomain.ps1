@@ -236,17 +236,34 @@ Try {
             foreach ($id in $hostsIds) {
                 $hostsName += (get-vcfhost | where id -eq $id).fqdn
             }
-            Write-Host "H:$hostsName"
-            $HostsInMaintenanaceOrDisconnectedState = Get-VMHost $hostsName | Where-Object {($_.ConnectionState -eq 'Maintenance') -or ($_.ConnectionState -eq 'Disconnected')}
-            Write-Host "MorD - $HostsInMaintenanaceOrDisconnectedState"
-            $HostsInConnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Connected'}
-            Write-Host "C - $HostsInConnectedMode"
-            $HostsInDisconnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Disconnected'}
-            Write-Host "D - $HostsInDisconnectedMode"
-            if ( $HostsInMaintenanaceMode.count -eq $hostsClusterMapping[$ClusterName].count) {
-                $ClusterStatusMapping['$ClusterName'] = 'DOWN'
-            } else {
-                $ClusterStatusMapping['$ClusterName'] = 'UP'
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+            }
+            if (( Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 ).TcpTestSucceeded) {
+                Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
+                Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
+                if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
+                    Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$($vcServer.fqdn)' and trying to get VMwareTools Status."
+                    Write-Host "H:$hostsName"
+                    $HostsInMaintenanaceOrDisconnectedState = Get-VMHost $hostsName | Where-Object {($_.ConnectionState -eq 'Maintenance') -or ($_.ConnectionState -eq 'Disconnected')}
+                    Write-Host "MorD - $HostsInMaintenanaceOrDisconnectedState"
+                    $HostsInConnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Connected'}
+                    Write-Host "C - $HostsInConnectedMode"
+                    $HostsInDisconnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Disconnected'}
+                    Write-Host "D - $HostsInDisconnectedMode"
+                    if ( $HostsInMaintenanaceMode.count -eq $hostsClusterMapping[$ClusterName].count) {
+                        $ClusterStatusMapping['$ClusterName'] = 'DOWN'
+                    } else {
+                        $ClusterStatusMapping['$ClusterName'] = 'UP'
+                    }
+                }
+                else {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details." -Colour Red
+                }
+
+            }
+            else {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
             }
         }
         Write-host $HostsInDisconnectedMode
