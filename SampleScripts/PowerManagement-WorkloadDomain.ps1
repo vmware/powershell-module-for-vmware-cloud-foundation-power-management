@@ -229,44 +229,46 @@ Try {
             }
         }
 
-        foreach ($ClusterName in $hostsClusterMapping.keys) {
-            $hostsName = @()
-            Write-Host "Keys: $ClusterName"
-            $hostsIds = $hostsClusterMapping[$ClusterName]
-            foreach ($id in $hostsIds) {
-                $hostsName += (get-vcfhost | where id -eq $id).fqdn
-            }
-            if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-            }
-            if (( Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 ).TcpTestSucceeded) {
-                Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
-                Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
-                if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
-                    Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$($vcServer.fqdn)' and trying to get VMwareTools Status."
-                    Write-Host "H:$hostsName"
-                    $HostsInMaintenanaceOrDisconnectedState = Get-VMHost $hostsName | Where-Object {($_.ConnectionState -eq 'Maintenance') -or ($_.ConnectionState -eq 'Disconnected')}
-                    Write-Host "MorD - $HostsInMaintenanaceOrDisconnectedState"
-                    $HostsInConnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Connected'}
-                    Write-Host "C - $HostsInConnectedMode"
-                    $HostsInDisconnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Disconnected'}
-                    Write-Host "D - $HostsInDisconnectedMode"
-                    if ( $HostsInMaintenanaceMode.count -eq $hostsClusterMapping[$ClusterName].count) {
-                        $ClusterStatusMapping['$ClusterName'] = 'DOWN'
-                    } else {
-                        $ClusterStatusMapping['$ClusterName'] = 'UP'
+        if ($PsBoundParameters.ContainsKey("shutdown")) {
+            foreach ($ClusterName in $hostsClusterMapping.keys) {
+                $hostsName = @()
+                Write-Host "Keys: $ClusterName"
+                $hostsIds = $hostsClusterMapping[$ClusterName]
+                foreach ($id in $hostsIds) {
+                    $hostsName += (get-vcfhost | where id -eq $id).fqdn
+                }
+                if ($DefaultVIServers) {
+                    Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                }
+                if (( Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 ).TcpTestSucceeded) {
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
+                    Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
+                    if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
+                        Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$($vcServer.fqdn)' and trying to get VMwareTools Status."
+                        Write-Host "H:$hostsName"
+                        $HostsInMaintenanaceOrDisconnectedState = Get-VMHost $hostsName | Where-Object {($_.ConnectionState -eq 'Maintenance') -or ($_.ConnectionState -eq 'Disconnected')}
+                        Write-Host "MorD - $HostsInMaintenanaceOrDisconnectedState"
+                        $HostsInConnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Connected'}
+                        Write-Host "C - $HostsInConnectedMode"
+                        $HostsInDisconnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Disconnected'}
+                        Write-Host "D - $HostsInDisconnectedMode"
+                        if ( $HostsInMaintenanaceMode.count -eq $hostsClusterMapping[$ClusterName].count) {
+                            $ClusterStatusMapping['$ClusterName'] = 'DOWN'
+                        } else {
+                            $ClusterStatusMapping['$ClusterName'] = 'UP'
+                        }
                     }
+                    else {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details." -Colour Red
+                    }
+
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details." -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
                 }
-
             }
-            else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
-            }
+            Write-host $HostsInDisconnectedMode
         }
-        Write-host $HostsInDisconnectedMode
         # We will get NSX-T details in the respective startup/shutdown sections below.
     }
     else {
@@ -862,8 +864,10 @@ Try {
         Exit
     }
 
+
     if ($PsBoundParameters.ContainsKey("startup")) {
         #multicluster support
+        $nxtClusterEdgeNodes = @()
         #From here the looping of all clusters begin.
         $nsxMgrVIP = New-Object -TypeName PSCustomObject
         $nsxtMgrfqdn = ""
@@ -890,24 +894,24 @@ Try {
             foreach ($esxiNode in $esxiDetails) {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
             }
-
-
-            # Prepare the vSAN cluster for startup - Performed on a single host only
+        }
+        foreach ($cluster in $ClusterDetails) {
+                    # Prepare the vSAN cluster for startup - Performed on a single host only
             Invoke-EsxCommand -server $esxiDetails.fqdn[0] -user $esxiDetails.username[0] -pass $esxiDetails.password[0] -expected "Cluster reboot/poweron is completed successfully!" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py recover"
-
-
+        }
+        foreach ($cluster in $ClusterDetails) {
             # Enable vSAN cluster member updates
             foreach ($esxiNode in $esxiDetails) {
                 Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
             }
-
+        }
+        foreach ($cluster in $ClusterDetails) {
             # Check ESXi status for each host
             Write-PowerManagementLogMessage -Type INFO -Message "Checking the vSAN status of the ESXi hosts...." -Colour Green
             foreach ($esxiNode in $esxiDetails) {
                 Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Local Node Health State: HEALTHY" -cmd "esxcli vsan cluster get"
             }
         }
-        Exit
         foreach ($cluster in $ClusterDetails) {
             if ($index -eq 1) {
                 # Startup the Virtual Infrastructure Workload Domain vCenter Server
@@ -951,15 +955,7 @@ Try {
                 }
             }
 
-            Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  virtual machines for a given vsphere cluster $($cluster.name)..."
-            [Array]$clusterallvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "VM"
-            Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  vCLS virtual machines for a given vsphere cluster $($cluster.name)..."
-            [Array]$clustervclsvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls"
-            foreach ($vm in $clustervclsvms) {
-                [Array]$clustervcfvms += $vm
-            }
-            Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  customer virtual machines for a given vsphere cluster $($cluster.name)..."
-            $clustercustomervms = $clusterallvms | ? { $vcfvms -notcontains $_ }
+
             # Check the health and sync status of the vSAN cluster
             if ( $flag -and $service_status) {
                 if ((Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
@@ -986,10 +982,14 @@ Try {
             if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
             }
-
+       }
+        foreach ($cluster in $ClusterDetails) {
             #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
+        }
 
+
+        foreach ($cluster in $ClusterDetails) {
             # Waiting for vCLS VMs to be started for ($retries*10) seconds
             Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS startup will take some time. Please wait! " -Colour Yellow
             $counter = 0
@@ -1010,6 +1010,17 @@ Try {
                 Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
                 Exit
             }
+
+            Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  virtual machines for a given vsphere cluster $($cluster.name)..."
+            [Array]$clusterallvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "VM"
+            Write-PowerManagementLogMessage -Type INFO -Message "Cluster VM's are: ($clusterallvms) "
+            Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  vCLS virtual machines for a given vsphere cluster $($cluster.name)..."
+            [Array]$clustervclsvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls"
+            foreach ($vm in $clustervclsvms) {
+                [Array]$clustervcfvms += $vm
+            }
+            Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  customer virtual machines for a given vsphere cluster $($cluster.name)..."
+            $clustercustomervms = $clusterallvms | ? { $vcfvms -notcontains $_ }
 
 
             if ($index -eq 1) {
@@ -1041,8 +1052,8 @@ Try {
                 }
                 $nsxtMgrfqdn = $nsxtCluster.vipFqdn
 
-                $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).username
-                $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).password
+                $nsxMgrVIP | Add-Member -Force -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).username
+                $nsxMgrVIP | Add-Member -Force -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).password
                 $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
                 $nsxtNodes = @()
                 foreach ($node in $nsxtNodesfqdn) {
@@ -1060,33 +1071,28 @@ Try {
                 }
 
             }
-
             # Gather NSX Edge Node Details and do the startup
             Try {
                 [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
                 foreach ($node in $nsxtEdgeNodes) {
-                    [Array]$vcfvms += $node
-                }
-
-                if($multiClusterEnvironment) {
-                    $nxtClusterEdgeNodes = @()
-                    foreach ($node in $nsxtEdgeNodes) {
-                        if($clusterallvms.contains($node)) {
+                    foreach ($element in $clusterallvms) {
+                        if( $element -like $node) {
                             $nxtClusterEdgeNodes += $node
                             [Array]$clustervcfvms += $node
+                            break
                         }
                     }
-                    $nsxtEdgeNodes = $nxtClusterEdgeNodes
+                    [Array]$vcfvms += $node
                 }
             }
             catch {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Cannot fetch information about NSX-T Edge nodes." -Colour Cyan
             }
-            if ($nsxtEdgeNodes.count -ne 0) {
-                Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
+            if ($nxtClusterEdgeNodes.count -ne 0) {
+                Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nxtClusterEdgeNodes -timeout 600
             }
             else {
-                Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Edge nodes found. Skipping edge nodes startup for NSX manager cluster '$nsxtMgrfqdn'!" -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "No NSX-T Edge nodes found. Skipping edge nodes startup for VSAN cluster '$($cluster.name)'!" -Colour Cyan
             }
 
             # End of startup
