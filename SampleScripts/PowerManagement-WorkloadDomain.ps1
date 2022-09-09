@@ -131,6 +131,7 @@ Try {
         $multiClusterEnvironment = $false
         $allClusterShutdown = $false
         $hostsClusterMapping = @{}
+		$sddchostsClusterMapping = @{}
         $esxiWorkloadCluster = @{}
         $ClusterStatusMapping = @{}
 
@@ -142,14 +143,16 @@ Try {
             foreach ($id in $($workloadDomain.clusters.id))  {
                 $clusterData = (Get-VCFCluster | Where-Object { $_.id -eq ($id) })
                 $sddcClusterDetails += $clusterData
+				$sddchostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
                 $sddcClusterarray += $clusterData.name
+				$esxiWorkloadCluster[$clusterData.name] = @()
             }
 
             if($vsanCluster) {
                 foreach ($name in $userClusterarray)  {
                     $clusterData = (Get-VCFCluster | Where-Object { $_.name -eq ($name) })
                     $hostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
-                    $esxiWorkloadCluster[$clusterData.name] = @()
+                    #$esxiWorkloadCluster[$clusterData.name] = @()
                     $userClusterDetails += $clusterData
 
                 }
@@ -171,7 +174,7 @@ Try {
                 foreach ($id in $($workloadDomain.clusters.id))  {
                     $clusterData = (Get-VCFCluster | Where-Object { $_.id -eq ($id) })
                     $hostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
-                    $esxiWorkloadCluster[$clusterData.name] = @()
+                    #$esxiWorkloadCluster[$clusterData.name] = @()
                 }
                 $ClusterDetails = $sddcClusterDetails
                 $allClusterShutdown = $true
@@ -204,17 +207,18 @@ Try {
             $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $esxiHost.fqdn -and $_.accountType -eq "USER" })).password
             $esxiWorkloadDomain += $esxDetails
             #Gather ESXi Host to Cluster mapping info for the given VI Workload domain
-            foreach ($clustername in $hostsClusterMapping.keys) {
-                if ($hostsClusterMapping[$clustername] -contains $esxiHost.id) {
+            foreach ($clustername in $sddchostsClusterMapping.keys) {
+                if ($sddchostsClusterMapping[$clustername] -contains $esxiHost.id) {
                     $esxiWorkloadCluster[$clustername] += $esxDetails
                 }
             }
         }
 
         if ($PsBoundParameters.ContainsKey("shutdown")) {
-            foreach ($ClusterName in $hostsClusterMapping.keys) {
+            foreach ($ClusterName in $sddchostsClusterMapping.keys) {
+				$name = $ClusterName
                 $hostsName = @()
-                $hostsIds = $hostsClusterMapping[$ClusterName]
+                $hostsIds = $sddchostsClusterMapping[$ClusterName]
                 foreach ($id in $hostsIds) {
                     $hostsName += (get-vcfhost | where id -eq $id).fqdn
                 }
@@ -229,7 +233,7 @@ Try {
                         $HostsInMaintenanaceOrDisconnectedState = Get-VMHost $hostsName | Where-Object {($_.ConnectionState -eq 'Maintenance') -or ($_.ConnectionState -eq 'Disconnected')}
                         $HostsInConnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Connected'}
                         $HostsInDisconnectedMode = Get-VMHost $hostsName | Where-Object {$_.ConnectionState -eq 'Disconnected'}
-                        if ( $HostsInMaintenanaceOrDisconnectedState.count -eq $hostsClusterMapping[$ClusterName].count) {
+                        if ( $HostsInMaintenanaceOrDisconnectedState.count -eq $sddchostsClusterMapping[$ClusterName].count) {
                             $ClusterStatusMapping[$ClusterName] = 'DOWN'
                         } else {
                             $ClusterStatusMapping[$ClusterName] = 'UP'
@@ -297,13 +301,14 @@ Try {
 
 
         foreach ($cluster in $ClusterDetails) {
-            foreach ($clusterdetail in $ClusterDetails) {
+            foreach ($clusterdetail in $sddcClusterDetails) {
                 if ($ClusterStatusMapping[$clusterdetail.name] -eq 'DOWN') {
                     $DownCount += 1
                 }
             }
-            if ($DownCount -eq ($count -1)) {
-                $lastelement = $True
+            if (($DownCount -eq ($count -1)) -or ($DownCount -eq $count) ) {
+                $lastelement = $true
+				Write-PowerManagementLogMessage -Type INFO -Message "Last cluster of VSAN detected"
             }
 
             $esxiDetails = $esxiWorkloadCluster[$cluster.name]
@@ -410,7 +415,7 @@ Try {
                     Exit
                 }
             }
-
+            $nxtClusterEdgeNodes = @()
             if ($statusOfNsxtClusterVMs -ne 'running') {
                 Write-PowerManagementLogMessage -Type WARNING -Message "NSX Manager VMs have been stopped. NSX Edge VMs will not be handled in am automatic way." -Colour Cyan
             }
@@ -418,6 +423,13 @@ Try {
                 Try {
                     [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
                     foreach ($node in $nsxtEdgeNodes) {
+                        foreach ($element in $clusterallvms) {
+                            if( $element -like $node) {
+                                $nxtClusterEdgeNodes += $node
+                                [Array]$clustervcfvms += $node
+                                break
+                            }
+                        }
                         [Array]$vcfvms += $node
                     }
                 }
@@ -425,21 +437,7 @@ Try {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Something went wrong! Unable to fetch NSX Edge node information from NSX Manager '$nsxtMgrfqdn'. Exiting!" -Colour Red
                 }
             }
-
             ## Gather NSX Edge Node Details from NSX-T Manager
-            if ( ($nsxtEdgeNodes.count -ne 0) -and ($clusterallvms.count -ne 0))  {
-                $edgeVMs_string = $nsxtEdgeNodes -join "; "
-                Write-PowerManagementLogMessage -Type INFO -Message "Found NSX Edge nodes managed by '$nsxtMgrfqdn': $edgeVMs_string." -Colour Green
-                $nxtClusterEdgeNodes = @()
-                foreach ($node in $nsxtEdgeNodes) {
-                    if($clusterallvms.contains($node)) {
-                        $nxtClusterEdgeNodes += $node
-                    }
-                }
-            }
-            else {
-                Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes found. Skipping edge nodes shutdown for NSX manager '$nsxtMgrfqdn'!" -Colour Cyan
-            }
             if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
                 if ($nxtClusterEdgeNodes) {
                     Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nxtClusterEdgeNodes -timeout 600
@@ -620,10 +618,12 @@ Try {
         }
         foreach ($cluster in $ClusterDetails) {
                     # Prepare the vSAN cluster for startup - Performed on a single host only
+			$esxiDetails = $esxiWorkloadCluster[$cluster.name]
             Invoke-EsxCommand -server $esxiDetails.fqdn[0] -user $esxiDetails.username[0] -pass $esxiDetails.password[0] -expected "Cluster reboot/poweron is completed successfully!" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py recover"
         }
         foreach ($cluster in $ClusterDetails) {
             # Enable vSAN cluster member updates
+            $esxiDetails = $esxiWorkloadCluster[$cluster.name]
             foreach ($esxiNode in $esxiDetails) {
                 Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
             }
@@ -631,6 +631,7 @@ Try {
         foreach ($cluster in $ClusterDetails) {
             # Check ESXi status for each host
             Write-PowerManagementLogMessage -Type INFO -Message "Checking the vSAN status of the ESXi hosts...." -Colour Green
+            $esxiDetails = $esxiWorkloadCluster[$cluster.name]
             foreach ($esxiNode in $esxiDetails) {
                 Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Local Node Health State: HEALTHY" -cmd "esxcli vsan cluster get"
             }
@@ -711,7 +712,7 @@ Try {
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
         }
 
-
+		$index = 1
         foreach ($cluster in $ClusterDetails) {
             # Waiting for vCLS VMs to be started for ($retries*10) seconds
             Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS startup will take some time. Please wait! " -Colour Yellow
@@ -792,7 +793,7 @@ Try {
                     Write-PowerManagementLogMessage -Type ERROR -Message "NSX cluster is not in 'STABLE' state. Exiting!" -Colour Red
                     Exit
                 }
-
+				$index++
             }
             # Gather NSX Edge Node Details and do the startup
             Try {
