@@ -140,48 +140,46 @@ Try {
         if ($workloadDomain.clusters.id.count -gt 1) {
             $multiClusterEnvironment = $true
             Write-PowerManagementLogMessage -Type INFO -Message "There are multiple clusters in VI domain '$sddcDomain'."
+        }
+        foreach ($id in $($workloadDomain.clusters.id))  {
+            $clusterData = (Get-VCFCluster | Where-Object { $_.id -eq ($id) })
+            $sddcClusterDetails += $clusterData
+            $sddchostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
+            $sddcClusterarray += $clusterData.name
+            $esxiWorkloadCluster[$clusterData.name] = @()
+        }
+
+        if($vsanCluster) {
+            foreach ($name in $userClusterarray)  {
+                $clusterData = (Get-VCFCluster | Where-Object { $_.name -eq ($name) })
+                $hostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
+                #$esxiWorkloadCluster[$clusterData.name] = @()
+                $userClusterDetails += $clusterData
+
+            }
+            $ClusterDetails = $userClusterDetails
+            if (($userClusterDetails.count -eq $sddcClusterDetails.count) -and (((Compare-Object $userClusterDetails $sddcClusterDetails -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=='}).InputObject).count -eq $sddcClusterDetails.count)) {
+                Write-PowerManagementLogMessage -Type INFO -Message "User has passed all clusters information correctly" -colour green
+                $allClusterShutdown = $true
+            }
+            if(((Compare-Object $sddcClusterarray $userClusterarray -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=>'}).InputObject).count){
+                $wrongClusterNames = (Compare-Object $sddcClusterarray $userClusterarray -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=>'}).InputObject
+                Write-PowerManagementLogMessage -Type WARNING -Message "Looks like some wrong cluster name being passed" -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "The clusters part of this domain and got from SDDC are:$($sddcClusterDetails.name)" -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "The cluster names passed by User are: $userClusterarray" -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "The wrong cluster names are:  $wrongClusterNames" -Colour Cyan
+                Write-PowerManagementLogMessage -Type ERROR -Message "Please cross check and re-trigger the run. Exiting for now" -Colour Red
+            }
+            Write-PowerManagementLogMessage -Type INFO -Message "All clusters to be taken care: '$allClusterShutdown'"
+        } else {
             foreach ($id in $($workloadDomain.clusters.id))  {
                 $clusterData = (Get-VCFCluster | Where-Object { $_.id -eq ($id) })
-                $sddcClusterDetails += $clusterData
-				$sddchostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
-                $sddcClusterarray += $clusterData.name
-				$esxiWorkloadCluster[$clusterData.name] = @()
+                $hostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
+                #$esxiWorkloadCluster[$clusterData.name] = @()
             }
-
-            if($vsanCluster) {
-                foreach ($name in $userClusterarray)  {
-                    $clusterData = (Get-VCFCluster | Where-Object { $_.name -eq ($name) })
-                    $hostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
-                    #$esxiWorkloadCluster[$clusterData.name] = @()
-                    $userClusterDetails += $clusterData
-
-                }
-                $ClusterDetails = $userClusterDetails
-                if (($userClusterDetails.count -eq $sddcClusterDetails.count) -and (((Compare-Object $userClusterDetails $sddcClusterDetails -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=='}).InputObject).count -eq $sddcClusterDetails.count)) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "User has passed all clusters information correctly" -colour green
-                    $allClusterShutdown = $true
-                }
-                if(((Compare-Object $sddcClusterarray $userClusterarray -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=>'}).InputObject).count){
-                    $wrongClusterNames = (Compare-Object $sddcClusterarray $userClusterarray -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=>'}).InputObject
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Looks like some wrong cluster name being passed" -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "The clusters part of this domain and got from SDDC are:$($sddcClusterDetails.name)" -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "The cluster names passed by User are: $userClusterarray" -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "The wrong cluster names are:  $wrongClusterNames" -Colour Cyan
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Please cross check and re-trigger the run. Exiting for now" -Colour Red
-                }
-                Write-PowerManagementLogMessage -Type INFO -Message "All clusters to be taken care: '$allClusterShutdown'"
-            } else {
-                foreach ($id in $($workloadDomain.clusters.id))  {
-                    $clusterData = (Get-VCFCluster | Where-Object { $_.id -eq ($id) })
-                    $hostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
-                    #$esxiWorkloadCluster[$clusterData.name] = @()
-                }
-                $ClusterDetails = $sddcClusterDetails
-                $allClusterShutdown = $true
-                #$sddcShutdownOrder = $true
-            }
-        } else {
-             $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
+            $ClusterDetails = $sddcClusterDetails
+            $allClusterShutdown = $true
+            #$sddcShutdownOrder = $true
         }
 
         # Gather vCenter Server Details and Credentials
@@ -286,6 +284,34 @@ Try {
             [Array]$vcfvms += $vm
         }
 
+        #Check if NSX-T manager VMs are running. If they are stopped skip NSX-T edge shutdown
+        $nsxManagerPowerOnVMs = 0
+        foreach ($nsxtManager in $nsxtNodes) {
+            $state = Get-VMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch -powerstate "poweredon"
+            if ($state) { $nsxManagerPowerOnVMs += 1 }
+            # If we have all NSX-T managers running or minimum of 2 nodes up - query NSX-T for edges.
+            if (($nsxManagerPowerOnVMs -eq $nsxtNodes.count) -or ($nsxManagerPowerOnVMs -eq 2)) {
+                $statusOfNsxtClusterVMs = 'running'
+            }
+        }
+
+        $nxtClusterEdgeNodes = @()
+        if ($statusOfNsxtClusterVMs -ne 'running') {
+            Write-PowerManagementLogMessage -Type WARNING -Message "NSX Manager VMs have been stopped. NSX Edge VMs will not be handled in am automatic way." -Colour Cyan
+        }
+        else {
+            Try {
+                [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
+                foreach ($node in $nsxtEdgeNodes) {
+                     [Array]$vcfvms += $node
+                }
+            }
+            catch {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Something went wrong! Unable to fetch NSX Edge node information from NSX Manager '$nsxtMgrfqdn'. Exiting!" -Colour Red
+            }
+        }
+
+
         $customervms = $allvms | ? { $vcfvms -notcontains $_ }
         $vcfvms_string = $vcfvms -join "; "
 
@@ -331,16 +357,6 @@ Try {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Currently we do not support workload domains with vSphere with Tanzu. Exiting." -Colour Red
             }
 
-            #Check if NSX-T manager VMs are running. If they are stopped skip NSX-T edge shutdown
-            $nsxManagerPowerOnVMs = 0
-            foreach ($nsxtManager in $nsxtNodes) {
-                $state = Get-VMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch -powerstate "poweredon"
-                if ($state) { $nsxManagerPowerOnVMs += 1 }
-                # If we have all NSX-T managers running or minimum of 2 nodes up - query NSX-T for edges.
-                if (($nsxManagerPowerOnVMs -eq $nsxtNodes.count) -or ($nsxManagerPowerOnVMs -eq 2)) {
-                    $statusOfNsxtClusterVMs = 'running'
-                }
-            }
 
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines for a given vsphere cluster $($cluster.name)..."
             [Array]$clusterallvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "VM" -powerstate "poweredon"
@@ -348,6 +364,18 @@ Try {
             [Array]$clustervclsvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon"
             foreach ($vm in $clustervclsvms) {
                 [Array]$clustervcfvms += $vm
+            }
+
+            if ($nsxtEdgeNodes) {
+                foreach ($node in $nsxtEdgeNodes) {
+                    foreach ($element in $clusterallvms) {
+                        if( $element -like $node) {
+                            $nxtClusterEdgeNodes += $node
+                            [Array]$clustervcfvms += $node
+                            break
+                        }
+                    }
+                }
             }
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on customer virtual machines for a given vsphere cluster $($cluster.name)..."
             $clustercustomervms = $clusterallvms | ? { $vcfvms -notcontains $_ }
@@ -415,28 +443,7 @@ Try {
                     Exit
                 }
             }
-            $nxtClusterEdgeNodes = @()
-            if ($statusOfNsxtClusterVMs -ne 'running') {
-                Write-PowerManagementLogMessage -Type WARNING -Message "NSX Manager VMs have been stopped. NSX Edge VMs will not be handled in am automatic way." -Colour Cyan
-            }
-            else {
-                Try {
-                    [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
-                    foreach ($node in $nsxtEdgeNodes) {
-                        foreach ($element in $clusterallvms) {
-                            if( $element -like $node) {
-                                $nxtClusterEdgeNodes += $node
-                                [Array]$clustervcfvms += $node
-                                break
-                            }
-                        }
-                        [Array]$vcfvms += $node
-                    }
-                }
-                catch {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Something went wrong! Unable to fetch NSX Edge node information from NSX Manager '$nsxtMgrfqdn'. Exiting!" -Colour Red
-                }
-            }
+
             ## Gather NSX Edge Node Details from NSX-T Manager
             if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
                 if ($nxtClusterEdgeNodes) {
@@ -526,7 +533,7 @@ Try {
             if ($multiClusterEnvironment) {
                 $runningVMs = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vm" -powerstate "poweredon"
             } else {
-                $runningVMs = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
+                $runningVMs = Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon"
             }
             if ($runningVMs.count) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
