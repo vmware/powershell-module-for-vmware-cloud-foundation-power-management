@@ -63,9 +63,7 @@ Param (
     [Parameter (Mandatory = $true, ParameterSetName = "genjson")] [ValidateNotNullOrEmpty()] [Switch]$genjson,
     # Startup
     [Parameter (Mandatory = $false, ParameterSetName = "startup")] [ValidateNotNullOrEmpty()] [String]$json,
-    [Parameter (Mandatory = $true, ParameterSetName = "startup")] [ValidateNotNullOrEmpty()] [Switch]$startup,
-    [Parameter (Mandatory = $false, ParameterSetName = "startup")]
-    [Parameter (Mandatory = $false, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [Array]$vsanCluster
+    [Parameter (Mandatory = $true, ParameterSetName = "startup")] [ValidateNotNullOrEmpty()] [Switch]$startup
 )
 
 # Customer Questions Section 
@@ -150,95 +148,24 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         if ( $StatusMsg ) { Write-PowerManagementLogMessage -Type INFO -Message $StatusMsg } 
         if ( $WarnMsg ) { Write-PowerManagementLogMessage -Type WARNING -Message $WarnMsg -Colour Cyan } 
         if ( $ErrorMsg ) { Write-PowerManagementLogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
-
-
-        $sddcClusterDetails = @()
-        $userClusterDetails = @()
-        $ClusterDetails = @()
-        $userClusterarray = @()
-        $SDDCclusterarray = @()
-        if ($vsanCluster) {
-            $userClusterarray = $vsanCluster.split(",")
-            #$userShutdownOrder = $true
-        }
-        $multiClusterEnvironment = $false
-        $allClusterShutdown = $false
-        $hostsClusterMapping = @{}
-        $esxiWorkloadCluster = @{}
-        $ClusterStatusMapping = @{}
         if ($accessToken) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connection to SDDC Manager has been validated successfully." -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "Gathering system details from the SDDC Manager inventory. It will take some time."
             $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
+            # Check if we have single cluster in the MGMT domain
             if ($workloadDomain.clusters.id.count -gt 1) {
-                $multiClusterEnvironment = $true
-                Write-PowerManagementLogMessage -Type INFO -Message "There are multiple clusters in VI domain '$sddcDomain'."
+                Write-PowerManagementLogMessage -Type ERROR -Message "There are multiple clusters in Management domain. This script supports only a single cluster per domain. Exiting!" -Colour Red
+                Exit
             }
-            foreach ($id in $($workloadDomain.clusters.id))  {
-                $clusterData = (Get-VCFCluster | Where-Object { $_.id -eq ($id) })
-                $sddcClusterDetails += $clusterData
-                $sddchostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
-                $sddcClusterarray += $clusterData.name
-                $esxiWorkloadCluster[$clusterData.name] = @()
-            }
-
-            if($vsanCluster) {
-                foreach ($name in $userClusterarray)  {
-                    $clusterData = (Get-VCFCluster | Where-Object { $_.name -eq ($name) })
-                    $hostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
-                    #$esxiWorkloadCluster[$clusterData.name] = @()
-                    $userClusterDetails += $clusterData
-
-                }
-                $ClusterDetails = $userClusterDetails
-                if (($userClusterDetails.count -eq $sddcClusterDetails.count) -and (((Compare-Object $userClusterDetails $sddcClusterDetails -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=='}).InputObject).count -eq $sddcClusterDetails.count)) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "User has passed all clusters information correctly" -colour green
-                    $allClusterShutdown = $true
-                }
-                if(((Compare-Object $sddcClusterarray $userClusterarray -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=>'}).InputObject).count){
-                    $wrongClusterNames = (Compare-Object $sddcClusterarray $userClusterarray -IncludeEqual | Where-Object -FilterScript {$_.SideIndicator -eq '=>'}).InputObject
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Looks like some wrong cluster name being passed" -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "The clusters part of this domain and got from SDDC are:$($sddcClusterDetails.name)" -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "The cluster names passed by User are: $userClusterarray" -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "The wrong cluster names are:  $wrongClusterNames" -Colour Cyan
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Please cross check and re-trigger the run. Exiting for now" -Colour Red
-                }
-                Write-PowerManagementLogMessage -Type INFO -Message "All clusters to be taken care: '$allClusterShutdown'"
-            } else {
-                foreach ($id in $($workloadDomain.clusters.id))  {
-                    $clusterData = (Get-VCFCluster | Where-Object { $_.id -eq ($id) })
-                    $hostsClusterMapping.($clusterData.name) = $clusterData.hosts.id
-                    #$esxiWorkloadCluster[$clusterData.name] = @()
-                }
-                $ClusterDetails = $sddcClusterDetails
-                $allClusterShutdown = $true
-                #$sddcShutdownOrder = $true
-            }
-<#
-        write-host $sddcClusterDetails
-        write-host $userClusterDetails
-        write-host $ClusterDetails
-        write-host "All cluster shutdown [yes/no]:$allClusterShutdown"
-        write-host "Host to cluster Mapping info:$hostsClusterMapping"
-        write-host $hostsClusterMapping['sfo-m01-cl01']
-        write-host $hostsClusterMapping.values
-        Exit
-#>
-
+            $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
 
             $var = @{}
             $var["Domain"] = @{}
             $var["Domain"]["name"] = $workloadDomain.name
             $var["Domain"]["type"] = "MANAGEMENT"
 
-
             $var["Cluster"] = @{}
-            foreach ($clus in $sddcClusterDetails) {
-                #$var["Cluster"]["name"] = $cluster.name
-                $var["Cluster"][$clus.name] = @{}
-                $var["cluster"][$clus.name]["Hosts"] = @()
-                $var["Cluster"][$clus.name]["name"] = $clus.name
-            }
+            $var["Cluster"]["name"] = $cluster.name
 
             # Gather vCenter Server Details and Credentials
             $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id) })
@@ -250,12 +177,10 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Write-PowerManagementLogMessage -Type ERROR -Message "Please check the current state and resolve the issue or continue with the shutdown operation by following the documentation of VMware Cloud Foundation. Exiting!" -Colour Red
                 Exit
             }
-            foreach ($clus in $ClusterDetails) {
-                $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $clus.name
-                if ($status -eq $True) {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Currently we are not supporting VMware Tanzu enabled domains. Please try on other workload domains." -Colour Red
-                    Exit
-                }
+            $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name 
+            if ($status -eq $True) {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Currently we are not supporting VMware Tanzu enabled domains. Please try on other workload domains." -Colour Red
+                Exit
             }
             if ($vcPass) {
                 $vcPass_encrypted = $vcPass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
@@ -279,22 +204,13 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             $var["Hosts"] = @()
             # Gather ESXi Host Details for the Management Workload Domain
             $esxiWorkloadDomain = @()
-            foreach ($esxiHost in (Get-VCFHost | Where-Object { $_.domain.id -eq $workloadDomain.id })) {
+            foreach ($esxiHost in (Get-VCFHost | Where-Object { $_.domain.id -eq $workloadDomain.id }).fqdn) {
                 $esxDetails = New-Object -TypeName PSCustomObject
-                $esxDetails | Add-Member -Type NoteProperty -Name name -Value ($esxiHost.fqdn).split("")[0]
-                $esxDetails | Add-Member -Type NoteProperty -Name fqdn -Value $esxiHost.fqdn
-                $esxDetails | Add-Member -Type NoteProperty -Name username -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq ($esxiHost.fqdn).split("")[0] -and $_.accountType -eq "USER" })).username
-                $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq ($esxiHost.fqdn).split("")[0] -and $_.accountType -eq "USER" })).password
+                $esxDetails | Add-Member -Type NoteProperty -Name name -Value $esxiHost.Split(".")[0]
+                $esxDetails | Add-Member -Type NoteProperty -Name fqdn -Value $esxiHost
+                $esxDetails | Add-Member -Type NoteProperty -Name username -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER" })).username
+                $esxDetails | Add-Member -Type NoteProperty -Name password -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $esxiHost -and $_.accountType -eq "USER" })).password
                 $esxiWorkloadDomain += $esxDetails
-                foreach ($clustername in $sddcClusterDetails.name) {
-                    if ($hostsClusterMapping[$clustername] -contains $esxiHost.id) {
-                        $esxiWorkloadCluster[$clustername] += $esxDetails
-                        $var["Cluster"][$clustername]["Hosts"] += $esxDetails
-                        write-host "11111111111"
-                        write-host $var["Cluster"][$clustername]["Hosts"]
-                    }
-                }
-
                 $esxi_block = @{}
                 $esxi_block["name"] = $esxDetails.name
                 $esxi_block["fqdn"] = $esxDetails.fqdn
@@ -338,7 +254,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             # Gather NSX-T Edge Node Details
             $nsxManagerPowerOnVMs = 0
             foreach ($nsxtManager in $nsxtNodes) {
-                $state = Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch -powerstate "poweredon"
+                $state = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch
                 if ($state) { $nsxManagerPowerOnVMs += 1 }
                 # If we have all NSX-T managers running, or minimum 2 nodes up - query NSX-T for edges.
                 if (($nsxManagerPowerOnVMs -eq $nsxtNodes.count) -or ($nsxManagerPowerOnVMs -eq 2)) { 
@@ -389,14 +305,9 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             }
 
             #Backup DRS Automation level settings into JSON file
-            foreach ($clus in $ClusterDetails) {
-                [string]$level = ""
-                [string]$level = Get-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $clus.name
-                $var["Cluster"][$clus.name]["DrsAutomationLevel"] = [string]$level
-            }
-            #[string]$level = ""
-            #[string]$level = Get-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
-            #$var["Cluster"]["DrsAutomationLevel"] = [string]$level
+            [string]$level = ""
+            [string]$level = Get-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+            $var["Cluster"]["DrsAutomationLevel"] = [string]$level
 
             $var["Server"]["host"] = $vcHost
             $var["Server"]["vchostuser"] = $vcHostUser
@@ -446,10 +357,10 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
 
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines from server $($vcServer.fqdn)..."
-        [Array]$allvms = Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon"
+        [Array]$allvms = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
         $customervms = @()
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on vCLS virtual machines from server $($vcServer.fqdn)..."
-        [Array]$vclsvms += Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)" -powerstate "poweredon"
+        [Array]$vclsvms += Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)"
         foreach ($vm in $vclsvms) {
             [Array]$vcfvms += $vm
         }
@@ -542,7 +453,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         $retries = 10
         $sleep_time = 30
         while ($counter -ne $retries) {
-            $powerOnVMcount = (Get-VMs -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
+            $powerOnVMcount = (Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
             if ( $powerOnVMcount ) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until the next check..."
                 start-sleep $sleep_time
@@ -583,7 +494,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
 
         # Verify that there is only one VM running (vCenter Server) on the ESXis, then shutdown vCenter Server.
-        $runningVMs = Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon"
+        $runningVMs = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
         if ($runningVMs.count -gt 1 ) {
             Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
             Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed unless the power-on VMs are shut down. Shut them down them manually and continue with the shutdown operation by following documentation of VMware Cloud Foundation." -Colour Cyan
@@ -601,7 +512,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         Write-PowerManagementLogMessage -Type INFO -Message "Checking that there are no running VMs on the ESXi hosts before stopping vSAN." -Colour Green
         $runningVMs = $False
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            $vms = Get-VMs -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -powerstate "poweredon"
+            $vms = Get-PoweredOnVMs -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
             if ($vms.count) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
                 Write-PowerManagementLogMessage -Type WARNING -Message "Cannot to proceed unless the powered-on VMs are shut down. Shut down them down manually and run the script again" -Colour Cyan
@@ -840,7 +751,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         $retries = 10
         $sleep_time = 30
         while ($counter -ne $retries) {
-            $powerOnVMcount = (Get-VMs -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
+            $powerOnVMcount = (Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
             if ( $powerOnVMcount -lt 3 ) {
                 Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
                 start-sleep $sleep_time

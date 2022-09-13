@@ -357,7 +357,7 @@ Try {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Currently we do not support workload domains with vSphere with Tanzu. Exiting." -Colour Red
             }
 
-            $clustervcfvms = @()
+
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines for a given vsphere cluster $($cluster.name)..."
             [Array]$clusterallvms = Get-VMToClusterMapping -server $VcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "VM" -powerstate "poweredon"
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on vCLS virtual machines for a given vsphere cluster $($cluster.name)..."
@@ -595,7 +595,7 @@ Try {
 
     if ($PsBoundParameters.ContainsKey("startup")) {
         #multicluster support
-
+        $nxtClusterEdgeNodes = @()
         #From here the looping of all clusters begin.
         $nsxMgrVIP = New-Object -TypeName PSCustomObject
         $nsxtMgrfqdn = ""
@@ -713,7 +713,6 @@ Try {
             if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
             }
-            $index++
        }
         foreach ($cluster in $ClusterDetails) {
             #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
@@ -753,6 +752,7 @@ Try {
             }
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  customer virtual machines for a given vsphere cluster $($cluster.name)..."
             $clustercustomervms = $clusterallvms | ? { $vcfvms -notcontains $_ }
+
 
             if ($index -eq 1) {
                 # Get NSX-T Details once VC is started
@@ -800,11 +800,9 @@ Try {
                     Write-PowerManagementLogMessage -Type ERROR -Message "NSX cluster is not in 'STABLE' state. Exiting!" -Colour Red
                     Exit
                 }
-
+				$index++
             }
-
             # Gather NSX Edge Node Details and do the startup
-            $nxtClusterEdgeNodes = @()
             Try {
                 [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
                 foreach ($node in $nsxtEdgeNodes) {
@@ -845,7 +843,6 @@ Try {
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "End of startup sequence!" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
-            $index += 1
         }
     }
 }
