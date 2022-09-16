@@ -758,6 +758,8 @@ Try {
             foreach ($vm in $clustervclsvms) {
                 [Array]$clustervcfvms += $vm
             }
+            $vcfvms += $vcServer.fqdn.Split(".")[0]
+            $clustervcfvms += $vcServer.fqdn.Split(".")[0]
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  customer virtual machines for a given vsphere cluster $($cluster.name)..."
             $clustercustomervms = $clusterallvms | ? { $vcfvms -notcontains $_ }
 
