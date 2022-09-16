@@ -148,7 +148,7 @@ Try {
             $sddcClusterarray += $clusterData.name
             $esxiWorkloadCluster[$clusterData.name] = @()
         }
-        Write-PowerManagementLogMessage -Type INFO -Message "The clusters got from SDDC: $($sddcClusterarray.join(","))"
+        Write-PowerManagementLogMessage -Type INFO -Message "The clusters got from SDDC: $($sddcClusterarray -join ",")"
 
         if($vsanCluster) {
             foreach ($name in $userClusterarray)  {
@@ -815,6 +815,7 @@ Try {
                         Write-PowerManagementLogMessage -Type ERROR -Message "NSXT Manager is already started" -Colour Green
                     }
                }
+            }
 
             # Gather NSX Edge Node Details and do the startup
             $nxtClusterEdgeNodes = @()
