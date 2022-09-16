@@ -654,7 +654,7 @@ Try {
                 Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
                 Write-PowerManagementLogMessage -Type INFO -Message "Waiting for the vCenter Server services to start on '$($vcServer.fqdn)'. It will take some time." -Colour Yellow
             } else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "vCenter Server is already started" -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server is already started" -Colour Green
             }
             $retries = 20
             $flag = 0
@@ -815,7 +815,7 @@ Try {
                         Exit
                     }
                 } else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "NSXT Manager is already started" -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "NSXT Manager is already started" -Colour Green
                 }
             }
 
