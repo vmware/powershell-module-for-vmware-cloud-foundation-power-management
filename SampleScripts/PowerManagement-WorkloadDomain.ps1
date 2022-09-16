@@ -803,17 +803,18 @@ Try {
 
                 $NsxtStarted = 0
                 foreach ($node in $nsxtNodes) {
-                $NsxtStarted += (Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0]).count
-                if (-not ($NsxtStarted -eq $nsxtNodes.count)) {
-                    # Startup the NSX Manager Nodes for Virtual Infrastructure Workload Domain
-                    Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
-                    if (!(Wait-ForStableNsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword)) {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "NSX cluster is not in 'STABLE' state. Exiting!" -Colour Red
-                        Exit
+                    $NsxtStarted += (Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0]).count
+                    if (-not ($NsxtStarted -eq $nsxtNodes.count)) {
+                        # Startup the NSX Manager Nodes for Virtual Infrastructure Workload Domain
+                        Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
+                        if (!(Wait-ForStableNsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword)) {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "NSX cluster is not in 'STABLE' state. Exiting!" -Colour Red
+                            Exit
+                        }
+                    } else {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "NSXT Manager is already started" -Colour Green
                     }
-                } else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "NSXT Manager is already started" -Colour Green
-                }
+               }
 
             # Gather NSX Edge Node Details and do the startup
             $nxtClusterEdgeNodes = @()
