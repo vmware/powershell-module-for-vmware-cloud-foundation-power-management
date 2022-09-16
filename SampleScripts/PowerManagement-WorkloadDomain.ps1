@@ -646,8 +646,9 @@ Try {
                 Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Local Node Health State: HEALTHY" -cmd "esxcli vsan cluster get"
             }
         }
-        $VcStarted = (Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0]).count
+
         foreach ($cluster in $ClusterDetails) {
+            $VcStarted = (Get-VMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0]).count
             if (-not $VcStarted) {
                 # Startup the Virtual Infrastructure Workload Domain vCenter Server
                 Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
@@ -805,7 +806,7 @@ Try {
 
                 $NsxtStarted = 0
                 foreach ($node in $nsxtNodes) {
-                    $NsxtStarted += (Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0]).count
+                    $NsxtStarted += (Get-VMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0]).count
                     if (-not ($NsxtStarted -eq $nsxtNodes.count)) {
                         # Startup the NSX Manager Nodes for Virtual Infrastructure Workload Domain
                         Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
