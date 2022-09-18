@@ -254,7 +254,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             # Gather NSX-T Edge Node Details
             $nsxManagerPowerOnVMs = 0
             foreach ($nsxtManager in $nsxtNodes) {
-                $state = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch
+                $state = Get-VMs -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch
                 if ($state) { $nsxManagerPowerOnVMs += 1 }
                 # If we have all NSX-T managers running, or minimum 2 nodes up - query NSX-T for edges.
                 if (($nsxManagerPowerOnVMs -eq $nsxtNodes.count) -or ($nsxManagerPowerOnVMs -eq 2)) { 
@@ -357,10 +357,10 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
 
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines from server $($vcServer.fqdn)..."
-        [Array]$allvms = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
+        [Array]$allvms = Get-VMs -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass
         $customervms = @()
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on vCLS virtual machines from server $($vcServer.fqdn)..."
-        [Array]$vclsvms += Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)"
+        [Array]$vclsvms += Get-VMs -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)"
         foreach ($vm in $vclsvms) {
             [Array]$vcfvms += $vm
         }
@@ -453,7 +453,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         $retries = 10
         $sleep_time = 30
         while ($counter -ne $retries) {
-            $powerOnVMcount = (Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
+            $powerOnVMcount = (Get-VMs -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
             if ( $powerOnVMcount ) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until the next check..."
                 start-sleep $sleep_time
@@ -494,7 +494,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
 
         # Verify that there is only one VM running (vCenter Server) on the ESXis, then shutdown vCenter Server.
-        $runningVMs = Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass
+        $runningVMs = Get-VMs -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass
         if ($runningVMs.count -gt 1 ) {
             Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
             Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed unless the power-on VMs are shut down. Shut them down them manually and continue with the shutdown operation by following documentation of VMware Cloud Foundation." -Colour Cyan
@@ -512,7 +512,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         Write-PowerManagementLogMessage -Type INFO -Message "Checking that there are no running VMs on the ESXi hosts before stopping vSAN." -Colour Green
         $runningVMs = $False
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            $vms = Get-PoweredOnVMs -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+            $vms = Get-VMs -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
             if ($vms.count) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
                 Write-PowerManagementLogMessage -Type WARNING -Message "Cannot to proceed unless the powered-on VMs are shut down. Shut down them down manually and run the script again" -Colour Cyan
@@ -751,7 +751,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         $retries = 10
         $sleep_time = 30
         while ($counter -ne $retries) {
-            $powerOnVMcount = (Get-PoweredOnVMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
+            $powerOnVMcount = (Get-VMs -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
             if ( $powerOnVMcount -lt 3 ) {
                 Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
                 start-sleep $sleep_time
