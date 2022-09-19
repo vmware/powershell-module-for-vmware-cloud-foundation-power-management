@@ -805,7 +805,7 @@ Try {
 
                 $NsxtStarted = 0
                 foreach ($node in $nsxtNodes) {
-                    $NsxtStarted += (Get-VMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0]).count
+                    $NsxtStarted += (Get-VMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $node).count
                 }
                 if (-not ($NsxtStarted -eq $nsxtNodes.count)) {
                     # Startup the NSX Manager Nodes for Virtual Infrastructure Workload Domain
