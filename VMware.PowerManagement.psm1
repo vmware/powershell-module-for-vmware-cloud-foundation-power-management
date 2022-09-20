@@ -864,7 +864,7 @@ Function Get-VMs {
                     }
                     else {
                         $no_powered_on_vms_string = $no_powered_on_vms -join ","
-                        Write-PowerManagementLogMessage -type INFO -Message "Number of virtual machines in the powered-on state: $no_powered_on_vms_string"
+                        #Write-PowerManagementLogMessage -type INFO -Message "Number of virtual machines in the powered-on state: $no_powered_on_vms_string"
                     }
                     Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                     Return $no_powered_on_vms

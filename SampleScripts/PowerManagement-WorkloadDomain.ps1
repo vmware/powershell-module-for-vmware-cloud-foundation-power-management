@@ -847,9 +847,9 @@ Try {
             # End of startup
             $vcfvms_string = ""
             if ($multiClusterEnvironment) {
-                $vcfvms_string = $clustervcfvms -join "; "
+                $vcfvms_string = ($clustervcfvms | select -Unique) -join "; "
             } else {
-                $vcfvms_string = $vcfvms -join "; "
+                $vcfvms_string = ($vcfvms | select -Unique) -join "; "
             }
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "The following components have been started: $vcfvms_string , " -Colour Green
