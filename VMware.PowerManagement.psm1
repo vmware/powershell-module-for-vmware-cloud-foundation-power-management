@@ -804,28 +804,27 @@ Function Test-VsanObjectResync {
 }
 Export-ModuleMember -Function Test-VsanObjectResync
 
-Function Get-VMs {
+Function Get-VMsWithPowerStatus {
     <#
         .SYNOPSIS
         Return list of virtual machines that are in a given power state
 
         .DESCRIPTION
-        The Get-VMs cmdlet return list of virtual machines virtual machines are in a given powerstate on a given server/host
+        The Get-VMsWithPowerStatus cmdlet return list of virtual machines virtual machines are in a given powerstate on a given server/host
 
         .EXAMPLE
-        Get-VMs -server sfo01-m01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -powerstate "poweredon"
+        Get-VMsWithPowerStatus -server sfo01-m01-esx01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon"
         This example connects to a ESXi host and returns the list of powered on virtual machines
 
-        Get-VMs -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -powerstate "poweredon"
-        This example connects to a management virtual center and returns the list of powered on virtual machines
+        Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon" -pattern "sfo-wsa01" -exactmatch
+        This example connects to a management virtual center and searches for a VM sfo-wsa01 in a particular powerstate and returns the matching VMs
 
-        Get-VMs -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -powerstate "poweredon" -cluster sfo-w01-cl01 -folder "vm"
-        This example connects to a management virtual center and returns the list of all powered on virtual machines in a "sfo-w01-cl01" cluster
+        Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon"  -pattern "vcls"
+        This example connects to a management virtual center and returns the list of powered on vCLS virtual machines
 
-        Get-VMs -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -powerstate "poweredon" -cluster sfo-w01-cl01 -folder "vcls"
-        This example connects to a management virtual center and returns the list of powered on vCLS virtual machines in a "sfo-w01-cl01" cluster
-
-
+        Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon"  -pattern "vcls" -silence
+        This example connects to a management virtual center and returns the list of powered on vCLS virtual machines
+        but supresses all the log messages in the method
     #>
 
     Param(
@@ -834,40 +833,42 @@ Function Get-VMs {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateSet("poweredon","poweredoff")] [String]$powerstate,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pattern = $null ,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$exactMatch
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$exactMatch,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$silence
     )
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMs cmdlet." -Colour Yellow
+
+        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMsWithPowerStatus cmdlet." -Colour Yellow}
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+           if(-not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."}
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$server' and attempting to get the list of powered-on virtual machines..."
+                if(-not $silence) {Write-PowerManagementLogMessage -type INFO -Message "Connected to server '$server' and attempting to get the list of virtual machines..."}
                     if ($pattern) {
                         if ($PSBoundParameters.ContainsKey('exactMatch') ) {
-                            $no_powered_on_vms = get-vm -Server $server | Where-Object Name -EQ $pattern  | Where-Object PowerState -eq "PoweredOn"
+                            $no_of_vms = get-vm -Server $server | Where-Object Name -EQ $pattern  | Where-Object PowerState -eq $powerstate
                         }
                         else {
-                            $no_powered_on_vms = get-vm -Server $server | Where-Object Name -match $pattern  | Where-Object PowerState -eq "PoweredOn"
+                            $no_of_vms = get-vm -Server $server | Where-Object Name -match $pattern  | Where-Object PowerState -eq $powerstate
                         }
                     }
                     else {
-                        $no_powered_on_vms = get-vm -Server $server | Where-Object PowerState -eq "PoweredOn"
+                        $no_of_vms = get-vm -Server $server | Where-Object PowerState -eq $powerstate
                     }
-                    if ($no_powered_on_vms.count -eq 0) {
-                        Write-PowerManagementLogMessage -type INFO -Message "No virtual machines in the powered-on state."
+                    if ($no_of_vms.count -eq 0) {
+                        if(-not $silence) {Write-PowerManagementLogMessage -type INFO -Message "No virtual machines in the $powerstate state."}
                     }
                     else {
-                        $no_powered_on_vms_string = $no_powered_on_vms -join ","
-                        #Write-PowerManagementLogMessage -type INFO -Message "Number of virtual machines in the powered-on state: $no_powered_on_vms_string"
+                        $no_of_vms_string = $no_of_vms -join ","
+                        if(-not $silence) {Write-PowerManagementLogMessage -type INFO -Message "The virtual machines in the $powerstate state: $no_of_vms_string"}
                     }
                     Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
-                    Return $no_powered_on_vms
+                    Return $no_of_vms
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
@@ -881,10 +882,10 @@ Function Get-VMs {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMs cmdlet." -Colour Yellow
+        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMsWithPowerStatus cmdlet." -Colour Yellow}
     }
 }
-Export-ModuleMember -Function Get-VMs
+Export-ModuleMember -Function Get-VMsWithPowerStatus
 
 Function Get-VamiServiceStatus {
     <#
@@ -1240,17 +1241,17 @@ Export-ModuleMember -Function Set-Retreatmode
 Function Get-VMToClusterMapping {
     <#
         .SYNOPSIS
-        Get the list of all Virtual Machines which are mapped for a given vSphere Cluster
+        Get the list of all Virtual Machines which are mapped for a given vSphere Clusters
 
         .DESCRIPTION
-        The Get-VMToClusterMapping cmdlet gets all Virtual Machines belonging to a given  vSphere Cluster
+        The Get-VMToClusterMapping cmdlet gets all Virtual Machines belonging to a given  vSphere Clusters
 
         .EXAMPLE
         Get-VMToClusterMapping -server $server -user $user -pass $pass -cluster $cluster -folder "VCLS"
-        This example gets all virtual machines (vCLS) belonging to a given vSphere Cluster $cluster
+        This example gets all virtual machines (vCLS) belonging to a given vSphere Clusters $cluster
 
         Get-VMToClusterMapping -server $server -user $user -pass $pass -cluster $cluster -folder "VCLS" -powerstate "poweredon"
-        This example gets all virtual machines (vCLS) belonging to a given vSphere Cluster $cluster in the powered on state only
+        This example gets all virtual machines (vCLS) belonging to a given vSphere Clusters $cluster in the powered on state only
 
     #>
 
@@ -1258,29 +1259,33 @@ Function Get-VMToClusterMapping {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]] $cluster,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $folder,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch] $silence,
         [Parameter (Mandatory = $false)] [ValidateSet("poweredon","poweredoff")] [String] $powerstate
 
     )
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMToClusterMapping cmdlet." -Colour Yellow
+        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMToClusterMapping cmdlet." -Colour Yellow}
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."}
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
-                Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..."
-                if ($powerstate) {
-                    $VMs = get-vm -location $cluster  | where {(Get-VM -location $folder) -contains $_} | where PowerState -eq $powerstate
-                } else {
-                    $VMs = get-vm -location $cluster  | where  {(Get-VM -location $folder) -contains $_}
+                if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..."}
+                foreach ($clus in $cluster) {
+                    if ($powerstate) {
+                        $VMs += get-vm -location $clus  | where {(Get-VM -location $folder) -contains $_} | where PowerState -eq $powerstate
+                    } else {
+                        $VMs += get-vm -location $clus  | where  {(Get-VM -location $folder) -contains $_}
+                    }
                 }
-                Write-PowerManagementLogMessage -Type INFO -Message "list of VM's mapped to cluster $cluster is $VMs"
+                $clustersstring = $cluster -join ","
+                if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "list of VM's mapped to cluster $clustersstring is $VMs"}
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                 return $VMs
 
@@ -1297,7 +1302,7 @@ Function Get-VMToClusterMapping {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMToClusterMapping cmdlet." -Colour Yellow
+        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMToClusterMapping cmdlet." -Colour Yellow}
     }
 
 }
@@ -1336,7 +1341,7 @@ Function Wait-ForStableNsxtClusterStatus {
         $SecondsDelay = 30
         $Retries = 20
         $aditionalWaitMultiplier = 3
-        $successfulConnecitons = 0
+        $successfulConnections = 0
         While (-not $completed) {
             # Check iteration number
             if ($retrycount -ge $Retries) {
@@ -1353,11 +1358,11 @@ Function Wait-ForStableNsxtClusterStatus {
                 Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
                 continue
             }
-            $successfulConnecitons++
+            $successfulConnections++
             if ($response.mgmt_cluster_status.status -ne 'STABLE') {
                 Write-PowerManagementLogMessage -Type INFO -Message "Expecting NSX Manager cluster state 'STABLE', present state: $($response.mgmt_cluster_status.status)"
                 # Add longer sleep during fiest several attempts to avoid locking the NSX-T account just after power-on
-                if ($successfulConnecitons -lt 4) {
+                if ($successfulConnections -lt 4) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for $($SecondsDelay * $aditionalWaitMultiplier) seconds before next check..."
                     Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
                 }
@@ -1466,7 +1471,7 @@ Function Get-NSXTComputeManger {
 
         .EXAMPLE
         Get-NSXTComputeManger -server $server -user $user -pass $pass
-        This example returns list of edge nodes virtual machines name
+        This example returns list of compute manager mapped to the given server $server
     #>
 
     Param(
@@ -1487,7 +1492,7 @@ Function Get-NSXTComputeManger {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..."
                 #get compute managers info
                 $compute_manager_var = Get-NsXtService com.vmware.nsx.fabric.compute_managers
-                $compute_manager_list = $compute_manager_var.list().results
+                $compute_manager_list = $compute_manager_var.list().results.server
                 Disconnect-NSXTServer * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
                 return $compute_manager_list
             }
