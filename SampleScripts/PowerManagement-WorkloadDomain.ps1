@@ -73,7 +73,8 @@ Catch {
 Try {
     $Global:ProgressPreference = 'SilentlyContinue'
     $str1 = "$PSCommandPath "
-    $str2 = "-server $server -user $user -pass ******* -sddcDomain $sddcDomain "
+    $str2 = "-server $server -user $user -pass ******* -sddcDomain $sddcDomain"
+    if ($PsBoundParameters.ContainsKey("vsanCluster")) { $str2 = $str2 + " -vsanCluster " +  ($vsanCluster -join ",")}
     if ($PsBoundParameters.ContainsKey("startup")) { $str2 = $str2 + " -startup" }
     if ($PsBoundParameters.ContainsKey("shutdown")) { $str2 = $str2 + " -shutdown" }
     if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $str2 = $str2 + " -shutdownCustomerVm" }
@@ -193,7 +194,7 @@ Try {
         $mgmtvcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).username
         $mgmtvcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).password
 
-        [Array]$allvms = @()
+        #[Array]$allvms = @()
         [Array]$vcfvms = @()
         [Array]$vcfvms += ($vcServer.fqdn).Split(".")[0]
 
@@ -239,19 +240,19 @@ Try {
                         }
                     }
                     else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details." -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$($vcServer.fqdn)' has failed. Check the console output for more details." -Colour Red
                     }
 
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$($vcServer.fqdn)' has failed. Check your environment and try again" -Colour Red
                 }
             }
         }
         # We will get NSX-T details in the respective startup/shutdown sections below.
     }
     else {
-        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot obtain an access token from SDDC Manager ($server). Check your credentials." -Colour Red
+        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to vcenter server ($($vcServer.fqdn)). Check your credentials." -Colour Red
         Exit
     }
 }
@@ -267,8 +268,8 @@ Try {
         $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id
         $nsxtMgrfqdn = $nsxtCluster.vipFqdn
         $nsxMgrVIP = New-Object -TypeName PSCustomObject
-        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).username
-        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).password
+        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.resource.domainName -eq $sddcDomain -and $_.credentialType -eq "API" })).username
+        $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and  $_.resource.domainName -eq $sddcDomain -and $_.credentialType -eq "API" })).password
         $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
         $nsxtNodes = @()
         foreach ($node in $nsxtNodesfqdn) {
@@ -276,11 +277,11 @@ Try {
             [Array]$vcfvms += $node.Split(".")[0]
         }
 
-        Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines from vCenter Server $($vcServer.fqdn)..."
-        [Array]$allvms = Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon"
-        $customervms = @()
+        #Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines from vCenter Server $($vcServer.fqdn)..."
+        #[Array]$allvms = Get-VMsWithPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon"
+        #$customervms = @()
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on vCLS virtual machines from vCenter Server $($vcServer.fqdn)..."
-        [Array]$vclsvms += Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon"-pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)"
+        [Array]$vclsvms += Get-VMsWithPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon"-pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)"
         foreach ($vm in $vclsvms) {
             [Array]$vcfvms += $vm
         }
@@ -288,7 +289,7 @@ Try {
         #Check if NSX-T manager VMs are running. If they are stopped skip NSX-T edge shutdown
         $nsxManagerPowerOnVMs = 0
         foreach ($nsxtManager in $nsxtNodes) {
-            $state = Get-VMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch -powerstate "poweredon"
+            $state = Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch -powerstate "poweredon"
             if ($state) { $nsxManagerPowerOnVMs += 1 }
             # If we have all NSX-T managers running or minimum of 2 nodes up - query NSX-T for edges.
             if (($nsxManagerPowerOnVMs -eq $nsxtNodes.count) -or ($nsxManagerPowerOnVMs -eq 2)) {
@@ -302,7 +303,7 @@ Try {
         }
         else {
             Try {
-                [Array]$nsxtEdgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $vcServer.fqdn)
+                [Array]$nsxtEdgeNodes = Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $vcServer.fqdn
                 foreach ($node in $nsxtEdgeNodes) {
                      [Array]$vcfvms += $node
                 }
@@ -313,12 +314,12 @@ Try {
         }
 
 
-        $customervms = $allvms | ? { $vcfvms -notcontains $_ }
+        #$customervms = $allvms | ? { $vcfvms -notcontains $_ }
         $vcfvms_string = $vcfvms -join "; "
 
-
         #This variable holds True of False based on if NSX-T is spanned across workloads or not.
-        $NSXTSpawnedAcrossWld = ((Get-NSXTComputeManger -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword).count -gt 1)
+        $NSXTSpannedAcrossWldVCArray = Get-NSXTComputeManger -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
+        $NSXTSpannedAcrossWld = $NSXTSpannedAcrossWldVCArray.count -gt 1
 
         #From here the looping of all clusters begin.
         $count = $sddcClusterDetails.count
@@ -383,7 +384,6 @@ Try {
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on customer virtual machines for a given vsphere cluster $($cluster.name)..."
             $clustercustomervms = $clusterallvms | ? { $vcfvms -notcontains $_ }
             $clustervcfvms_string = $clustervcfvms -join "; "
-
             Write-PowerManagementLogMessage -Type INFO -Message "Management virtual machines covered by the script for the cluster $($cluster.name): '$($clustervcfvms_string)' ." -Colour Cyan
             if ($clustercustomervms.count -ne 0) {
                 $clustercustomervms_string = $clustercustomervms -join "; "
@@ -467,46 +467,68 @@ Try {
             #The below condition tells that we need to go ahead with NSX-T shutdown only under
             #1. if it is a single cluster per domain environment, which is original original_flow
             #2. if it multiClusterEnvironment and NSX-T is not spanned across VC and if it is lastcluster
-            if ($NSXTSpawnedAcrossWld) {
-                Write-PowerManagementLogMessage -Type WARNING -Message "The NSX-T is spanned across workloads. Hence not shutting it down" -Colour Cyan
+            $allothervcdown = $true
+            if ($NSXTSpannedAcrossWld) {
+                foreach ($VCnode in $NSXTSpannedAcrossWldVCArray) {
+                    if ($VCnode -eq ($vcServer.fqdn)) {
+                        continue
+                    } else {
+                        $checkServer = (Test-NetConnection -ComputerName $VCnode -Port 443).TcpTestSucceeded
+                        if ($checkServer) {
+                            $allothervcdown = $false
+                            break
+                        }
+                    }
+                }
+                if (-not $allothervcdown) {
+                    Write-PowerManagementLogMessage -Type WARNING -Message "The NSX-T is spanned across workloads. But there are some Virtual Centers running, Hence Not shutting down NSX-T" -Colour Cyan
+                } else {
+                    if ($lastelement) {
+                        Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
+                    }
+                }
             } else {
                 if ($lastelement) {
                     Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
                 }
             }
 
-            ## Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-            if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
-                Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
-            }
-            else {
-                Write-PowerManagementLogMessage -Type WARNING -Message "'$($vcServer.fqdn)' might already be shutdown. Skipping putting the cluster in retreat mode." -Colour Cyan
-            }
-
-            # Waiting for vCLS VMs to be stopped for ($retries*10) seconds
-            Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take some time, please wait..." -Colour Yellow
-            $counter = 0
-            $retries = 10
-            $sleep_time = 30
-            while ($counter -ne $retries) {
-                if ($multiClusterEnvironment) {
-                    $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon").count
-                } else {
-                    $powerOnVMcount = (Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
-                }
-
-                if ( $powerOnVMcount ) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until next check."
-                    start-sleep $sleep_time
-                    $counter += 1
+            ###This is where I need to check on the version thing if VCF >=4.5 or vcf4.5
+            $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
+            if ([float]$SDDCVer -le 4.4) {
+                ## Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
+                if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
+                    Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
                 }
                 else {
-                    Break
+                    Write-PowerManagementLogMessage -Type WARNING -Message "'$($vcServer.fqdn)' might already be shutdown. Skipping putting the cluster in retreat mode." -Colour Cyan
                 }
-            }
-            if ($counter -eq $retries) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not shut down within the expected time. Stopping the script execution." -Colour Red
-                Exit
+
+                # Waiting for vCLS VMs to be stopped for ($retries*10) seconds
+                Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take some time, please wait..." -Colour Yellow
+                $counter = 0
+                $retries = 10
+                $sleep_time = 30
+                while ($counter -ne $retries) {
+                    #if ($multiClusterEnvironment) {
+                        $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon" -silence).count
+                    #} else {
+                    #    $powerOnVMcount = (Get-VMsWithPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
+                    #}
+
+                    if ( $powerOnVMcount ) {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until next check."
+                        start-sleep $sleep_time
+                        $counter += 1
+                    }
+                    else {
+                        Break
+                    }
+                }
+                if ($counter -eq $retries) {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not shut down within the expected time. Stopping the script execution." -Colour Red
+                    Exit
+                }
             }
 
             # Check the health and sync status of the vSAN cluster
@@ -533,11 +555,11 @@ Try {
             }
 
             # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
-            if ($multiClusterEnvironment) {
+            #if ($multiClusterEnvironment) {
                 $runningVMs = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vm" -powerstate "poweredon"
-            } else {
-                $runningVMs = Get-VMs -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon"
-            }
+            #} else {
+            #    $runningVMs = Get-VMsWithPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon"
+            #}
             if ($runningVMs.count) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
                 Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed unless all VMs are shut down. Shut down them manually and run the script again." -Colour Cyan
@@ -545,33 +567,34 @@ Try {
             }
             else {
 
-                # Stop vSphere HA to avoid "orphaned" VMs during vSAN shutdown
-                if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -disableHA)) {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Could not disable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
-                }
+                if ([float]$SDDCVer -le 4.4) {
+                    # Stop vSphere HA to avoid "orphaned" VMs during vSAN shutdown
+                    if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -disableHA)) {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Could not disable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
+                    }
 
-                ## Actual vSAN and ESXi shutdown happens here - once we are sure that there are no VMs running on hosts
-                # Disable cluster member updates from vCenter Server
-                foreach ($esxiNode in $esxiDetails) {
-                    Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
-                }
-                # Run vSAN cluster preparation - should be done on one host per cluster
-                # Sleeping 1 min before starting the preparation
-                Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for one minute..."
-                Start-Sleep -s 60
-                Invoke-EsxCommand -server $esxiDetails.fqdn[0] -user $esxiDetails.username[0] -pass $esxiDetails.password[0] -expected "Cluster preparation is done" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py prepare"
-                # Putting hosts in maintenance mode
-                foreach ($esxiNode in $esxiDetails) {
-                    Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
-                }
+                    ## Actual vSAN and ESXi shutdown happens here - once we are sure that there are no VMs running on hosts
+                    # Disable cluster member updates from vCenter Server
+                    foreach ($esxiNode in $esxiDetails) {
+                        Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
+                    }
+                    # Run vSAN cluster preparation - should be done on one host per cluster
+                    # Sleeping 1 min before starting the preparation
+                    Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for one minute..."
+                    Start-Sleep -s 60
+                    Invoke-EsxCommand -server $esxiDetails.fqdn[0] -user $esxiDetails.username[0] -pass $esxiDetails.password[0] -expected "Cluster preparation is done" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py prepare"
+                    # Putting hosts in maintenance mode
+                    foreach ($esxiNode in $esxiDetails) {
+                        Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
+                    }
 
                 ## TODO Add ESXi shutdown here
-
-                ## sowjanya debug log Shutdown vCenter Server --  check with IVO, if VC shutdown to be stopped if NSXT is spanned, I don't think so.
+                } else {
+                    #VSAN shutdown wizard automation
+                }
                 if ($lastelement) {
                     Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
                 }
-
                 $ClusterStatusMapping[$cluster.name] = 'DOWN'
 
                 # End of shutdown
@@ -597,16 +620,17 @@ Try {
 
 
     if ($PsBoundParameters.ContainsKey("startup")) {
-        #multicluster support
-
         #From here the looping of all clusters begin.
         $nsxMgrVIP = New-Object -TypeName PSCustomObject
         $nsxtMgrfqdn = ""
         $count = $sddcClusterDetails.count
         $index = 1
-
+        $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
         foreach ($cluster in $ClusterDetails) {
             $esxiDetails = $esxiWorkloadCluster[$cluster.name]
+            if ([float]$SDDCVer -gt 4.4) {
+                #Add logic here to inform customers to start all the ESXi hosts manually, create an interactive wait prompt.
+            }
             # Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
             Try {
                 foreach ($esxiNode in $esxiDetails) {
@@ -626,133 +650,139 @@ Try {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
             }
         }
-        foreach ($cluster in $ClusterDetails) {
-                    # Prepare the vSAN cluster for startup - Performed on a single host only
-			$esxiDetails = $esxiWorkloadCluster[$cluster.name]
-            Invoke-EsxCommand -server $esxiDetails.fqdn[0] -user $esxiDetails.username[0] -pass $esxiDetails.password[0] -expected "Cluster reboot/poweron is completed successfully!" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py recover"
-        }
-        foreach ($cluster in $ClusterDetails) {
-            # Enable vSAN cluster member updates
-            $esxiDetails = $esxiWorkloadCluster[$cluster.name]
-            foreach ($esxiNode in $esxiDetails) {
-                Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
+        if ([float]$SDDCVer -le 4.4) {
+            foreach ($cluster in $ClusterDetails) {
+                        # Prepare the vSAN cluster for startup - Performed on a single host only
+                $esxiDetails = $esxiWorkloadCluster[$cluster.name]
+                Invoke-EsxCommand -server $esxiDetails.fqdn[0] -user $esxiDetails.username[0] -pass $esxiDetails.password[0] -expected "Cluster reboot/poweron is completed successfully!" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py recover"
             }
-        }
-        foreach ($cluster in $ClusterDetails) {
-            # Check ESXi status for each host
-            Write-PowerManagementLogMessage -Type INFO -Message "Checking the vSAN status of the ESXi hosts...." -Colour Green
-            $esxiDetails = $esxiWorkloadCluster[$cluster.name]
-            foreach ($esxiNode in $esxiDetails) {
-                Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Local Node Health State: HEALTHY" -cmd "esxcli vsan cluster get"
+            foreach ($cluster in $ClusterDetails) {
+                # Enable vSAN cluster member updates
+                $esxiDetails = $esxiWorkloadCluster[$cluster.name]
+                foreach ($esxiNode in $esxiDetails) {
+                    Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
+                }
             }
-        }
+            foreach ($cluster in $ClusterDetails) {
+                # Check ESXi status for each host
+                Write-PowerManagementLogMessage -Type INFO -Message "Checking the vSAN status of the ESXi hosts...." -Colour Green
+                $esxiDetails = $esxiWorkloadCluster[$cluster.name]
+                foreach ($esxiNode in $esxiDetails) {
+                    Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Local Node Health State: HEALTHY" -cmd "esxcli vsan cluster get"
+                }
+            }
 
-        foreach ($cluster in $ClusterDetails) {
-            $VcStarted = (Get-VMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0]).count
-            if (-not $VcStarted) {
-                # Startup the Virtual Infrastructure Workload Domain vCenter Server
-                Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
-                Write-PowerManagementLogMessage -Type INFO -Message "Waiting for the vCenter Server services to start on '$($vcServer.fqdn)'. It will take some time." -Colour Yellow
+            foreach ($cluster in $ClusterDetails) {
+                Write-PowerManagementLogMessage -Type INFO -Message "Trying to see if vCenter Server is already started"
+                $VcStarted = (Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0] -silence).count
+                if (-not $VcStarted) {
+                    # Startup the Virtual Infrastructure Workload Domain vCenter Server
+                    Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
+                    Write-PowerManagementLogMessage -Type INFO -Message "Waiting for the vCenter Server services to start on '$($vcServer.fqdn)'. It will take some time." -Colour Yellow
+                } else {
+                    Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server is already started" -Colour Green
+                }
+                $retries = 20
+                $flag = 0
+                $service_status = 0
+                if ($DefaultVIServers) {
+                    Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                }
+                While ($retries) {
+                    Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
+                    if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
+                        #Max wait time for services to come up is 10 mins.
+                        for ($i = 0; $i -le 10; $i++) {
+                            $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service 'vsphere-ui' -nolog
+                            if ($status -eq "STARTED") {
+                                $service_status = 1
+                                break
+                            }
+                            else {
+                                Write-PowerManagementLogMessage -Type INFO -Message "The services on vCenter Server are still starting. Please wait." -Colour Yellow
+                                Start-Sleep 60
+                            }
+                        }
+                        $flag = 1
+                        # Workaround for ESXis that do not communicate their Maintenance status to vCenter Server
+                        foreach ($esxiNode in $esxiDetails) {
+                            if ((Get-VMHost -name $esxiNode.fqdn).ConnectionState -eq "Maintenance") {
+                                write-PowerManagementLogMessage -Type INFO -Message "Performing exit MaintenanceMode on '$($esxiNode.fqdn)' from vCenter Server." -Colour Yellow
+                                (Get-VMHost -name $esxiNode.fqdn | Get-View).ExitMaintenanceMode_Task(0) | Out-Null
+                            }
+                        }
+                        Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                        break
+                    }
+                    Start-Sleep 60
+                    $retries -= 1
+                    Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server is still starting. Please wait." -Colour Yellow
+                }
+
+
+                # Check the health and sync status of the vSAN cluster
+                if ( $flag -and $service_status) {
+                    if ((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
+                        Write-PowerManagementLogMessage -Type INFO -Message "vSAN object resynchronization is successful." -Colour Green
+                    }
+                    else {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization has failed. Check your environment and run the script again." -Colour Red
+                        Exit
+                    }
+                    if ((Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Cluster health is good." -Colour Green
+                    }
+                    else {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Cluster health is bad. Please check your environment and run the script again." -Colour Red
+                        Exit
+                    }
+                }
+                else {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "vCenter Server and its services are still not online." -Colour Red
+                    Exit
+                }
+
+                # Start vSphere HA to avoid triggering a "Cannot find vSphere HA master agent" error.
+                if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
+                }
+                $index++
+            }
+            foreach ($cluster in $ClusterDetails) {
+                #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
+                Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
+            }
+
+            $index = 1
+            foreach ($cluster in $ClusterDetails) {
+                # Waiting for vCLS VMs to be started for ($retries*10) seconds
+                Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS startup will take some time. Please wait! " -Colour Yellow
+                $counter = 0
+                $retries = 30
+                $sleep_time = 30
+                while ($counter -ne $retries) {
+                    $powerOnVMcount = (Get-VMsWithPowerStatus -server $vcServer.fqdn -powerstate "poweredon" -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)" -silence).count
+                    if ( $powerOnVMcount -lt 3 ) {
+                        Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
+                        start-sleep $sleep_time
+                        $counter += 1
+                    }
+                    else {
+                        Break
+                    }
+                }
+                if ($counter -eq $retries) {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
+                    Exit
+                }
             } else {
-                Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server is already started" -Colour Green
+                ##cluster wizard automation to be added here.
             }
-            $retries = 20
-            $flag = 0
-            $service_status = 0
-            if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-            }
-            While ($retries) {
-                Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
-                if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
-                    #Max wait time for services to come up is 10 mins.
-                    for ($i = 0; $i -le 10; $i++) {
-                        $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service 'vsphere-ui' -nolog
-                        if ($status -eq "STARTED") {
-                            $service_status = 1
-                            break
-                        }
-                        else {
-                            Write-PowerManagementLogMessage -Type INFO -Message "The services on vCenter Server are still starting. Please wait." -Colour Yellow
-                            Start-Sleep 60
-                        }
-                    }
-                    $flag = 1
-                    # Workaround for ESXis that do not communicate their Maintenance status to vCenter Server
-                    foreach ($esxiNode in $esxiDetails) {
-                        if ((Get-VMHost -name $esxiNode.fqdn).ConnectionState -eq "Maintenance") {
-                            write-PowerManagementLogMessage -Type INFO -Message "Performing exit MaintenanceMode on '$($esxiNode.fqdn)' from vCenter Server." -Colour Yellow
-                            (Get-VMHost -name $esxiNode.fqdn | Get-View).ExitMaintenanceMode_Task(0) | Out-Null
-                        }
-                    }
-                    Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-                    break
-                }
-                Start-Sleep 60
-                $retries -= 1
-                Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server is still starting. Please wait." -Colour Yellow
-            }
-
-
-            # Check the health and sync status of the vSAN cluster
-            if ( $flag -and $service_status) {
-                if ((Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Cluster health is good." -Colour Green
-                }
-                else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cluster health is bad. Please check your environment and run the script again." -Colour Red
-                    Exit
-                }
-                if ((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "vSAN object resynchronization is successful." -Colour Green
-                }
-                else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization has failed. Check your environment and run the script again." -Colour Red
-                    Exit
-                }
-            }
-            else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "vCenter Server and its services are still not online." -Colour Red
-                Exit
-            }
-
-            # Start vSphere HA to avoid triggering a "Cannot find vSphere HA master agent" error.
-            if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
-            }
-            $index++
-       }
-        foreach ($cluster in $ClusterDetails) {
-            #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
-            Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
-        }
-
-		$index = 1
-        foreach ($cluster in $ClusterDetails) {
-            # Waiting for vCLS VMs to be started for ($retries*10) seconds
-            Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS startup will take some time. Please wait! " -Colour Yellow
-            $counter = 0
-            $retries = 30
-            $sleep_time = 30
-            while ($counter -ne $retries) {
-                $powerOnVMcount = (Get-VMs -server $vcServer.fqdn -powerstate "poweredon" -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
-                if ( $powerOnVMcount -lt 3 ) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
-                    start-sleep $sleep_time
-                    $counter += 1
-                }
-                else {
-                    Break
-                }
-            }
-            if ($counter -eq $retries) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
-                Exit
-            }
-
             [Array]$clustervclsvms = @()
+            [Array]$clustervcfvms = @()
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  virtual machines for a given vsphere cluster $($cluster.name)..."
             [Array]$clusterallvms = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "VM"
+            #Write-PowerManagementLogMessage -Type INFO -Message "$clusterallvms"
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  vCLS virtual machines for a given vsphere cluster $($cluster.name)..."
             [Array]$clustervclsvms = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls"
             foreach ($vm in $clustervclsvms) {
@@ -792,8 +822,8 @@ Try {
                 }
                 $nsxtMgrfqdn = $nsxtCluster.vipFqdn
 
-                $nsxMgrVIP | Add-Member -Force -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).username
-                $nsxMgrVIP | Add-Member -Force -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).password
+                $nsxMgrVIP | Add-Member -Force -Type NoteProperty -Name adminUser -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.resource.domainName -eq $sddcDomain -and $_.credentialType -eq "API" })).username
+                $nsxMgrVIP | Add-Member -Force -Type NoteProperty -Name adminPassword -Value (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.resource.domainName -eq $sddcDomain -and $_.credentialType -eq "API" })).password
                 $nsxtNodesfqdn = $nsxtCluster.nodes.fqdn
                 $nsxtNodes = @()
                 foreach ($node in $nsxtNodesfqdn) {
@@ -805,7 +835,8 @@ Try {
 
                 $NsxtStarted = 0
                 foreach ($node in $nsxtNodes) {
-                    $NsxtStarted += (Get-VMs -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $node).count
+                    Write-PowerManagementLogMessage -Type INFO -Message "Trying to see if $node is already started"
+                    $NsxtStarted += (Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $node -silence).count
                 }
                 if (-not ($NsxtStarted -eq $nsxtNodes.count)) {
                     # Startup the NSX Manager Nodes for Virtual Infrastructure Workload Domain
@@ -846,11 +877,11 @@ Try {
 
             # End of startup
             $vcfvms_string = ""
-            if ($multiClusterEnvironment) {
+            #if ($multiClusterEnvironment) {
                 $vcfvms_string = ($clustervcfvms | select -Unique) -join "; "
-            } else {
-                $vcfvms_string = ($vcfvms | select -Unique) -join "; "
-            }
+            #} else {
+            #    $vcfvms_string = ($vcfvms | select -Unique) -join "; "
+            #}
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "The following components have been started: $vcfvms_string , " -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability has been enabled by the script. Disable it per your environment's design." -Colour Cyan
