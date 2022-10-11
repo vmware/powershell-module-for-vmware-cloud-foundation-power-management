@@ -508,12 +508,12 @@ Function Get-VMRunningStatus {
                     foreach ($node in $nodes) {	
                         $vm_obj = Get-VMGuest -server $server -VM $node.Name -ErrorAction SilentlyContinue | Where-Object VmUid -match $server
                         if ($vm_obj.State -eq $status) {
-                            Write-PowerManagementLogMessage -Type INFO -Message "Node $($node.Name) is in the correct running state '$($status.ToUpper()).'" -Colour Green
+                            Write-PowerManagementLogMessage -Type INFO -Message "Node $($node.Name) is in '$($status.ToUpper()) state.'"
                             return $true
                         }
                         else {
 
-                            Write-PowerManagementLogMessage -Type WARNING -Message "Node $($node.Name) is in an incorrect running state '$($status.ToUpper())'." -Colour Cyan
+                            Write-PowerManagementLogMessage -Type INFO -Message "Node $($node.Name) is not in '$($status.ToUpper()) state'."
                             return $false
                         }
                     }
