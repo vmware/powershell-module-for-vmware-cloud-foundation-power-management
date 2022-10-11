@@ -650,7 +650,7 @@ Try {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
             }
         }
-        if ([float]$SDDCVer -le 4.4) {
+        #if ([float]$SDDCVer -le 4.4) {
             foreach ($cluster in $ClusterDetails) {
                         # Prepare the vSAN cluster for startup - Performed on a single host only
                 $esxiDetails = $esxiWorkloadCluster[$cluster.name]
@@ -775,9 +775,7 @@ Try {
                     Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
                     Exit
                 }
-            } else {
-                ##cluster wizard automation to be added here.
-            }
+
             [Array]$clustervclsvms = @()
             [Array]$clustervcfvms = @()
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  virtual machines for a given vsphere cluster $($cluster.name)..."
