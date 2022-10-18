@@ -399,6 +399,103 @@ Function Set-MaintenanceMode {
 }
 Export-ModuleMember -Function Set-MaintenanceMode
 
+
+
+Function Get-HostStatus {
+    <#
+        .SYNOPSIS
+        This is used to get ESXi host status [Up/Down]
+
+        .DESCRIPTION
+        The Get-HostStatus cmdlet checks if all hosts are up and out of maintainance mode after start,
+        if status is passed as UP and TCP connection is not happening in case of DOWN status
+
+
+        .EXAMPLE
+        Get-HostStatus -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -status UP
+        This example places an ESXi host in maintenance mode
+
+        .EXAMPLE
+        Get-HostStatus -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -status DOWN
+        This example takes an ESXi host out of maintenance mode
+    #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateSet("UP", "DOWN")] [String]$status
+    )
+
+    Try {
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-HostStatus cmdlet." -Colour Yellow
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        if ($checkServer) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+            }
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to $state maintenance mode..."
+                $hostStatus = (Get-VMHost -Server $server)
+                if ($state -eq "UP") {
+                    if ($hostStatus.ConnectionState -eq "Connected") {
+                        Write-PowerManagementLogMessage -type INFO -Message "Attempting to enter maintenance mode for '$server'..."
+                        Get-View -Server $server -ViewType HostSystem -Filter @{"Name" = $server } | Where-Object { !$_.Runtime.InMaintenanceMode } | ForEach-Object { $_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode = (new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction = [VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction }) })) } | Out-Null
+                        $hostStatus = (Get-VMHost -Server $server)
+                        if ($hostStatus.ConnectionState -eq "Maintenance") {
+                            Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has entered maintenance mode successfully." -Colour Green
+                        }
+                        else {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' did not enter maintenance mode. Check your environment and try again." -Colour Red
+                        }
+                    }
+                    elseif ($hostStatus.ConnectionState -eq "Maintenance") {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has already entered maintenance mode." -Colour Green
+                    }
+                    else {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' is not currently connected." -Colour Red
+                    }
+                } else {
+                    if ($hostStatus.ConnectionState -eq "Maintenance") {
+                        Write-PowerManagementLogMessage -type INFO -Message "Attempting to exit maintenance mode for '$server'..."
+                        $task = Set-VMHost -VMHost $server -State "Connected" -RunAsync -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
+                        Wait-Task $task | out-null
+                        $hostStatus = (Get-VMHost -Server $server)
+                        if ($hostStatus.ConnectionState -eq "Connected") {
+                            Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has exited maintenance mode successfully." -Colour Green
+                        }
+                        else {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "The host '$server' did not exit maintenance mode. Check your environment and try again." -Colour Red
+                        }
+                    }
+                    elseif ($hostStatus.ConnectionState -eq "Connected") {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has already exited maintenance mode" -Colour Yellow
+                    }
+                    else {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' is not currently connected." -Colour Red
+                    }
+                }
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+            }
+            else {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+            }
+        }
+        else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+        }
+    }
+    Catch {
+        Debug-CatchWriterForPowerManagement -object $_
+    }
+    Finally {
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-HostStatus cmdlet." -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Get-HostStatus
+
 Function Set-DrsAutomationLevel {
     <#
         .SYNOPSIS
@@ -467,6 +564,97 @@ Function Set-DrsAutomationLevel {
     }
 }
 Export-ModuleMember -Function Set-DrsAutomationLevel
+
+
+Function Set-VsanClusterPowerStatus {
+    <#
+        .SYNOPSIS
+        PowerOff or PowerOn the vSAN Cluster
+
+        .DESCRIPTION
+        The Set-VsanClusterPowerStatus cmdlet either PowerOff or PowerOn the vSAN Cluster
+
+        .EXAMPLE
+        Set-VsanClusterPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -PowerStatus clusterPoweredOff
+        This example poweroff the cluster sfo-m01-cl01
+
+        Set-VsanClusterPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -PowerStatus clusterPoweredOn
+        This example poweron the cluster sfo-m01-cl01
+    #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$clustername,
+        [Parameter (Mandatory = $true)] [ValidateSet("clusterPoweredOff", "clusterPoweredOn")] [String]$PowerStatus
+    )
+
+    Try {
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsanClusterPowerStatus cmdlet." -Colour Yellow
+
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        if ($checkServer) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+            }
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+
+                Import-Module VMware.VimAutomation.Storage
+                $vsanClient = [VMware.VimAutomation.Storage.Interop.V1.Service.StorageServiceFactory]::StorageCoreService.ClientManager.GetClientByConnectionId($DefaultVIServer.Id)
+                $vsanClusterPowerSystem = $vsanClient.VsanViewService.GetVsanViewById("VsanClusterPowerSystem-vsan-cluster-power-system")
+
+                # Populate the needed spec:
+                $spec = [VMware.Vsan.Views.PerformClusterPowerActionSpec]::new()
+
+                $spec.powerOffReason = "VCF Automatic"
+                $spec.targetPowerStatus = $PowerStatus
+
+                $cluster = Get-Cluster $clustername
+
+
+                $powerActionTask = $vsanClusterPowerSystem.PerformClusterPowerAction($cluster.ExtensionData.MoRef, $spec)
+                $task = Get-Task -Id $powerActionTask
+                $counter = 0
+                do
+                {
+                    $task = Get-Task -Id $powerActionTask
+                    Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is $($task.PercentComplete)% completed"
+                    sleep 10
+                    $counter += 10
+                }while($task.State -eq "Running" -and ($counter -lt 1800))
+
+                if ($task.State -eq "Error"){
+                    Write-PowerManagementLogMessage -Type ERROR -Message "$PowerStatus task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)" -Colour Red
+                }
+
+                if ($task.State -eq "Success"){
+                    Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is completed successfully" -colour GREEN
+                } else {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "$PowerStatus task is stuck at $($task.State) state"
+                }
+
+                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+
+            }
+            else {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+            }
+        }
+        else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+        }
+    }
+    Catch {
+        Debug-CatchWriterForPowerManagement -object $_
+    }
+    Finally {
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-VsanClusterPowerStatus cmdlet." -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Set-VsanClusterPowerStatus
 
 Function Get-VMRunningStatus {
     <#

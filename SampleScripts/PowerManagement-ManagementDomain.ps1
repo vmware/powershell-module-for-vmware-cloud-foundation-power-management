@@ -441,38 +441,10 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes present. Skipping shutdown..." -Colour Cyan
         }
 
-        #This variable holds True of False based on if NSX-T is spanned across workloads or not.
-        $NSXTSpannedAcrossWldVCArray = Get-NSXTComputeManger -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
-        #Write-Host  "1. NSXT Spanned : $NSXTSpannedAcrossWldVCArray"
-        $NSXTSpannedAcrossWld = $NSXTSpannedAcrossWldVCArray.count -gt 1
-        #Write-Host  "2. NSXT Spanned count: $NSXTSpannedAcrossWld"
+        #Stop NSX-T Manager nodes
+        Write-PowerManagementLogMessage -Type INFO -Message "Stopping the NSX Manager nodes..." -Colour Green
+        Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
-        # Shutdown the NSX Manager Nodes
-        $allothervcdown = $true
-        if ($NSXTSpannedAcrossWld) {
-            Write-PowerManagementLogMessage -Type INFO -Message "The NSX-T is spanned across workloads."
-            foreach ($VCnode in $NSXTSpannedAcrossWldVCArray) {
-                if ($VCnode -eq ($vcServer.fqdn)) {
-                    continue
-                } else {
-                    $checkServer = (Test-NetConnection -ComputerName $VCnode -Port 443).TcpTestSucceeded
-                    if ($checkServer) {
-                        $allothervcdown = $false
-                        break
-                    }
-                }
-            }
-            if (-not $allothervcdown) {
-                Write-PowerManagementLogMessage -Type WARNING -Message "The NSX-T is spanned across workloads. But there are some Virtual Centers running, Hence Not shutting down NSX-T" -Colour Cyan
-            } else {
-                Write-PowerManagementLogMessage -Type INFO -Message "Stopping the NSX Manager nodes..." -Colour Green
-                Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
-            }
-        } else {
-            Write-PowerManagementLogMessage -Type INFO -Message "The NSX-T is not spanned across workloads."
-            Write-PowerManagementLogMessage -Type INFO -Message "Stopping the NSX Manager nodes..." -Colour Green
-            Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
-        }
 
         #Test VSAN health before SDDC manager is down, needed for VSAN 4.5
         if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
@@ -496,7 +468,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600
 
         #Need to place if block in here
-        if ([float]$SDDCVer -le 4.4) {
+        if ([float]$SDDCVer -lt 4.5) {
 
             # Shut Down the vSphere Cluster Services Virtual Machines
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
@@ -582,7 +554,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
         # Actual vSAN and ESXi shutdown happens here - once we are sure that there are no VMs running on hosts
         else {
-            if ([float]$SDDCVer -le 4.4) {
+            if ([float]$SDDCVer -lt 4.5) {
                 # Disable cluster member updates from vCenter Server
                 foreach ($esxiNode in $esxiWorkloadDomain) {
                     Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
@@ -719,7 +691,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                 Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
             }
 
-            if ([float]$SDDCVer -le 4.4) {
+            if ([float]$SDDCVer -lt 4.5) {
                 # Prepare the vSAN cluster for startup - Performed on a single host only
                 # We need some time before this step, setting hard sleep 30 sec
                 Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 30 seconds before starting vSAN..."
