@@ -663,8 +663,8 @@ Try {
                             write-PowerManagementLogMessage -Type INFO -Message "Performing exit MaintenanceMode on '$($esxiNode.fqdn)' from vCenter Server." -Colour Yellow
                             (Get-VMHost -name $esxiNode.fqdn | Get-View).ExitMaintenanceMode_Task(0) | Out-Null
                         }
+                        Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                     }
-                    Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
             }
 

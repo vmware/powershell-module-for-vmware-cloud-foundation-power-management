@@ -521,35 +521,44 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             Exit
         }
 
-        # Verify that there is only one VM running (vCenter Server) on the ESXis, then shutdown vCenter Server.
-        $runningVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -silence
-        if ($runningVMs.count -gt 1 ) {
-            Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
-            Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed unless the power-on VMs are shut down. Shut them down them manually and continue with the shutdown operation by following documentation of VMware Cloud Foundation." -Colour Cyan
-            Write-PowerManagementLogMessage -Type ERROR -Message "There are running VMs in environment: $($runningVMs). Exiting! " -Colour Red
-        }
-        else {
-            Write-PowerManagementLogMessage -Type INFO -Message "There are no VM's in the powered-on state, hence shutting down Virtual Center."
-            # Shutdown vCenter Server
-            Stop-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -timeout 600
-            if (Get-VMRunningStatus -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -Status "Running") {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot stop vCenter Server on the host. Exiting!" -Colour Red
+        if ([float]$SDDCVer -lt 4.5) {
+            # Verify that there is only one VM running (vCenter Server) on the ESXis, then shutdown vCenter Server.
+            $runningVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -silence
+            if ($runningVMs.count -gt 1 ) {
+                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed unless the power-on VMs are shut down. Shut them down them manually and continue with the shutdown operation by following documentation of VMware Cloud Foundation." -Colour Cyan
+                Write-PowerManagementLogMessage -Type ERROR -Message "There are running VMs in environment: $($runningVMs). Exiting! " -Colour Red
+            }
+            else {
+                Write-PowerManagementLogMessage -Type INFO -Message "There are no VM's in the powered-on state, hence shutting down Virtual Center."
+                # Shutdown vCenter Server
+                Stop-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -timeout 600
+                if (Get-VMRunningStatus -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -Status "Running") {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot stop vCenter Server on the host. Exiting!" -Colour Red
+                }
             }
         }
-
         # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
         Write-PowerManagementLogMessage -Type INFO -Message "Checking that there are no running VMs on the ESXi hosts before stopping vSAN." -Colour Green
-        $runningVMs = $False
+        $runningVMsPresent = $False
+        $runningVMs = ""
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            $vms = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -silence
-            if ($vms.count) {
+            if ([float]$SDDCVer -lt 4.5) {
+                $runningVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -silence
+            } else {
+                $runningAllVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -silence
+                $runningVclsVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)"
+                $runningVMs = $runningAllVMs | ? { $runningVclsVMs -notcontains $_ }
+            }
+            if ($runningVMs.count) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
                 Write-PowerManagementLogMessage -Type WARNING -Message "Cannot to proceed unless the powered-on VMs are shut down. Shut down them down manually and run the script again" -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "ESXi with VMs running: $($esxiNode.fqdn) VMs are:$($vms) " -Colour Cyan
-                $runningVMs = $True
+                Write-PowerManagementLogMessage -Type WARNING -Message "ESXi with VMs running: $($esxiNode.fqdn) VMs are:$($runningVMs) " -Colour Cyan
+                $runningVMsPresent = $True
             }
-        } 
-        if ($runningVMs) {
+        }
+        # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
+        if ($runningVMsPresent) {
             Write-PowerManagementLogMessage -Type ERROR -Message "There are still running VMs on some ESXi host(s). Check the console log, stop the VMs and continue the shutdown operation manually." -Colour Red
         }
         # Actual vSAN and ESXi shutdown happens here - once we are sure that there are no VMs running on hosts
@@ -575,8 +584,15 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Write-PowerManagementLogMessage -Type INFO -Message "Please shut down the ESXi hosts!" -Colour Cyan
             } else {
                 #lock in mode API call comes here
-                #VSAN cluster wizard automation comes in here
+                #VSAN shutdown wizard automation
+                Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff
                 #Verify if all ESXi hosts are down in here to conclude End of Shutdown sequence
+                foreach ($esxiNode in $esxiDetails) {
+                    if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Looks like $($esxiNode.fqdn) is still UP. Check the FQDN or IP address or power state of the '$($esxiNode.fqdn)'." -Colour Red
+                        Exit
+                    }
+                }
             }
         }
     }
