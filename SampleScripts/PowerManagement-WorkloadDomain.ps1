@@ -657,6 +657,14 @@ Try {
                 # Take hosts out of maintenance mode
                 foreach ($esxiNode in $esxiDetails) {
                     Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
+                    Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
+                    if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
+                        if ((Get-VMHost -name $esxiNode.fqdn).ConnectionState -eq "Maintenance") {
+                            write-PowerManagementLogMessage -Type INFO -Message "Performing exit MaintenanceMode on '$($esxiNode.fqdn)' from vCenter Server." -Colour Yellow
+                            (Get-VMHost -name $esxiNode.fqdn | Get-View).ExitMaintenanceMode_Task(0) | Out-Null
+                        }
+                    }
+                    Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
             }
 
