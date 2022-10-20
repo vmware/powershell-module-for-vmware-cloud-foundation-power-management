@@ -95,12 +95,12 @@ Function Stop-CloudComponent {
                                 else {
                                     Stop-VMGuest -Server $server -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
                                     Write-PowerManagementLogMessage -Type INFO -Message "Waiting for node '$node' to shut down..."
-                                    While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
+                                    While (($vm_obj.State -ne 'NotRunning') -and ($count -le $timeout)) {
                                         Start-Sleep -Seconds 5
                                         $count = $count + 5
                                         $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                     }
-                                    if ($count -eq $timeout) {
+                                    if ($count -gt $timeout) {
                                         Write-PowerManagementLogMessage -Type ERROR -Message "Node '$node' did not shut down within the expected timeout $timeout value."	-Colour Red			
                                     }
                                     else {
@@ -138,12 +138,12 @@ Function Stop-CloudComponent {
                             else {
                                 Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server | Stop-VMGuest -Confirm:$false | Out-Null
                                 $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
-                                While (($vm_obj.State -ne 'NotRunning') -and ($count -ne $timeout)) {
+                                While (($vm_obj.State -ne 'NotRunning') -and ($count -le $timeout)) {
                                     Start-Sleep -Seconds 1
                                     $count = $count + 1
                                     $vm_obj = Get-VMGuest -VM $node.Name | Where-Object VmUid -match $server
                                 }
-                                if ($count -eq $timeout) {
+                                if ($count -gt $timeout) {
                                     Write-PowerManagementLogMessage -Type ERROR -Message "Node '$($node.name)' did not shut down within the expected timeout $timeout value."	-Colour Red
                                 }
                                 else {
@@ -228,12 +228,12 @@ Function Start-CloudComponent {
                                 Start-Sleep -Seconds 5
                                 $count = $count + 5
                                 Write-PowerManagementLogMessage -Type INFO -Message "Waiting for node '$node' to start up..."
-                                While (($vm_obj.State -ne 'Running') -and ($count -ne $timeout)) {
+                                While (($vm_obj.State -ne 'Running') -and ($count -le $timeout)) {
                                     Start-Sleep -Seconds 10
                                     $count = $count + 10
                                     $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 }
-                                if ($count -eq $timeout) {
+                                if ($count -gt $timeout) {
                                     Write-PowerManagementLogMessage -Type ERROR -Message "Node '$node' did not start up within the expected timeout $timeout value." -Colour Red
                                     Break 			
                                 } 
@@ -268,12 +268,12 @@ Function Start-CloudComponent {
                             Start-VM -VM $node.Name | Out-Null
                             $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to start up node '$($node.name)'..."
-                            While (($vm_obj.State -ne 'Running') -AND ($count -ne $timeout)) {
+                            While (($vm_obj.State -ne 'Running') -AND ($count -le $timeout)) {
                                 Start-Sleep -Seconds 1
                                 $count = $count + 1
                                 $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             }
-                            if ($count -eq $timeout) {
+                            if ($count -gt $timeout) {
                                 Write-PowerManagementLogMessage -Type ERROR -Message "Node '$($node.name)' did not start up within the expected timeout $timeout value."	-Colour Red
                             }
                             else {
