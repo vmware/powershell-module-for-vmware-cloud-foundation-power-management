@@ -95,9 +95,10 @@ Function Stop-CloudComponent {
                                 else {
                                     Stop-VMGuest -Server $server -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
                                     Write-PowerManagementLogMessage -Type INFO -Message "Waiting for node '$node' to shut down..."
+                                    $sleepTime = 5
                                     While (($vm_obj.State -ne 'NotRunning') -and ($count -le $timeout)) {
-                                        Start-Sleep -Seconds 5
-                                        $count = $count + 5
+                                        Start-Sleep -Seconds $sleepTime
+                                        $count = $count + $sleepTime
                                         $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                     }
                                     if ($count -gt $timeout) {
@@ -138,9 +139,10 @@ Function Stop-CloudComponent {
                             else {
                                 Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server | Stop-VMGuest -Confirm:$false | Out-Null
                                 $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
+                                $sleepTime = 1
                                 While (($vm_obj.State -ne 'NotRunning') -and ($count -le $timeout)) {
-                                    Start-Sleep -Seconds 1
-                                    $count = $count + 1
+                                    Start-Sleep -Seconds $sleepTime
+                                    $count = $count + $sleepTime
                                     $vm_obj = Get-VMGuest -VM $node.Name | Where-Object VmUid -match $server
                                 }
                                 if ($count -gt $timeout) {
@@ -226,11 +228,11 @@ Function Start-CloudComponent {
                                 Write-PowerManagementLogMessage -Type INFO -Message "Attempting to start up node '$node'..."
                                 Start-VM -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
                                 Start-Sleep -Seconds 5
-                                $count = $count + 5
+                                $sleepTime = 10
                                 Write-PowerManagementLogMessage -Type INFO -Message "Waiting for node '$node' to start up..."
                                 While (($vm_obj.State -ne 'Running') -and ($count -le $timeout)) {
-                                    Start-Sleep -Seconds 10
-                                    $count = $count + 10
+                                    Start-Sleep -Seconds $sleepTime
+                                    $count = $count + $sleepTime
                                     $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 }
                                 if ($count -gt $timeout) {
@@ -266,11 +268,12 @@ Function Start-CloudComponent {
                             }
 
                             Start-VM -VM $node.Name | Out-Null
+                            $sleepTime = 1
                             $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to start up node '$($node.name)'..."
                             While (($vm_obj.State -ne 'Running') -AND ($count -le $timeout)) {
-                                Start-Sleep -Seconds 1
-                                $count = $count + 1
+                                Start-Sleep -Seconds $sleepTime
+                                $count = $count + $sleepTime
                                 $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             }
                             if ($count -gt $timeout) {

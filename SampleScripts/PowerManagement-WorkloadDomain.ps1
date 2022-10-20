@@ -657,14 +657,6 @@ Try {
                 # Take hosts out of maintenance mode
                 foreach ($esxiNode in $esxiDetails) {
                     Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
-                    Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
-                    if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
-                        if ((Get-VMHost -name $esxiNode.fqdn).ConnectionState -eq "Maintenance") {
-                            write-PowerManagementLogMessage -Type INFO -Message "Performing exit MaintenanceMode on '$($esxiNode.fqdn)' from vCenter Server." -Colour Yellow
-                            (Get-VMHost -name $esxiNode.fqdn | Get-View).ExitMaintenanceMode_Task(0) | Out-Null
-                        }
-                        Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-                    }
                 }
             }
 
@@ -690,6 +682,7 @@ Try {
             }
         }
         foreach ($cluster in $ClusterDetails) {
+            $esxiDetails = $esxiWorkloadCluster[$cluster.name]
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to see if vCenter Server is already started"
             $VcStarted = (Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0] -silence).count
             if (-not $VcStarted) {
@@ -784,7 +777,7 @@ Try {
                         $esxiDetails = $esxiWorkloadCluster[$cluster.name]
                         foreach ($esxiNode in $esxiDetails) {
                             if (!(Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
-                                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with SDDC Manager $($esxiNode.fqdn). Check the FQDN or IP address or power state of the '$($esxiNode.fqdn)'." -Colour Red
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with the host $($esxiNode.fqdn). Check the FQDN or IP address or power state of '$($esxiNode.fqdn)'." -Colour Red
                                 Exit
                             }
                         }
