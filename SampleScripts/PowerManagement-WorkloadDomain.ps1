@@ -113,6 +113,8 @@ Try {
         # Gather Details from SDDC Manager
         $managementDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
         $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.Name -eq $sddcDomain }
+        $allWld = Get-VCFWorkloadDomain | Where-Object { ($_.Type -ne "MANAGEMENT") }
+        $allWldVCs = $allWld.vcenters.fqdn
         if ([string]::IsNullOrEmpty($workloadDomain)) {
             Write-PowerManagementLogMessage -Type ERROR -Message "Domain $sddcDomain doesn't exist. Check your environment and try again. " -Colour Red
             Exit
@@ -683,55 +685,55 @@ Try {
         }
         foreach ($cluster in $ClusterDetails) {
             $esxiDetails = $esxiWorkloadCluster[$cluster.name]
-            Write-PowerManagementLogMessage -Type INFO -Message "Trying to see if vCenter Server is already started"
-            $VcStarted = (Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $vcServer.fqdn.Split(".")[0] -silence).count
-            if (-not $VcStarted) {
-                # Startup the Virtual Infrastructure Workload Domain vCenter Server
-                Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
-                Write-PowerManagementLogMessage -Type INFO -Message "Waiting for the vCenter Server services to start on '$($vcServer.fqdn)'. It will take some time." -Colour Yellow
-            } else {
-                Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server is already started" -Colour Green
-            }
-            $retries = 20
-            $flag = 0
+            Write-PowerManagementLogMessage -Type INFO -Message "Trying to see if all vCenter Servers in a workload domain are already started"
             $service_status = 0
-            if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-            }
-            While ($retries) {
-                Connect-VIServer -server $vcServer.fqdn -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
-                if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
-                    #Max wait time for services to come up is 10 mins.
-                    for ($i = 0; $i -le 10; $i++) {
-                        $status = Get-VAMIServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service 'vsphere-ui' -nolog
-                        if ($status -eq "STARTED") {
-                            $service_status = 1
-                            break
-                        }
-                        else {
-                            Write-PowerManagementLogMessage -Type INFO -Message "The services on vCenter Server are still starting. Please wait." -Colour Yellow
-                            Start-Sleep 60
-                        }
-                    }
-                    $flag = 1
-                    if ([float]$SDDCVer -lt 4.5) {
-                        # Workaround for ESXis that do not communicate their Maintenance status to vCenter Server
-                        foreach ($esxiNode in $esxiDetails) {
-                            if ((Get-VMHost -name $esxiNode.fqdn).ConnectionState -eq "Maintenance") {
-                                write-PowerManagementLogMessage -Type INFO -Message "Performing exit MaintenanceMode on '$($esxiNode.fqdn)' from vCenter Server." -Colour Yellow
-                                (Get-VMHost -name $esxiNode.fqdn | Get-View).ExitMaintenanceMode_Task(0) | Out-Null
+            foreach ($wldVC in $allWldVCs) {
+                $VcStarted = (Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $wldVC.Split(".")[0] -silence).count
+                if (-not $VcStarted) {
+                    # Startup the Virtual Infrastructure Workload Domain vCenter Server
+                    Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $wldVC.Split(".")[0] -timeout 600
+                    Write-PowerManagementLogMessage -Type INFO -Message "Waiting for the vCenter Server services to start on '$($wldVC.Split(".")[0])'. It will take some time." -Colour Yellow
+                } else {
+                    Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server '$($wldVC.Split(".")[0])' is already started" -Colour Green
+                }
+                $retries = 20
+                if ($DefaultVIServers) {
+                    Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                }
+                While ($retries) {
+                    Connect-VIServer -server $wldVC -user $vcUser -pass $vcPass -ErrorAction SilentlyContinue | Out-Null
+                    if ($DefaultVIServer.Name -eq $wldVC) {
+                        #Max wait time for services to come up is 10 mins.
+                        for ($i = 0; $i -le 10; $i++) {
+                            $status = Get-VAMIServiceStatus -server $wldVC -user $vcUser -pass $vcPass -service 'vsphere-ui' -nolog
+                            if ($status -eq "STARTED") {
+                                $service_status += 1
+                                break
+                            }
+                            else {
+                                Write-PowerManagementLogMessage -Type INFO -Message "The services on vCenter Server $wldVC are still starting. Please wait." -Colour Yellow
+                                Start-Sleep 60
                             }
                         }
+                        if ([float]$SDDCVer -lt 4.5) {
+                            # Workaround for ESXis that do not communicate their Maintenance status to vCenter Server
+                            foreach ($esxiNode in $esxiDetails) {
+                                if ((Get-VMHost -name $esxiNode.fqdn).ConnectionState -eq "Maintenance") {
+                                    write-PowerManagementLogMessage -Type INFO -Message "Performing exit MaintenanceMode on '$($esxiNode.fqdn)' from vCenter Server." -Colour Yellow
+                                    (Get-VMHost -name $esxiNode.fqdn | Get-View).ExitMaintenanceMode_Task(0) | Out-Null
+                                }
+                            }
+                        }
+                        Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                        break
                     }
-                    Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-                    break
+                    Start-Sleep 60
+                    $retries -= 1
+                    Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server is still starting. Please wait." -Colour Yellow
                 }
-                Start-Sleep 60
-                $retries -= 1
-                Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server is still starting. Please wait." -Colour Yellow
             }
 
-            if ( $flag -and $service_status) {
+            if ($service_status -eq $allWldVCs.count) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Virtual Center Start Successfull." -Colour Green
                 if ([float]$SDDCVer -lt 4.5) {
                      # Check the health and sync status of the vSAN cluster
@@ -787,7 +789,7 @@ Try {
                 }
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "vCenter Server and its services are still not online." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Not all VI workload domain vCenter Servers and its services are still not online." -Colour Red
                 Exit
             }
             $index++

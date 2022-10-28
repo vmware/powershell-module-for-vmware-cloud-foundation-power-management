@@ -621,16 +621,20 @@ Function Set-VsanClusterPowerStatus {
                 $powerActionTask = $vsanClusterPowerSystem.PerformClusterPowerAction($cluster.ExtensionData.MoRef, $spec)
                 $task = Get-Task -Id $powerActionTask
                 $counter = 0
+                $sleepTime = 10 # in seconds
                 do
                 {
                     $task = Get-Task -Id $powerActionTask
+
                     Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is $($task.PercentComplete)% completed"
-                    sleep 10
-                    $counter += 10
+                    Start-Sleep $sleepTime
+                    $counter += $sleepTime
                 }while($task.State -eq "Running" -and ($counter -lt 1800))
 
                 if ($task.State -eq "Error"){
-                    Write-PowerManagementLogMessage -Type ERROR -Message "$PowerStatus task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)" -Colour Red
+                    if ()  {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "$PowerStatus task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)" -Colour Red
+                    }
                 }
 
                 if ($task.State -eq "Success"){
@@ -658,6 +662,67 @@ Function Set-VsanClusterPowerStatus {
     }
 }
 Export-ModuleMember -Function Set-VsanClusterPowerStatus
+
+
+Function Check-LockdownMode {
+    <#
+        .SYNOPSIS
+        Check if there is an ESXi host in the cluster with Lockdon mode enabled
+
+        .DESCRIPTION
+        The Check-LockdownModel the function will return error if there is ESXi host in the cluster with Lockdown Mode enabled.
+
+        .EXAMPLE
+        Check-LockdownModel -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01
+        Check Lockdown mode for ESXi hosts in the cluster sfo-m01-cl01
+    #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster,
+    )
+
+    Try {
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Check-LockdownModel cmdlet." -Colour Yellow
+
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        if ($checkServer) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+            }
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+				$hostsInCluster = Get-Cluster -Name $cluster | Get-VMHost
+				foreach ($esxiHost in $hostsInCluster) {
+					Write-PowerManagementLogMessage -Type INFO -Message "Checking Lockdown mode for $esxiHost.Name ...." -Colour Green
+					$lockdownStatus = (Get-VMHost -Name $esxiHost).ExtensionData.Config.LockdownMode
+					if ($lockdownStatus -ne "lockdownDisabled") {
+						Write-PowerManagementLogMessage -Type WARNING -Message "Lockdonw mode is enabled for ESXi $esxiHost.Name !" -Colour Cyan
+						$hostsWithLockdown = $esxiHost.Name + ", " + $hostsWithLockdown
+					}
+				}
+				Write-PowerManagementLogMessage -Type ERROR -Message "The folllowing hosts has Lockdown mode enabled: $hostsWithLockdonw please disable it in order to continue." -Colour Red
+            }
+            else {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+            }
+        }
+        else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+        }
+    }
+    Catch {
+        Debug-CatchWriterForPowerManagement -object $_
+    }
+    Finally {
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Check-LockdownModel cmdlet." -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Check-LockdownMode
+
 
 Function Get-VMRunningStatus {
     <#

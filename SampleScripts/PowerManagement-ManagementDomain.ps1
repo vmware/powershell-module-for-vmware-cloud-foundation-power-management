@@ -269,7 +269,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Try {
                     Write-PowerManagementLogMessage -Type INFO -Message "NSX Manager VMs have been in Running State. Trying to fetch NSX Edge VMs."
                     [Array]$edgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
-                    Write-PowerManagementLogMessage -Type INFO -Message "The NSX Edge VMs are" + ($edgeNodes -join ",")
+                    $edgenodesstring = $edgeNodes -join ","
+                    Write-PowerManagementLogMessage -Type INFO -Message "The NSX Edge VMs are $edgenodesstring"
                 }
                 catch {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Something went wrong! Cannot fetch NSX Edge nodes information from NSX Manager '$nsxtMgrfqdn'. Exiting!" -Colour Red
@@ -541,13 +542,15 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
         Write-PowerManagementLogMessage -Type INFO -Message "Checking that there are no running VMs on the ESXi hosts before stopping vSAN." -Colour Green
         $runningVMsPresent = $False
-        $runningVMs = ""
+        $runningVMs = @()
+        $runningVclsVMs = @()
         foreach ($esxiNode in $esxiWorkloadDomain) {
             if ([float]$SDDCVer -lt 4.5) {
                 $runningVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -silence
             } else {
                 $runningAllVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -silence
-                $runningVclsVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)"
+                [Array]$runningVclsVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)"
+                [Array]$runningVclsVMs += $vcServer.fqdn.Split(".")[0]
                 $runningVMs = $runningAllVMs | ? { $runningVclsVMs -notcontains $_ }
             }
             if ($runningVMs.count) {
@@ -686,27 +689,51 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         if (-Not (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 -WarningAction SilentlyContinue ).TcpTestSucceeded ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to $($vcServer.fqdn). Starting vSAN..."
             if ([float]$SDDCVer -gt 4.4) {
-                #Add logic here to inform customers to start all the ESXi hosts manually, create an interactive wait prompt.
-            }
-            #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
-            Try {
-                foreach ($esxiNode in $esxiWorkloadDomain) {
-                    $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-                    if (-Not $status) {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
+                Write-Host "";
+                $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)'. Once done, please click yes."
+                if (-Not $proceed) {
+                    Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence stopping script execution." -Colour Cyan
+                    Exit
+                }
+                else {
+                    if (($proceed -match "no") -or ($proceed -match "yes")) {
+                        if ($proceed -match "no") {
+                            Write-PowerManagementLogMessage -Type WARNING -Message "Stopping script execution because the input is 'No'." -Colour Cyan
+                            Exit
+                        }
+                    }
+                    else {
+                        Write-PowerManagementLogMessage -Type WARNING -Message "Pass the right string, either 'Yes' or 'No'." -Colour Cyan
                         Exit
                     }
                 }
-            }
-            catch {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
-            }
-    
-            # Take hosts out of maintenance mode
-            foreach ($esxiNode in $esxiWorkloadDomain) {
-                Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
-            }
 
+                foreach ($esxiNode in $esxiWorkloadDomain) {
+                    if (!(Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with the host $($esxiNode.fqdn). Check the FQDN or IP address or power state of '$($esxiNode.fqdn)'." -Colour Red
+                        Exit
+                    }
+                }
+            } else {
+                #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
+                Try {
+                    foreach ($esxiNode in $esxiWorkloadDomain) {
+                        $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                        if (-Not $status) {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
+                            Exit
+                        }
+                    }
+                }
+                catch {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
+                }
+
+                # Take hosts out of maintenance mode
+                foreach ($esxiNode in $esxiWorkloadDomain) {
+                    Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
+                }
+            }
             if ([float]$SDDCVer -lt 4.5) {
                 # Prepare the vSAN cluster for startup - Performed on a single host only
                 # We need some time before this step, setting hard sleep 30 sec
@@ -779,6 +806,9 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         #Restart Cluster Via Wizard
         if ([float]$SDDCVer -gt 4.4) {
              #Restart Cluster Via Wizard
+             #lockin mode -- Not mandatory, only if it is enabled, it has to be configured
+             #start VSAN Cluster wizard automation
+             Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOn
         }
         # Check vSAN Status
         if ( (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -ne 0) {
@@ -792,7 +822,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         }
 
         #Restart Cluster Via Wizard
-        if ([float]$SDDCVer -gt 4.4) {
+        if ([float]$SDDCVer -lt 4.5) {
              ####lockinmode setting reversal
 
             # Start vSphere HA
