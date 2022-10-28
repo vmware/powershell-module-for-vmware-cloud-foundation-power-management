@@ -625,15 +625,17 @@ Function Set-VsanClusterPowerStatus {
                 do
                 {
                     $task = Get-Task -Id $powerActionTask
-
                     Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is $($task.PercentComplete)% completed"
                     Start-Sleep $sleepTime
                     $counter += $sleepTime
-                }while($task.State -eq "Running" -and ($counter -lt 1800))
+                } while($task.State -eq "Running" -and ($counter -lt 1800))
 
                 if ($task.State -eq "Error"){
-                    if ()  {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "$PowerStatus task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)" -Colour Red
+                    if ($task.ExtensionData.Info.Error.Fault.FaultMessage -like "VMware.Vim.LocalizableMessage")  {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "'$($PowerStatus)' task exited with localized error message. Kindly check vCenter UI for details and take necessary action" -Colour Red
+                    } else {
+                        Write-PowerManagementLogMessage -Type WARN -Message "'$($PowerStatus)' task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)" -Colour Cyan
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Kindly check vCenter UI for details and take necessary action" -Colour Red
                     }
                 }
 
@@ -667,13 +669,13 @@ Export-ModuleMember -Function Set-VsanClusterPowerStatus
 Function Check-LockdownMode {
     <#
         .SYNOPSIS
-        Check if there is an ESXi host in the cluster with Lockdon mode enabled
+        Check if there is an ESXi host in the cluster with Lockdown mode enabled
 
         .DESCRIPTION
-        The Check-LockdownModel the function will return error if there is ESXi host in the cluster with Lockdown Mode enabled.
+        The Check-LockdownMode function will return error if there is ESXi host in the cluster with Lockdown Mode enabled.
 
         .EXAMPLE
-        Check-LockdownModel -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01
+        Check-LockdownMode -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01
         Check Lockdown mode for ESXi hosts in the cluster sfo-m01-cl01
     #>
 
@@ -681,11 +683,11 @@ Function Check-LockdownMode {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster
     )
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Check-LockdownModel cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Check-LockdownMode cmdlet." -Colour Yellow
 
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
@@ -695,16 +697,26 @@ Function Check-LockdownMode {
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -eq $server) {
+                $hostsInCluster = @()
 				$hostsInCluster = Get-Cluster -Name $cluster | Get-VMHost
-				foreach ($esxiHost in $hostsInCluster) {
-					Write-PowerManagementLogMessage -Type INFO -Message "Checking Lockdown mode for $esxiHost.Name ...." -Colour Green
-					$lockdownStatus = (Get-VMHost -Name $esxiHost).ExtensionData.Config.LockdownMode
-					if ($lockdownStatus -ne "lockdownDisabled") {
-						Write-PowerManagementLogMessage -Type WARNING -Message "Lockdonw mode is enabled for ESXi $esxiHost.Name !" -Colour Cyan
-						$hostsWithLockdown = $esxiHost.Name + ", " + $hostsWithLockdown
-					}
+				$hostsWithLockdown = ""
+				if ($hostsInCluster.count -ne 0) {
+                    foreach ($esxiHost in $hostsInCluster) {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Checking Lockdown mode for $esxiHost ...." -Colour Yellow
+                        $lockdownStatus = (Get-VMHost -Name $esxiHost).ExtensionData.Config.LockdownMode
+                        if ($lockdownStatus -ne "lockdownDisabled") {
+                            Write-PowerManagementLogMessage -Type WARNING -Message "Lockdown mode is enabled for ESXi host $esxiHost!" -Colour Cyan
+                            $hostsWithLockdown += ", $esxiHost"
+                        }
+                    }
+                } else {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "looks like cluster $cluster is not present on a given server $server, kindly check" -Colour Red
+                }
+				if ([string]::IsNullOrEmpty($hostsWithLockdown))  {
+				    Write-PowerManagementLogMessage -Type INFO -Message "No hosts found to have Lockdown mode enabled, So continuing" -Colour GREEN
+				} else {
+				    Write-PowerManagementLogMessage -Type ERROR -Message "The following hosts have Lockdown mode enabled: $hostsWithLockdown. Please disable it in order to continue." -Colour Red
 				}
-				Write-PowerManagementLogMessage -Type ERROR -Message "The folllowing hosts has Lockdown mode enabled: $hostsWithLockdonw please disable it in order to continue." -Colour Red
             }
             else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
@@ -718,7 +730,7 @@ Function Check-LockdownMode {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Check-LockdownModel cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Check-LockdownMode cmdlet." -Colour Yellow
     }
 }
 Export-ModuleMember -Function Check-LockdownMode
