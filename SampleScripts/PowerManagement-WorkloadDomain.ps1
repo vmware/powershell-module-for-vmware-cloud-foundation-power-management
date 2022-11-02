@@ -613,10 +613,16 @@ Try {
                 $ClusterStatusMapping[$cluster.name] = 'DOWN'
 
                 # End of shutdown
-                Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
-                Write-PowerManagementLogMessage -Type INFO -Message "Note: ESXi hosts are still in power-on state. Please stop them manually." -Colour Green
-                Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence for a given cluster $($cluster.name)!" -Colour Green
-                Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
+                if ([float]$SDDCVer -lt 4.5) {
+                    Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "Note: ESXi hosts are still in power-on state. Please stop them manually." -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence for a given cluster $($cluster.name)!" -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
+                } else {
+                    Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence for a given cluster $($cluster.name)!" -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
+                }
             }
         }
         $index += 1
@@ -717,7 +723,7 @@ Try {
                                 Start-Sleep 60
                             }
                         }
-                        if ([float]$SDDCVer -lt 4.5) {
+                        if ([float]$SDDCVer -lt 4.5 -and ($wldVC -eq $vcServer.fqdn)) {
                             # Workaround for ESXis that do not communicate their Maintenance status to vCenter Server
                             foreach ($esxiNode in $esxiDetails) {
                                 if ((Get-VMHost -name $esxiNode.fqdn).ConnectionState -eq "Maintenance") {

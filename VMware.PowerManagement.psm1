@@ -590,6 +590,7 @@ Function Set-VsanClusterPowerStatus {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$clustername,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$mgmt,
         [Parameter (Mandatory = $true)] [ValidateSet("clusterPoweredOff", "clusterPoweredOn")] [String]$PowerStatus
     )
 
@@ -622,29 +623,30 @@ Function Set-VsanClusterPowerStatus {
                 $task = Get-Task -Id $powerActionTask
                 $counter = 0
                 $sleepTime = 10 # in seconds
-                do
-                {
-                    $task = Get-Task -Id $powerActionTask
-                    Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is $($task.PercentComplete)% completed"
-                    Start-Sleep $sleepTime
-                    $counter += $sleepTime
-                } while($task.State -eq "Running" -and ($counter -lt 1800))
+                if (-not $mgmt) {
+                    do
+                    {
+                        $task = Get-Task -Id $powerActionTask
+                        Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is $($task.PercentComplete)% completed"
+                        Start-Sleep $sleepTime
+                        $counter += $sleepTime
+                    } while($task.State -eq "Running" -and ($counter -lt 1800))
 
-                if ($task.State -eq "Error"){
-                    if ($task.ExtensionData.Info.Error.Fault.FaultMessage -like "VMware.Vim.LocalizableMessage")  {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "'$($PowerStatus)' task exited with localized error message. Kindly check vCenter UI for details and take necessary action" -Colour Red
+                    if ($task.State -eq "Error"){
+                        if ($task.ExtensionData.Info.Error.Fault.FaultMessage -like "VMware.Vim.LocalizableMessage")  {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "'$($PowerStatus)' task exited with localized error message. Kindly check vCenter UI for details and take necessary action" -Colour Red
+                        } else {
+                            Write-PowerManagementLogMessage -Type WARN -Message "'$($PowerStatus)' task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)" -Colour Cyan
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Kindly check vCenter UI for details and take necessary action" -Colour Red
+                        }
+                    }
+
+                    if ($task.State -eq "Success"){
+                        Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is completed successfully" -colour GREEN
                     } else {
-                        Write-PowerManagementLogMessage -Type WARN -Message "'$($PowerStatus)' task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)" -Colour Cyan
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Kindly check vCenter UI for details and take necessary action" -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "$PowerStatus task is stuck at $($task.State) state"
                     }
                 }
-
-                if ($task.State -eq "Success"){
-                    Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is completed successfully" -colour GREEN
-                } else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "$PowerStatus task is stuck at $($task.State) state"
-                }
-
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
 
             }
