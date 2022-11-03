@@ -668,6 +668,80 @@ Function Set-VsanClusterPowerStatus {
 Export-ModuleMember -Function Set-VsanClusterPowerStatus
 
 
+Function Get-poweronVMsOnRemoteDS {
+    <#
+        .SYNOPSIS
+        Get the list of remote powered on VM's for a given cluster
+
+        .DESCRIPTION
+        Get the list of VM's which are on the remote datastore for a given cluster
+
+        .EXAMPLE
+        Get-poweronVMsOnRemoteDS -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -clustertocheck sfo-m01-cl01
+        Get the list of remote powered on VMs for the cluster sfo-m01-cl01
+    #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$clustertocheck
+    )
+
+    Try {
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-poweronVMsOnRemoteDS cmdlet." -Colour Yellow
+
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        if ($checkServer) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+            }
+            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            if ($DefaultVIServer.Name -eq $server) {
+                $TotalvSANDatastores = @()
+                $RemotevSANdatastores = @()
+                $TotalvSANDatastores = (Get-Cluster -Name $clustertocheck | Get-Datastore | Where-Object { $_.Type -eq "vSAN" }).Name
+                $RemotevSANdatastores = ((get-vsanClusterConfiguration -Cluster $clustertocheck).RemoteDatastore).Name
+                $LocalvSANDatastores = $TotalvSANDatastores | Where-Object { $_ -notin $RemotevSANdatastores }
+                [Array]$PoweredOnVMs = @()
+                foreach ($localds in $LocalvSANDatastores) {
+                    foreach ($cluster in (Get-Cluster).Name) {
+                        if ($cluster -ne $clustertocheck ) {
+                            $MountedvSANdatastores = ((get-vsanClusterConfiguration -Cluster $cluster).RemoteDatastore).Name
+                            foreach ($datastore in $MountedvSANdatastores) {
+                                if ($datastore -eq $localds) {
+                                    $datastoreID = Get-Datastore $datastore | ForEach-Object { $_.ExtensionData.MoRef }
+                                    $vms = (Get-Cluster -name $cluster | get-vm | Where-Object { $_.PowerState -eq "PoweredOn" }) | Where-Object { $vm = $_; $datastoreID | Where-Object { $vm.DatastoreIdList -contains $_ } }
+                                    if ($vms) {
+                                        Write-PowerManagementLogMessage -Type INFO -Message "Remote VMs Named: $vms are running on remote cluster: '$cluster' and datastore: '$datastore' `n"
+                                        [Array]$PoweredOnVMs += $vms
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return $PoweredOnVMs
+            }
+            else {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+            }
+        }
+        else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+        }
+    }
+    Catch {
+        Debug-CatchWriterForPowerManagement -object $_
+    }
+    Finally {
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-poweronVMsOnRemoteDS cmdlet." -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Get-poweronVMsOnRemoteDS
+
+
 Function Check-LockdownMode {
     <#
         .SYNOPSIS
