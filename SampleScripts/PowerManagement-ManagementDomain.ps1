@@ -504,6 +504,14 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level Manual
         }
 
+        $RemoteVMs = @()
+        $RemoteVMs = Get-poweronVMsOnRemoteDS -server $vcServer.fqdn -user $vcUser -pass $vcPass -clustertocheck $cluster.name
+        if($RemoteVMs.count -eq 0) {
+            Write-PowerManagementLogMessage -Type INFO -Message "All remote VMs are Powered off." -Colour Green
+        } else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Not all remote VMs are Powered Off : $($RemoteVMs.Name), Unable to proceed, please check " -Colour RED
+        }
+
         #Testing VSAN health after SDDC manager is down
         if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
             Write-PowerManagementLogMessage -Type INFO -Message "vSAN cluster health is good." -Colour Green

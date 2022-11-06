@@ -714,7 +714,7 @@ Function Get-poweronVMsOnRemoteDS {
                                     $datastoreID = Get-Datastore $datastore | ForEach-Object { $_.ExtensionData.MoRef }
                                     $vms = (Get-Cluster -name $cluster | get-vm | Where-Object { $_.PowerState -eq "PoweredOn" }) | Where-Object { $vm = $_; $datastoreID | Where-Object { $vm.DatastoreIdList -contains $_ } }
                                     if ($vms) {
-                                        Write-PowerManagementLogMessage -Type INFO -Message "Remote VMs Named: $vms are running on remote cluster: '$cluster' and datastore: '$datastore' `n"
+                                        Write-PowerManagementLogMessage -Type INFO -Message "Remote VMs Named: $vms are running on cluster: '$cluster' and datastore: '$datastore' `n"
                                         [Array]$PoweredOnVMs += $vms
                                     }
                                 }

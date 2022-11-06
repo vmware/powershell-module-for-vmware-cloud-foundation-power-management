@@ -535,6 +535,15 @@ Try {
 
             # Check the health and sync status of the vSAN cluster
             if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
+                if ([float]$SDDCVer -gt 4.5) {
+                    $RemoteVMs = @()
+                    $RemoteVMs = Get-poweronVMsOnRemoteDS -server $vcServer.fqdn -user $vcUser -pass $vcPass -clustertocheck $cluster.name
+                    if($RemoteVMs.count -eq 0) {
+                        Write-PowerManagementLogMessage -Type INFO -Message "All remote VMs are Powered off." -Colour Green
+                    } else {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Not all remote VMs are Powered Off : $($RemoteVMs.Name), Unable to proceed, please check " -Colour RED
+                    }
+                }
                 if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                     Write-PowerManagementLogMessage -Type INFO -Message "vSAN health is good." -Colour Green
                 }
