@@ -535,7 +535,7 @@ Try {
 
             # Check the health and sync status of the vSAN cluster
             if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
-                if ([float]$SDDCVer -gt 4.5) {
+                if ([float]$SDDCVer -gt 4.4) {
                     $RemoteVMs = @()
                     $RemoteVMs = Get-poweronVMsOnRemoteDS -server $vcServer.fqdn -user $vcUser -pass $vcPass -clustertocheck $cluster.name
                     if($RemoteVMs.count -eq 0) {
