@@ -594,7 +594,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Cyan
                 Write-PowerManagementLogMessage -Type INFO -Message "Please shut down the ESXi hosts!" -Colour Cyan
             } else {
-                #lock in mode API call comes here
+                #lockin mode if any enabled on any host, we have to exit then and there
+                Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
                 #VSAN shutdown wizard automation
                 Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff -mgmt
 

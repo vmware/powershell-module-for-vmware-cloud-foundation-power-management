@@ -742,16 +742,16 @@ Function Get-poweronVMsOnRemoteDS {
 Export-ModuleMember -Function Get-poweronVMsOnRemoteDS
 
 
-Function Check-LockdownMode {
+Function Test-LockdownMode {
     <#
         .SYNOPSIS
         Check if there is an ESXi host in the cluster with Lockdown mode enabled
 
         .DESCRIPTION
-        The Check-LockdownMode function will return error if there is ESXi host in the cluster with Lockdown Mode enabled.
+        The Test-LockdownMode function will return error if there is ESXi host in the cluster with Lockdown Mode enabled.
 
         .EXAMPLE
-        Check-LockdownMode -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01
+        Test-LockdownMode -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01
         Check Lockdown mode for ESXi hosts in the cluster sfo-m01-cl01
     #>
 
@@ -763,7 +763,7 @@ Function Check-LockdownMode {
     )
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Check-LockdownMode cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-LockdownMode cmdlet." -Colour Yellow
 
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
@@ -806,10 +806,10 @@ Function Check-LockdownMode {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Check-LockdownMode cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Test-LockdownMode cmdlet." -Colour Yellow
     }
 }
-Export-ModuleMember -Function Check-LockdownMode
+Export-ModuleMember -Function Test-LockdownMode
 
 
 Function Get-VMRunningStatus {

@@ -604,7 +604,7 @@ Try {
                 ## TODO Add ESXi shutdown here
                 } else {
                     #lockin mode if any enabled on any host, we have to exit then and there
-                    Check-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+                    Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
                     #VSAN shutdown wizard automation
                     Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff
                     $esxiDetails = $esxiWorkloadCluster[$cluster.name]
