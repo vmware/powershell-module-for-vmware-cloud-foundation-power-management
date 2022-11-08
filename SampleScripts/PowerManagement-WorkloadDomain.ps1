@@ -775,7 +775,7 @@ Try {
                 } else {
                        #Start ESXi hosts here
                        Write-Host "";
-                        $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)'. Once done, please click yes."
+                        $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)'. Once done, please enter yes:"
                         if (-Not $proceed) {
                             Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence stopping script execution." -Colour Cyan
                             Exit
@@ -814,13 +814,13 @@ Try {
             foreach ($cluster in $ClusterDetails) {
                 #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
                 Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
+                Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS startup will take some time. Please wait! " -Colour Yellow
             }
         }
         $index = 1
         foreach ($cluster in $ClusterDetails) {
-            if ([float]$SDDCVer -lt 4.5) {
+            #if ([float]$SDDCVer -lt 4.5) {
                 # Waiting for vCLS VMs to be started for ($retries*10) seconds
-                Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS startup will take some time. Please wait! " -Colour Yellow
                 $counter = 0
                 $retries = 30
                 $sleep_time = 30
@@ -836,10 +836,36 @@ Try {
                     }
                 }
                 if ($counter -eq $retries) {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
-                    Exit
+                    if ([float]$SDDCVer -lt 4.5) {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
+                        Exit
+                    } else {
+                        Write-PowerManagementLogMessage -Type INFO -Message "The vCLS VMs were not started within the expected time" -colour Yellow
+                        Write-PowerManagementLogMessage -Type INFO -Message "There is a known issue with VCF4.5 as mentioned in the KB article:- https://kb.vmware.com/s/article/80472" -colour Yellow
+                        Write-PowerManagementLogMessage -Type INFO -Message "Hence following the workaround of restarting the EAM service to get VCLS VMs up"  -colour Yellow
+                        Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service eam -state "restart"
+                        # Waiting for vCLS VMs to be started for ($retries*10) seconds
+                        $counter = 0
+                        $retries = 30
+                        $sleep_time = 30
+                        while ($counter -ne $retries) {
+                            $powerOnVMcount = (Get-VMsWithPowerStatus -server $vcServer.fqdn -powerstate "poweredon" -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)" -silence).count
+                            if ( $powerOnVMcount -lt 3 ) {
+                                Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
+                                start-sleep $sleep_time
+                                $counter += 1
+                            }
+                            else {
+                                Break
+                            }
+                        }
+                        if ($counter -eq $retries) {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
+                            Exit
+                        }
+                    }
                 }
-            }
+            #}
             [Array]$clustervclsvms = @()
             [Array]$clustervcfvms = @()
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  virtual machines for a given vsphere cluster $($cluster.name)..."
