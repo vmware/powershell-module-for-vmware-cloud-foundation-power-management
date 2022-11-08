@@ -627,7 +627,9 @@ Function Set-VsanClusterPowerStatus {
                     do
                     {
                         $task = Get-Task -Id $powerActionTask
-                        Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is $($task.PercentComplete)% completed"
+                        if (-Not ($task.State -eq "Error")) {
+                            Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is $($task.PercentComplete)% completed"
+                        }
                         Start-Sleep $sleepTime
                         $counter += $sleepTime
                     } while($task.State -eq "Running" -and ($counter -lt 1800))
