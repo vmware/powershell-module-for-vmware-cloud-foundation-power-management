@@ -1280,7 +1280,7 @@ Function Get-VamiServiceStatus {
                 Start-Sleep 60
                 $retries -= 1
                 if (-Not $nolog) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Getting the VAMI service status is taking some time. Please wait." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to VAMI Service Console is taking some time. Please wait." -Colour Yellow
                 }
             }
             if ($flag) {
@@ -1310,6 +1310,115 @@ Function Get-VamiServiceStatus {
     }
 }
 Export-ModuleMember -Function Get-VAMIServiceStatus
+
+Function Set-VamiServiceStatus {
+    <#
+        .SYNOPSIS
+        Start/Stop/Restart the status of the service on a given vCenter Server
+
+        .DESCRIPTION
+        The Set-VamiServiceStatus cmdlet will Start/Stop/Restart the service on a given vCenter Server.
+
+        .EXAMPLE
+        Set-VamiServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -service wcp -state "start"
+        This example connects to a vCenter Server and starts the wcp service
+
+        Set-VamiServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -nolog -state "restart"
+        This example connects to a vCenter Server and restarts the wcp service and also suppress any log messages inside the function
+    #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateSet("start", "stop", "restart")] [String]$state,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$nolog,
+        [Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service
+    )
+
+    Try {
+        if (-Not $nolog) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VamiServiceStatus cmdlet." -Colour Yellow
+        }
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        if ($checkServer) {
+            if (-Not $nolog) {
+                Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            }
+            if ($DefaultCisServers) {
+                Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+            }
+            $retries = 20
+            $flag = 0
+            While ($retries) {
+                Connect-CisServer -Server $server -User $user -Password $pass -ErrorAction SilentlyContinue | Out-Null
+                if ($DefaultCisServers.Name -eq $server) {
+                    $flag = 1
+                    break
+                }
+                Start-Sleep 60
+                $retries -= 1
+                if (-Not $nolog) {
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to VAMI Service Console is taking some time. Please wait." -Colour Yellow
+                }
+            }
+            if ($flag) {
+                $vMonAPI = Get-CisService 'com.vmware.appliance.vmon.service'
+                if ($state -eq "start") {
+                    $vMonAPI.Start($service)
+                    $serviceStatus = $vMonAPI.Get($service, 0)
+                    if($serviceStatus.state -eq "STARTED") {
+                        if (-Not $nolog) {
+                            Write-PowerManagementLogMessage -Type INFO -Message "'$service' service is successfully started" -Colour Yellow
+                        }
+                    } else {
+                         Write-PowerManagementLogMessage -Type ERROR -Message "'$service' service is could not be started" -Colour Red
+                    }
+                } elseif ($state -eq "stop") {
+                    $vMonAPI.Stop($service)
+                    $serviceStatus = $vMonAPI.Get($service, 0)
+                    if($serviceStatus.state -eq "STOPPED") {
+                        if (-Not $nolog) {
+                            Write-PowerManagementLogMessage -Type INFO -Message "'$service' service is successfully stopped" -Colour Yellow
+                        }
+                    } else {
+                         Write-PowerManagementLogMessage -Type ERROR -Message "'$service' service is could not be stopped" -Colour Red
+                    }
+                } else {
+                    $vMonAPI.ReStart($service)
+                    $serviceStatus = $vMonAPI.Get($service, 0)
+                    if($serviceStatus.state -eq "STARTED") {
+                         if (-Not $nolog) {
+                            Write-PowerManagementLogMessage -Type INFO -Message "'$service' service is successfully restarted" -Colour Yellow
+                         }
+                    } else {
+                         Write-PowerManagementLogMessage -Type ERROR -Message "'$service' service is could not be restarted" -Colour Red
+                    }
+                }
+            }
+            else {
+                Write-PowerManagementLogMessage -Type ERROR -Message  "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+            }
+        }
+        else {
+            Write-PowerManagementLogMessage -Type ERROR -Message  "Testing the connection to server '$server' has failed. Check your details and try again." -Colour Red
+        }
+    }
+    Catch {
+        Debug-CatchWriterForPowerManagement -object $_
+    }
+    Finally {
+        if (-Not $nolog) {
+            # Write-PowerManagementLogMessage -Type INFO -Message "Disconnecting from host '$server'..."
+        }
+        Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+        if (-Not $nolog) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-VamiServiceStatus cmdlet." -Colour Yellow
+        }
+    }
+}
+Export-ModuleMember -Function Set-VamiServiceStatus
+
 
 Function Set-VsphereHA {
     <#
