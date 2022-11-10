@@ -347,18 +347,20 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
 
         # Shutdown related code starts here
-        # Check if SSH is enabled on the esxi hosts before proceeding with shutdown procedure
-        Try {
-            foreach ($esxiNode in $esxiWorkloadDomain) {
-                $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-                if (-Not $status) {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
-                    Exit
+        if ([float]$SDDCVer -lt 4.5) {
+            # Check if SSH is enabled on the esxi hosts before proceeding with shutdown procedure
+            Try {
+                foreach ($esxiNode in $esxiWorkloadDomain) {
+                    $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                    if (-Not $status) {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
+                        Exit
+                    }
                 }
             }
-        }
-        catch {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
+            catch {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
+            }
         }
 
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines from server $($vcServer.fqdn)..."

@@ -965,16 +965,21 @@ Function Get-SSHEnabledStatus {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-SSHEnabledStatus cmdlet." -Colour Yellow
         $password = ConvertTo-SecureString $pass -AsPlainText -Force
         $Cred = New-Object System.Management.Automation.PSCredential ($user, $password)
-        Write-PowerManagementLogMessage -Type INFO -Message "Attempting to open an SSH connection to server '$server'..."
-        $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
-        if ($session) {
-            Write-PowerManagementLogMessage -Type INFO -Message "SSH is enabled on '$server'." -Colour Green
-            Remove-SSHSession -Index $session.SessionId | Out-Null
-            return $True
-        }
-        else {
-            Write-PowerManagementLogMessage -Type INFO -Message "SSH is not enabled '$server'."
-            return $False
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        if ($checkServer) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Attempting to open an SSH connection to server '$server'..."
+            $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
+            if ($session) {
+                Write-PowerManagementLogMessage -Type INFO -Message "SSH is enabled on '$server'." -Colour Green
+                Remove-SSHSession -Index $session.SessionId | Out-Null
+                return $True
+            }
+            else {
+                Write-PowerManagementLogMessage -Type INFO -Message "SSH is not enabled '$server'."
+                return $False
+            }
+        } else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with server '$server'. Check the FQDN or IP address or power state of the server." -Colour Red
         }
     }
     Catch {
