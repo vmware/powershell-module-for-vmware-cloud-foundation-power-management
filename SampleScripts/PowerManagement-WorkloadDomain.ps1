@@ -612,8 +612,8 @@ Try {
                    #Check if hosts are in maintainence mode before cluster stop
                    foreach ($esxiNode in $esxiDetails) {
                         $HostConnectionState = Get-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-                        if ($HostConnectionState  -ne "Maintenance") {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "Looks like $($esxiNode.fqdn) is not in maintainence mode before cluster shutdown, please check UI'." -Colour Red
+                        if ($HostConnectionState  -eq "Maintenance") {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Looks like $($esxiNode.fqdn) is in maintainence mode before cluster shutdown, please check UI'." -Colour Red
                             Exit
                         }
                    }
