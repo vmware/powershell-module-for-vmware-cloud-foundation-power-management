@@ -499,8 +499,9 @@ Try {
                 }
             }
 
-
-            if ([float]$SDDCVer -lt 4.5) {
+            #The below block was supposed to be only for verison < 4.5, but due to the bug in 4.5
+            #Add KB article here -- https://kb.vmware.com/s/article/87350
+            #if ([float]$SDDCVer -lt 4.5) {
                 ## Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
                 if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
                     Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
@@ -534,7 +535,7 @@ Try {
                     Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not shut down within the expected time. Stopping the script execution." -Colour Red
                     Exit
                 }
-            }
+            #}
 
             # Check the health and sync status of the vSAN cluster
             if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
@@ -606,8 +607,16 @@ Try {
 
                 ## TODO Add ESXi shutdown here
                 } else {
-                    #lockin mode if any enabled on any host, we have to exit then and there
-                    Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+                   #lockin mode if any enabled on any host, we have to exit then and there
+                   Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+                   #Check if hosts are in maintainence mode before cluster stop
+                   foreach ($esxiNode in $esxiDetails) {
+                        $HostConnectionState = Get-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                        if ($HostConnectionState  -ne "Maintenance") {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Looks like $($esxiNode.fqdn) is not in maintainence mode before cluster shutdown, please check UI'." -Colour Red
+                            Exit
+                        }
+                   }
                     #VSAN shutdown wizard automation
                     Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff
                     $esxiDetails = $esxiWorkloadCluster[$cluster.name]
@@ -657,7 +666,6 @@ Try {
         $nsxMgrVIP = New-Object -TypeName PSCustomObject
         $nsxtMgrfqdn = ""
         $count = $sddcClusterDetails.count
-        $index = 1
         $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
         if ([float]$SDDCVer -lt 4.5) {
             foreach ($cluster in $ClusterDetails) {
@@ -715,7 +723,7 @@ Try {
                     Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $wldVC.Split(".")[0] -timeout 600
                     Write-PowerManagementLogMessage -Type INFO -Message "Waiting for the vCenter Server services to start on '$($wldVC.Split(".")[0])'. It will take some time." -Colour Yellow
                 } else {
-                    Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server '$($wldVC.Split(".")[0])' is already started" -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server '$($wldVC.Split(".")[0])' is already started" -Colour Gre
                 }
                 $retries = 20
                 if ($DefaultVIServers) {
@@ -786,6 +794,15 @@ Try {
                     }
                    #start VSAN Cluster wizard automation
                    Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOn
+
+                   #Check if host are out of maintainence mode after cluster restart
+                   foreach ($esxiNode in $esxiDetails) {
+                        $HostConnectionState = Get-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                        if ($HostConnectionState  -eq "Maintenance") {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Looks like $($esxiNode.fqdn) is still in maintainence mode even after cluster restart, please check UI'." -Colour Red
+                            Exit
+                        }
+                   }
                 }
                 if ((Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Cluster health is good." -Colour Green
@@ -818,13 +835,15 @@ Try {
                 Exit
             }
         }
-        if ([float]$SDDCVer -lt 4.5) {
+        #This is supposed to be only for VCF < 4.5, but due to bug in 4.5, incorporating this workaround
+        #Add KB article here -- https://kb.vmware.com/s/article/87350
+        #if ([float]$SDDCVer -lt 4.5) {
             foreach ($cluster in $ClusterDetails) {
                 #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
                 Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
                 Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS startup will take some time. Please wait! " -Colour Yellow
             }
-        }
+        #}
         $index = 1
         foreach ($cluster in $ClusterDetails) {
             #if ([float]$SDDCVer -lt 4.5) {
@@ -844,10 +863,12 @@ Try {
                     }
                 }
                 if ($counter -eq $retries) {
-                    if ([float]$SDDCVer -lt 4.5) {
+                    #if ([float]$SDDCVer -lt 4.5) {
                         Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
                         Exit
-                    } else {
+                    #}
+                    <#
+                    else {
                         Write-PowerManagementLogMessage -Type INFO -Message "The vCLS VMs were not started within the expected time" -colour Yellow
                         Write-PowerManagementLogMessage -Type INFO -Message "There is a known issue with VCF4.5 as mentioned in the KB article:- https://kb.vmware.com/s/article/80472" -colour Yellow
                         Write-PowerManagementLogMessage -Type INFO -Message "Hence following the workaround of restarting the EAM service to get VCLS VMs up"  -colour Yellow
@@ -878,7 +899,7 @@ Try {
                             Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
                             Exit
                         }
-                    }
+                    }#>
                 }
             #}
             [Array]$clustervclsvms = @()
@@ -895,6 +916,8 @@ Try {
             $clustervcfvms += $vcServer.fqdn.Split(".")[0]
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  customer virtual machines for a given vsphere cluster $($cluster.name)..."
             $clustercustomervms = $clusterallvms | ? { $vcfvms -notcontains $_ }
+
+
 
             if ($index -eq 1) {
                 # Get NSX-T Details once VC is started
