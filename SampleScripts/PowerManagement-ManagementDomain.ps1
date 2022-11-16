@@ -347,7 +347,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
 
         # Shutdown related code starts here
-        if ([float]$SDDCVer -lt 4.5) {
+        if ([float]$SDDCVer -lt [float]4.5) {
             # Check if SSH is enabled on the esxi hosts before proceeding with shutdown procedure
             Try {
                 foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -471,7 +471,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600
 
         #Need to place if block in here
-        if ([float]$SDDCVer -lt 4.5) {
+        if ([float]$SDDCVer -lt [float]4.5) {
 
             # Shut Down the vSphere Cluster Services Virtual Machines
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
@@ -532,7 +532,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             Exit
         }
 
-        if ([float]$SDDCVer -lt 4.5) {
+        if ([float]$SDDCVer -lt [float]4.5) {
             # Verify that there is only one VM running (vCenter Server) on the ESXis, then shutdown vCenter Server.
             $runningVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -silence
             if ($runningVMs.count -gt 1 ) {
@@ -555,7 +555,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         $runningVMs = @()
         $runningVclsVMs = @()
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            if ([float]$SDDCVer -lt 4.5) {
+            if ([float]$SDDCVer -lt [float]4.5) {
                 $runningVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -silence
             } else {
                 $runningAllVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -silence
@@ -576,7 +576,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
         # Actual vSAN and ESXi shutdown happens here - once we are sure that there are no VMs running on hosts
         else {
-            if ([float]$SDDCVer -lt 4.5) {
+            if ([float]$SDDCVer -lt [float]4.5) {
                 # Disable cluster member updates from vCenter Server
                 foreach ($esxiNode in $esxiWorkloadDomain) {
                     Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
@@ -720,7 +720,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         # Check if VC is running - if so, skip ESXi operations
         if (-Not (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 -WarningAction SilentlyContinue ).TcpTestSucceeded ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to $($vcServer.fqdn). Starting vSAN..."
-            if ([float]$SDDCVer -gt 4.4) {
+            if ([float]$SDDCVer -gt [float]4.4) {
                 Write-Host "";
                 $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)'. Once done, please enter yes:"
                 if (-Not $proceed) {
@@ -766,7 +766,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                     Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
                 }
             }
-            if ([float]$SDDCVer -lt 4.5) {
+            if ([float]$SDDCVer -lt [float]4.5) {
                 # Prepare the vSAN cluster for startup - Performed on a single host only
                 # We need some time before this step, setting hard sleep 30 sec
                 Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 30 seconds before starting vSAN..."
@@ -836,7 +836,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         }
 
         #Restart Cluster Via Wizard
-        if ([float]$SDDCVer -gt 4.4) {
+        if ([float]$SDDCVer -gt [float]4.4) {
              #Restart Cluster Via Wizard
              #lockin mode -- Not mandatory, only if it is enabled, it has to be configured
              #start VSAN Cluster wizard automation
@@ -854,7 +854,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         }
 
         #Restart Cluster Via Wizard
-        if ([float]$SDDCVer -lt 4.5) {
+        if ([float]$SDDCVer -lt [float]4.5) {
              ####lockinmode setting reversal
 
             # Start vSphere HA
@@ -915,13 +915,13 @@ if ($PsBoundParameters.ContainsKey("startup")) {
 
         # End of startup
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
-        if ([float]$SDDCVer -lt 4.5) {
+        if ([float]$SDDCVer -lt [float]4.5) {
             Write-PowerManagementLogMessage -Type INFO -Message "vSphere vSphere High Availability has been enabled by the script. Please disable it per your environment's design." -Colour Cyan
         }
         Write-PowerManagementLogMessage -Type INFO -Message "Check your environment and start any additional virtual machines that you host in the management domain." -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -Colour Yellow
         Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -Colour Yellow
-        if ([float]$SDDCVer -lt 4.5) {
+        if ([float]$SDDCVer -lt [float]4.5) {
             Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts in management domain, you disable it at this point." -Colour Cyan
         }
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green

@@ -345,7 +345,7 @@ Try {
 
             ###This is where I need to check on the version thing if VCF >=4.5 or vcf4.5
             $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
-            if ([float]$SDDCVer -lt 4.5) {
+            if ([float]$SDDCVer -lt [float]4.5) {
                 #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
                 Try {
                     foreach ($esxiNode in $esxiDetails) {
@@ -501,7 +501,7 @@ Try {
 
             #The below block was supposed to be only for verison < 4.5, but due to the bug in 4.5
             #Add KB article here -- https://kb.vmware.com/s/article/87350
-            #if ([float]$SDDCVer -lt 4.5) {
+            #if ([float]$SDDCVer -lt [float]4.5) {
                 ## Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
                 if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
                     Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
@@ -539,7 +539,7 @@ Try {
 
             # Check the health and sync status of the vSAN cluster
             if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
-                if ([float]$SDDCVer -gt 4.4) {
+                if ([float]$SDDCVer -gt [float]4.4) {
                     $RemoteVMs = @()
                     $RemoteVMs = Get-poweronVMsOnRemoteDS -server $vcServer.fqdn -user $vcUser -pass $vcPass -clustertocheck $cluster.name
                     if($RemoteVMs.count -eq 0) {
@@ -570,7 +570,7 @@ Try {
             }
 
             # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
-            if ([float]$SDDCVer -lt 4.5) {
+            if ([float]$SDDCVer -lt [float]4.5) {
                 $runningVMs = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vm" -powerstate "poweredon" -silence
             } else {
                 $runningAllVMs = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vm" -powerstate "poweredon" -silence
@@ -584,7 +584,7 @@ Try {
             }
             else {
 
-                if ([float]$SDDCVer -lt 4.5) {
+                if ([float]$SDDCVer -lt [float]4.5) {
                     # Stop vSphere HA to avoid "orphaned" VMs during vSAN shutdown
                     if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -disableHA)) {
                         Write-PowerManagementLogMessage -Type ERROR -Message "Could not disable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
@@ -634,7 +634,7 @@ Try {
                 $ClusterStatusMapping[$cluster.name] = 'DOWN'
 
                 # End of shutdown
-                if ([float]$SDDCVer -lt 4.5) {
+                if ([float]$SDDCVer -lt [float]4.5) {
                     Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
                     Write-PowerManagementLogMessage -Type INFO -Message "Note: ESXi hosts are still in power-on state. Please stop them manually." -Colour Green
                     Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence for a given cluster $($cluster.name)!" -Colour Green
@@ -667,7 +667,7 @@ Try {
         $nsxtMgrfqdn = ""
         $count = $sddcClusterDetails.count
         $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
-        if ([float]$SDDCVer -lt 4.5) {
+        if ([float]$SDDCVer -lt [float]4.5) {
             foreach ($cluster in $ClusterDetails) {
                 $esxiDetails = $esxiWorkloadCluster[$cluster.name]
                 # Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
@@ -744,7 +744,7 @@ Try {
                                 Start-Sleep 60
                             }
                         }
-                        if ([float]$SDDCVer -lt 4.5 -and ($wldVC -eq $vcServer.fqdn)) {
+                        if (([float]$SDDCVer -lt [float]4.5) -and ($wldVC -eq $vcServer.fqdn)) {
                             # Workaround for ESXis that do not communicate their Maintenance status to vCenter Server
                             foreach ($esxiNode in $esxiDetails) {
                                 if ((Get-VMHost -name $esxiNode.fqdn).ConnectionState -eq "Maintenance") {
@@ -764,10 +764,10 @@ Try {
 
             if ($service_status -eq $allWldVCs.count) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Virtual Center Start Successfull." -Colour Green
-                if ([float]$SDDCVer -gt 4.4) {
+                if ([float]$SDDCVer -gt [float]4.4) {
                     #Start ESXi hosts here
                     Write-Host "";
-                    $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)'. Once done, please enter yes:"
+                    $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)'. Once done, please enter yes"
                     if (-Not $proceed) {
                         Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence stopping script execution." -Colour Cyan
                         Exit
@@ -820,7 +820,7 @@ Try {
                     Exit
                 }
 
-                if ([float]$SDDCVer -lt 4.5) {
+                if ([float]$SDDCVer -lt [float]4.5) {
                     # Start vSphere HA to avoid triggering a "Cannot find vSphere HA master agent" error.
                     if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
                         Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
@@ -835,9 +835,9 @@ Try {
                 Exit
             }
         }
-        #This is supposed to be only for VCF < 4.5, but due to bug in 4.5, incorporating this workaround
+        #This is supposed to be only for VCF < [float]4.5, but due to bug in [float]4.5, incorporating this workaround
         #Add KB article here -- https://kb.vmware.com/s/article/87350
-        #if ([float]$SDDCVer -lt 4.5) {
+        #if ([float]$SDDCVer -lt [float]4.5) {
             foreach ($cluster in $ClusterDetails) {
                 #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
                 Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
@@ -846,7 +846,7 @@ Try {
         #}
         $index = 1
         foreach ($cluster in $ClusterDetails) {
-            #if ([float]$SDDCVer -lt 4.5) {
+            #if ([float]$SDDCVer -lt [float]4.5) {
                 # Waiting for vCLS VMs to be started for ($retries*10) seconds
                 $counter = 0
                 $retries = 30
@@ -863,14 +863,14 @@ Try {
                     }
                 }
                 if ($counter -eq $retries) {
-                    #if ([float]$SDDCVer -lt 4.5) {
+                    #if ([float]$SDDCVer -lt [float]4.5) {
                         Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
                         Exit
                     #}
                     <#
                     else {
                         Write-PowerManagementLogMessage -Type INFO -Message "The vCLS VMs were not started within the expected time" -colour Yellow
-                        Write-PowerManagementLogMessage -Type INFO -Message "There is a known issue with VCF4.5 as mentioned in the KB article:- https://kb.vmware.com/s/article/80472" -colour Yellow
+                        Write-PowerManagementLogMessage -Type INFO -Message "There is a known issue with VCF[float]4.5 as mentioned in the KB article:- https://kb.vmware.com/s/article/80472" -colour Yellow
                         Write-PowerManagementLogMessage -Type INFO -Message "Hence following the workaround of restarting the EAM service to get VCLS VMs up"  -colour Yellow
                         Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service eam -state "restart"
                         #delete vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
@@ -1010,13 +1010,13 @@ Try {
             #}
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "The following components have been started: $vcfvms_string , " -Colour Green
-            if ([float]$SDDCVer -lt 4.5) {
+            if ([float]$SDDCVer -lt [float]4.5) {
                  Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability has been enabled by the script. Disable it per your environment's design." -Colour Cyan
             }
             Write-PowerManagementLogMessage -Type INFO -Message "Check the list above and start any additional VMs, that are required, before you proceed with workload startup!" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -Colour Yellow
             Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -Colour Yellow
-            if ([float]$SDDCVer -lt 4.5) {
+            if ([float]$SDDCVer -lt [float]4.5) {
                 Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts through SDDC manager, disable it at this point." -Colour Cyan
             }
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
