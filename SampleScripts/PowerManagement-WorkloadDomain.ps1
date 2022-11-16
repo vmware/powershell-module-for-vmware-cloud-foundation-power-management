@@ -772,7 +772,10 @@ Try {
                 if ([float]$SDDCVer -gt [float]4.4) {
                     #Start ESXi hosts here
                     Write-Host "";
-                    $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)'. Once done, please enter yes"
+                    Write-PowerManagementLogMessage -Type INFO -Message "Please start all the ESXi hosts belonging to the cluster '$($cluster.name)'" -Colour Yellow
+                    Write-PowerManagementLogMessage -Type INFO -Message "Also, verify that 'Restart cluster' option is available in vSphere UI for the cluster '$($cluster.name)'." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type INFO -Message "If it is not available, refer scenario 3 in https://kb.vmware.com/s/article/87350 and perform its workaround as mentioned'" -Colour Yellow
+                    $proceed = Read-Host "Once all the above points are taken care, please enter yes"
                     if (-Not $proceed) {
                         Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence stopping script execution." -Colour Cyan
                         Exit
