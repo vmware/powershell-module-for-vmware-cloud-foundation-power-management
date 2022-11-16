@@ -611,7 +611,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 {
                     $successcount = 0
                     #Verify if all ESXi hosts are down in here to conclude End of Shutdown sequence
-                    foreach ($esxiNode in $esxiDetails) {
+                    foreach ($esxiNode in $esxiWorkloadDomain) {
                         if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
                             Write-PowerManagementLogMessage -Type WARN -Message "Looks like some hosts are still UP. So sleeping for 60 seconds before next try'." -Colour cyan
                             break
@@ -619,7 +619,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                             $successcount++
                         }
                     }
-                    if ($successcount -eq $esxiDetails.count) {
+                    if ($successcount -eq $esxiWorkloadDomain.count) {
                         Write-PowerManagementLogMessage -Type INFO -Message "All Hosts have been shutdown successfully!" -Colour Green
                         Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Green
                         Exit
