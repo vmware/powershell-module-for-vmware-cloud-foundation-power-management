@@ -1010,13 +1010,17 @@ Try {
             #}
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "The following components have been started: $vcfvms_string , " -Colour Green
-            Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability has been enabled by the script. Disable it per your environment's design." -Colour Cyan
+            if ([float]$SDDCVer -lt 4.5) {
+                 Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability has been enabled by the script. Disable it per your environment's design." -Colour Cyan
+            }
             Write-PowerManagementLogMessage -Type INFO -Message "Check the list above and start any additional VMs, that are required, before you proceed with workload startup!" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -Colour Yellow
             Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -Colour Yellow
-            Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts through SDDC manager, disable it at this point." -Colour Cyan
+            if ([float]$SDDCVer -lt 4.5) {
+                Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts through SDDC manager, disable it at this point." -Colour Cyan
+            }
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
-            Write-PowerManagementLogMessage -Type INFO -Message "End of startup sequence!" -Colour Green
+            Write-PowerManagementLogMessage -Type INFO -Message "End of startup sequence for the cluster '$($cluster.name)'!" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
             $index += 1
         }

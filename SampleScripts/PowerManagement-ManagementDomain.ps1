@@ -915,11 +915,15 @@ if ($PsBoundParameters.ContainsKey("startup")) {
 
         # End of startup
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
-        Write-PowerManagementLogMessage -Type INFO -Message "vSphere vSphere High Availability has been enabled by the script. Please disable it per your environment's design." -Colour Cyan
+        if ([float]$SDDCVer -lt 4.5) {
+            Write-PowerManagementLogMessage -Type INFO -Message "vSphere vSphere High Availability has been enabled by the script. Please disable it per your environment's design." -Colour Cyan
+        }
         Write-PowerManagementLogMessage -Type INFO -Message "Check your environment and start any additional virtual machines that you host in the management domain." -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -Colour Yellow
         Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -Colour Yellow
-        Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts in management domain, you disable it at this point." -Colour Cyan
+        if ([float]$SDDCVer -lt 4.5) {
+            Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts in management domain, you disable it at this point." -Colour Cyan
+        }
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "End of the startup sequence!" -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
