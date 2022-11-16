@@ -341,6 +341,11 @@ Try {
 				Write-PowerManagementLogMessage -Type INFO -Message "Last cluster of VSAN detected"
             }
 
+            if ($ClusterStatusMapping[$cluster.name] -eq 'DOWN') {
+                Write-PowerManagementLogMessage -Type INFO -Message "Cluster '$($cluster.name)' is already down, hence proceeding with next cluster in the sequence" -Colour GREEN
+                Continue
+            }
+
             $esxiDetails = $esxiWorkloadCluster[$cluster.name]
 
             ###This is where I need to check on the version thing if VCF >=4.5 or vcf4.5
