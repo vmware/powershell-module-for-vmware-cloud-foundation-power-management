@@ -363,6 +363,9 @@ Try {
                 catch {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn), If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
                 }
+            } else {
+                   #lockin mode if any enabled on any host, we have to exit then and there
+                   Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
             }
             # Check if Tanzu is enabled in WLD
             $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
@@ -504,43 +507,36 @@ Try {
                 }
             }
 
-            #The below block was supposed to be only for verison < 4.5, but due to the bug in 4.5
-            #Add KB article here -- https://kb.vmware.com/s/article/87350
-            #if ([float]$SDDCVer -lt [float]4.5) {
-                ## Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-                if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
-                    Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
+            ## The below block was supposed to be only for verison < 4.5, but due to the bug in 4.5
+            ## vcls vms are not handled automatically though expected in vcf4.5
+            ## Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
+            if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
+                Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
+            }
+            else {
+                Write-PowerManagementLogMessage -Type WARNING -Message "'$($vcServer.fqdn)' might already be shutdown. Skipping putting the cluster in retreat mode." -Colour Cyan
+            }
+
+            # Waiting for vCLS VMs to be stopped for ($retries*10) seconds
+            Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take some time, please wait..." -Colour Yellow
+            $counter = 0
+            $retries = 10
+            $sleep_time = 30
+            while ($counter -ne $retries) {
+                $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon" -silence).count
+                if ( $powerOnVMcount ) {
+                    Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until next check."
+                    start-sleep $sleep_time
+                    $counter += 1
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type WARNING -Message "'$($vcServer.fqdn)' might already be shutdown. Skipping putting the cluster in retreat mode." -Colour Cyan
+                    Break
                 }
-
-                # Waiting for vCLS VMs to be stopped for ($retries*10) seconds
-                Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take some time, please wait..." -Colour Yellow
-                $counter = 0
-                $retries = 10
-                $sleep_time = 30
-                while ($counter -ne $retries) {
-                    #if ($multiClusterEnvironment) {
-                        $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon" -silence).count
-                    #} else {
-                    #    $powerOnVMcount = (Get-VMsWithPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
-                    #}
-
-                    if ( $powerOnVMcount ) {
-                        Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until next check."
-                        start-sleep $sleep_time
-                        $counter += 1
-                    }
-                    else {
-                        Break
-                    }
-                }
-                if ($counter -eq $retries) {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not shut down within the expected time. Stopping the script execution." -Colour Red
-                    Exit
-                }
-            #}
+            }
+            if ($counter -eq $retries) {
+                Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not shut down within the expected time. Stopping the script execution." -Colour Red
+                Exit
+            }
 
             # Check the health and sync status of the vSAN cluster
             if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
@@ -612,8 +608,7 @@ Try {
 
                 ## TODO Add ESXi shutdown here
                 } else {
-                   #lockin mode if any enabled on any host, we have to exit then and there
-                   Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+
                    #Check if hosts are in maintainence mode before cluster stop
                    foreach ($esxiNode in $esxiDetails) {
                         $HostConnectionState = Get-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
@@ -717,6 +712,10 @@ Try {
             }
         }
         foreach ($cluster in $ClusterDetails) {
+            if ([float]$SDDCVer -gt [float]4.4) {
+                #lockin mode if any enabled on any host, we have to exit then and there
+                Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+            }
             $esxiDetails = $esxiWorkloadCluster[$cluster.name]
             #we are turning on all vc as we are not able to read NSX info because SDDC manager restart is removing the cache
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to see if all vCenter Servers in a workload domain are already started"
@@ -772,12 +771,19 @@ Try {
                 if ([float]$SDDCVer -gt [float]4.4) {
                     #Start ESXi hosts here
                     Write-Host "";
-                    $WarningString = "==========================================================`n"
-                    $WarningString += "1) Please start all the ESXi hosts belonging to the cluster '$($cluster.name)'`n"
-                    $WarningString += "2) Also, verify that 'Restart cluster' option is available in vSphere UI for the cluster '$($cluster.name)'.`n"
-                    $WarningString += "3) If it is not available, refer scenario 3 in https://kb.vmware.com/s/article/87350 and perform its workaround as mentioned'`n"
-                    $WarningString += "Once all the above points are taken care, please enter yes`n"
-                    $WarningString += "==========================================================`n"
+                    $WarningString = ""
+                    if ($sddcClusterDetails.count -eq 1) {
+                        $WarningString = "==========================================================`n"
+                        $WarningString += "Please start all the ESXi hosts belonging to the cluster '$($cluster.name)'. Once done, please enter yes"
+                        $WarningString += "==========================================================`n"
+                    } else {
+                        $WarningString = "==========================================================`n"
+                        $WarningString += "1) Please start all the ESXi hosts belonging to the cluster '$($cluster.name)'`n"
+                        $WarningString += "2) Also, verify that 'Restart cluster' option is available in vSphere UI for the cluster '$($cluster.name)'.`n"
+                        $WarningString += "3) If it is not available, refer scenario 3 in https://kb.vmware.com/s/article/87350 and perform its workaround as mentioned'`n"
+                        $WarningString += "Once all the above points are taken care, please enter yes`n"
+                        $WarningString += "==========================================================`n"
+                    }
                     $proceed = Read-Host $WarningString
                     if (-Not $proceed) {
                         Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence stopping script execution." -Colour Cyan
@@ -836,9 +842,6 @@ Try {
                     if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
                         Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
                     }
-                } else {
-                    #lockin mode if any enabled on any host, we have to exit then and there
-                    Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
                 }
             }
             else {
@@ -846,73 +849,34 @@ Try {
                 Exit
             }
         }
-        #This is supposed to be only for VCF < [float]4.5, but due to bug in [float]4.5, incorporating this workaround
-        #Add KB article here -- https://kb.vmware.com/s/article/87350
-        #if ([float]$SDDCVer -lt [float]4.5) {
-            foreach ($cluster in $ClusterDetails) {
-                #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
-                Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
-                Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS startup will take some time. Please wait! " -Colour Yellow
-            }
-        #}
+        #This is supposed to be only for VCF < 4.5, but due to bug in 4.5, incorporating this workaround
+        foreach ($cluster in $ClusterDetails) {
+            #Startup vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
+            Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
+            Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS startup will take some time. Please wait! " -Colour Yellow
+        }
+
         $index = 1
         foreach ($cluster in $ClusterDetails) {
-            #if ([float]$SDDCVer -lt [float]4.5) {
-                # Waiting for vCLS VMs to be started for ($retries*10) seconds
-                $counter = 0
-                $retries = 30
-                $sleep_time = 30
-                while ($counter -ne $retries) {
-                    $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -cluster $cluster.name -folder "vcls" -silence).count
-                    if ( $powerOnVMcount -lt 3 ) {
-                        Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
-                        start-sleep $sleep_time
-                        $counter += 1
-                    }
-                    else {
-                        Break
-                    }
+            # Waiting for vCLS VMs to be started for ($retries*10) seconds
+            $counter = 0
+            $retries = 30
+            $sleep_time = 30
+            while ($counter -ne $retries) {
+                $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -cluster $cluster.name -folder "vcls" -silence).count
+                if ( $powerOnVMcount -lt 3 ) {
+                    Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
+                    start-sleep $sleep_time
+                    $counter += 1
                 }
-                if ($counter -eq $retries) {
-                    #if ([float]$SDDCVer -lt [float]4.5) {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
-                        Exit
-                    #}
-                    <#
-                    else {
-                        Write-PowerManagementLogMessage -Type INFO -Message "The vCLS VMs were not started within the expected time" -colour Yellow
-                        Write-PowerManagementLogMessage -Type INFO -Message "There is a known issue with VCF[float]4.5 as mentioned in the KB article:- https://kb.vmware.com/s/article/80472" -colour Yellow
-                        Write-PowerManagementLogMessage -Type INFO -Message "Hence following the workaround of restarting the EAM service to get VCLS VMs up"  -colour Yellow
-                        Set-VamiServiceStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -service eam -state "restart"
-                        #delete vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
-                        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
-                        start-sleep 60
-                        #create vSphere Cluster Services Virtual Machines in Virtual Infrastructure Workload Domain
-                        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
-                        Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS startup will take some time. Please wait! " -Colour Yellow
-
-                        # Waiting for vCLS VMs to be started for ($retries*10) seconds
-                        $counter = 0
-                        $retries = 30
-                        $sleep_time = 30
-                        while ($counter -ne $retries) {
-                            $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -cluster $cluster.name -folder "vcls" -silence).count
-                            if ( $powerOnVMcount -lt 3 ) {
-                                Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
-                                start-sleep $sleep_time
-                                $counter += 1
-                            }
-                            else {
-                                Break
-                            }
-                        }
-                        if ($counter -eq $retries) {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
-                            Exit
-                        }
-                    }#>
+                else {
+                    Break
                 }
-            #}
+            }
+            if ($counter -eq $retries) {
+                Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not started within the expected time. Stopping script execution!" -Colour Red
+                Exit
+            }
             [Array]$clustervclsvms = @()
             [Array]$clustervcfvms = @()
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch  virtual machines for a given vsphere cluster $($cluster.name)..."
@@ -1014,11 +978,8 @@ Try {
 
             # End of startup
             $vcfvms_string = ""
-            #if ($multiClusterEnvironment) {
-                $vcfvms_string = ($clustervcfvms | select -Unique) -join "; "
-            #} else {
-            #    $vcfvms_string = ($vcfvms | select -Unique) -join "; "
-            #}
+            $vcfvms_string = ($clustervcfvms | select -Unique) -join "; "
+
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "The following components have been started: $vcfvms_string , " -Colour Green
             if ([float]$SDDCVer -lt [float]4.5) {
@@ -1029,6 +990,9 @@ Try {
             Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -Colour Yellow
             if ([float]$SDDCVer -lt [float]4.5) {
                 Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts through SDDC manager, disable it at this point." -Colour Cyan
+            }
+            if ([float]$SDDCVer -gt [float]4.4) {
+                Write-PowerManagementLogMessage -Type INFO -Message "If you have disabled LockdownMode for the ESXi hosts in workload cluster, you can enable it back at this point." -Colour Cyan
             }
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "End of startup sequence for the cluster '$($cluster.name)'!" -Colour Green

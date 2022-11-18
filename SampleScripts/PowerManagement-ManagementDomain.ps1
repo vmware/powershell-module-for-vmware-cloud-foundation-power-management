@@ -361,6 +361,9 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             catch {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
             }
+        } else {
+            #lockin mode if any enabled on any host, we have to exit then and there
+            Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
         }
 
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines from server $($vcServer.fqdn)..."
@@ -596,8 +599,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Cyan
                 Write-PowerManagementLogMessage -Type INFO -Message "Please shut down the ESXi hosts!" -Colour Cyan
             } else {
-                #lockin mode if any enabled on any host, we have to exit then and there
-                Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+
                 #VSAN shutdown wizard automation
                 Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff -mgmt
 
@@ -721,6 +723,8 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         if (-Not (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 -WarningAction SilentlyContinue ).TcpTestSucceeded ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to $($vcServer.fqdn). Starting vSAN..."
             if ([float]$SDDCVer -gt [float]4.4) {
+                #lockin mode if any enabled on any host, we have to exit then and there
+                Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
                 Write-Host "";
                 $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)'. Once done, please enter yes"
                 if (-Not $proceed) {
@@ -837,8 +841,8 @@ if ($PsBoundParameters.ContainsKey("startup")) {
 
         #Restart Cluster Via Wizard
         if ([float]$SDDCVer -gt [float]4.4) {
-             #Restart Cluster Via Wizard
-             #lockin mode -- Not mandatory, only if it is enabled, it has to be configured
+            #lockin mode if any enabled on any host, we have to exit then and there
+            Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
              #start VSAN Cluster wizard automation
              Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOn
         }
@@ -855,8 +859,6 @@ if ($PsBoundParameters.ContainsKey("startup")) {
 
         #Restart Cluster Via Wizard
         if ([float]$SDDCVer -lt [float]4.5) {
-             ####lockinmode setting reversal
-
             # Start vSphere HA
             if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'." -Colour Red
@@ -923,6 +925,9 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -Colour Yellow
         if ([float]$SDDCVer -lt [float]4.5) {
             Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts in management domain, you disable it at this point." -Colour Cyan
+        }
+        if ([float]$SDDCVer -gt [float]4.4) {
+            Write-PowerManagementLogMessage -Type INFO -Message "If you have disabled LockdownMode for the ESXi hosts in management domain, you can enable it back at this point." -Colour Cyan
         }
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "End of the startup sequence!" -Colour Green
