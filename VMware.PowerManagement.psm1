@@ -833,9 +833,13 @@ Function Test-LockdownMode {
                     foreach ($esxiHost in $hostsInCluster) {
                         Write-PowerManagementLogMessage -Type INFO -Message "Checking Lockdown mode for $esxiHost ...." -Colour Yellow
                         $lockdownStatus = (Get-VMHost -Name $esxiHost).ExtensionData.Config.LockdownMode
-                        if ($lockdownStatus -ne "lockdownDisabled") {
-                            Write-PowerManagementLogMessage -Type WARNING -Message "Lockdown mode is enabled for ESXi host $esxiHost!" -Colour Cyan
-                            $hostsWithLockdown += ", $esxiHost"
+                        if ($lockdownStatus -eq $null) {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Unable to fetch Lockdown mode info as ESXi host $esxiHost! could be down, please check" -Colour RED
+                        } else {
+                            if ($lockdownStatus -ne "lockdownDisabled") {
+                                Write-PowerManagementLogMessage -Type WARNING -Message "Lockdown mode is enabled for ESXi host $esxiHost" -Colour Cyan
+                                $hostsWithLockdown += ", $esxiHost"
+                            }
                         }
                     }
                 } else {

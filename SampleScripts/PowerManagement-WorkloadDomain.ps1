@@ -765,9 +765,6 @@ Try {
             if ($service_status -eq $allWldVCs.count) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Virtual Center Start Successfull." -Colour Green
                 if ([float]$SDDCVer -gt [float]4.4) {
-                    #lockin mode if any enabled on any host, we have to exit then and there
-                    Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
-
                     #Start ESXi hosts here
                     Write-Host "";
                     $WarningString = ""
@@ -808,6 +805,9 @@ Try {
                             Exit
                         }
                     }
+
+                    #lockin mode if any enabled on any host, we have to exit then and there
+                    Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
                    #start VSAN Cluster wizard automation
                    Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOn
 
