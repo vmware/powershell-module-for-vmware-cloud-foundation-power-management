@@ -712,10 +712,6 @@ Try {
             }
         }
         foreach ($cluster in $ClusterDetails) {
-            if ([float]$SDDCVer -gt [float]4.4) {
-                #lockin mode if any enabled on any host, we have to exit then and there
-                Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
-            }
             $esxiDetails = $esxiWorkloadCluster[$cluster.name]
             #we are turning on all vc as we are not able to read NSX info because SDDC manager restart is removing the cache
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to see if all vCenter Servers in a workload domain are already started"
@@ -769,6 +765,9 @@ Try {
             if ($service_status -eq $allWldVCs.count) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Virtual Center Start Successfull." -Colour Green
                 if ([float]$SDDCVer -gt [float]4.4) {
+                    #lockin mode if any enabled on any host, we have to exit then and there
+                    Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+
                     #Start ESXi hosts here
                     Write-Host "";
                     $WarningString = ""
