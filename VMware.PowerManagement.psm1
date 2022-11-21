@@ -834,7 +834,13 @@ Function Test-LockdownMode {
                         Write-PowerManagementLogMessage -Type INFO -Message "Checking Lockdown mode for $esxiHost ...." -Colour Yellow
                         $lockdownStatus = (Get-VMHost -Name $esxiHost).ExtensionData.Config.LockdownMode
                         if ($lockdownStatus -eq $null) {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "Unable to fetch Lockdown mode info as ESXi host $esxiHost! could be down, please check" -Colour RED
+                            $checkServer = (Test-NetConnection -ComputerName $esxiHost -Port 443).TcpTestSucceeded
+                            if ($checkServer) {
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Unable to fetch Lockdown mode information. Please check the ESXi host $esxiHost!" -Colour RED
+                            } else {
+                                Write-PowerManagementLogMessage -Type WARNING -Message "Unable to fetch Lockdown mode information. Host $esxiHost is not reachable" -Colour Cyan
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Please check the ipaddress or powerstatus on the ESXi host $esxiHost!" -Colour RED
+                            }
                         } else {
                             if ($lockdownStatus -ne "lockdownDisabled") {
                                 Write-PowerManagementLogMessage -Type WARNING -Message "Lockdown mode is enabled for ESXi host $esxiHost" -Colour Cyan
