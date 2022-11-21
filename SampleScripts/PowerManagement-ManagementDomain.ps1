@@ -723,8 +723,6 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         if (-Not (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 -WarningAction SilentlyContinue ).TcpTestSucceeded ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to $($vcServer.fqdn). Starting vSAN..."
             if ([float]$SDDCVer -gt [float]4.4) {
-                #lockin mode if any enabled on any host, we have to exit then and there
-                Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
                 Write-Host "";
                 $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)'. Once done, please enter yes"
                 if (-Not $proceed) {
