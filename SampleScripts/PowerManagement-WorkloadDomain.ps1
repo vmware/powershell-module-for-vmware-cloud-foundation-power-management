@@ -364,8 +364,14 @@ Try {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn), If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
                 }
             } else {
-                   #lockin mode if any enabled on any host, we have to exit then and there
-                   Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+                foreach ($esxiNode in $esxiDetails) {
+                    if (!(Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with the host $($esxiNode.fqdn). Check the FQDN or IP address or power state of '$($esxiNode.fqdn)'." -Colour Red
+                        Exit
+                    }
+                }
+               #lockin mode if any enabled on any host, we have to exit then and there
+               Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
             }
             # Check if Tanzu is enabled in WLD
             $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
