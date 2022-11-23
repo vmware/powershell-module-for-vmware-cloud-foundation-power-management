@@ -894,6 +894,10 @@ Try {
 
 
             if ($index -eq 1) {
+                #Get fresh token from SDDC manager
+				$StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
+				if ($StatusMsg) { Write-PowerManagementLogMessage -Type INFO -Message $StatusMsg } if ($WarnMsg) { Write-PowerManagementLogMessage -Type WARNING -Message $WarnMsg -Colour Magenta } if ($ErrorMsg) { Write-PowerManagementLogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+
                 # Get NSX-T Details once VC is started
                 ## Gather NSX Manager Cluster Details
                 $counter = 0
