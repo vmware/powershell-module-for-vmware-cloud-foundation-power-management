@@ -664,7 +664,7 @@ Function Set-VsanClusterPowerStatus {
                 # Populate the needed spec:
                 $spec = [VMware.Vsan.Views.PerformClusterPowerActionSpec]::new()
 
-                $spec.powerOffReason = "VCF Automatic"
+                $spec.powerOffReason = "Shutdown through VMware Cloud Foundation script"
                 $spec.targetPowerStatus = $PowerStatus
 
                 $cluster = Get-Cluster $clustername
@@ -687,7 +687,7 @@ Function Set-VsanClusterPowerStatus {
 
                     if ($task.State -eq "Error"){
                         if ($task.ExtensionData.Info.Error.Fault.FaultMessage -like "VMware.Vim.LocalizableMessage")  {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "'$($PowerStatus)' task exited with localized error message. Kindly check vCenter UI for details and take necessary action" -Colour Red
+                            Write-PowerManagementLogMessage -Type ERROR -Message "'$($PowerStatus)' task exited with localized error message. Kindly check vCenter UI for details and take the necessary actions" -Colour Red
                         } else {
                             Write-PowerManagementLogMessage -Type WARN -Message "'$($PowerStatus)' task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)" -Colour Cyan
                             Write-PowerManagementLogMessage -Type ERROR -Message "Kindly check vCenter UI for details and take necessary action" -Colour Red
@@ -724,14 +724,14 @@ Export-ModuleMember -Function Set-VsanClusterPowerStatus
 Function Get-poweronVMsOnRemoteDS {
     <#
         .SYNOPSIS
-        Get the list of remote powered on VM's for a given cluster
+        Get list of VMs that resides on vSAN HCI Mesh datastore hosted in a given cluster
 
         .DESCRIPTION
-        Get the list of VM's which are on the remote datastore for a given cluster
+        Get list of VMs that resides on vSAN HCI Mesh datastore hosted in a given cluster
 
         .EXAMPLE
         Get-poweronVMsOnRemoteDS -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -clustertocheck sfo-m01-cl01
-        Get the list of remote powered on VMs for the cluster sfo-m01-cl01
+        Get list of VMs that resides on vSAN HCI Mesh datastore hosted in cluster sfo-m01-cl01
     #>
 
     Param (
@@ -839,7 +839,7 @@ Function Test-LockdownMode {
                                 Write-PowerManagementLogMessage -Type ERROR -Message "Unable to fetch Lockdown mode information. Please check the ESXi host $esxiHost!" -Colour RED
                             } else {
                                 Write-PowerManagementLogMessage -Type WARNING -Message "Unable to fetch Lockdown mode information. Host $esxiHost is not reachable" -Colour Cyan
-                                Write-PowerManagementLogMessage -Type ERROR -Message "Please check the ipaddress or powerstatus on the ESXi host $esxiHost!" -Colour RED
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Please check status on the ESXi host $esxiHost!" -Colour RED
                             }
                         } else {
                             if ($lockdownStatus -ne "lockdownDisabled") {
@@ -849,12 +849,13 @@ Function Test-LockdownMode {
                         }
                     }
                 } else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "looks like cluster $cluster is not present on a given server $server, kindly check" -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "looks like cluster $cluster is not present on a given server $server, please check the input" -Colour Red
                 }
 				if ([string]::IsNullOrEmpty($hostsWithLockdown))  {
-				    Write-PowerManagementLogMessage -Type INFO -Message "No hosts found to have Lockdown mode enabled, So continuing" -Colour GREEN
+				    Write-PowerManagementLogMessage -Type INFO -Message "There are no hosts with enabled Lockdown mode in cluster $cluster" -Colour GREEN
 				} else {
-				    Write-PowerManagementLogMessage -Type ERROR -Message "The following hosts have Lockdown mode enabled: $hostsWithLockdown. Please disable it in order to continue." -Colour Red
+				    Write-PowerManagementLogMessage -Type INFO -Message "The following hosts have Lockdown mode enabled: $hostsWithLockdown. Please disable it in order to continue." -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "There are some hosts with Lockdon Mode enabled. Please disable it in order to continue." -Colour Red
 				}
             }
             else {
@@ -1040,7 +1041,7 @@ Function Get-SSHEnabledStatus {
                 return $False
             }
         } else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with server '$server'. Check the FQDN or IP address or power state of the server." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with server '$server'. Check the power state of the server." -Colour Red
         }
     }
     Catch {
@@ -1085,7 +1086,7 @@ Function Test-VsanHealth {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the vSAN cluster health..."
                 $count = 1
                 $flag = 0
-                While ($count -ne 5) {
+                While ($count -lt 5) {
                     Try {
                         $Error.clear()
                         Get-vSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system" -erroraction stop | Out-Null
@@ -1229,13 +1230,13 @@ Function Get-VMsWithPowerStatus {
         This example connects to a ESXi host and returns the list of powered on virtual machines
 
         Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon" -pattern "sfo-wsa01" -exactmatch
-        This example connects to a management virtual center and searches for a VM sfo-wsa01 in a particular powerstate and returns the matching VMs
+        This example connects to a virtual center and searches for a VM sfo-wsa01 in a particular powerstate and returns the matching VMs
 
-        Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon"  -pattern "vcls"
-        This example connects to a management virtual center and returns the list of powered on vCLS virtual machines
+        Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon" -pattern "vcls"
+        This example connects to a virtual center and returns the list of powered on vCLS virtual machines
 
-        Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon"  -pattern "vcls" -silence
-        This example connects to a management virtual center and returns the list of powered on vCLS virtual machines
+        Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon" -pattern "vcls" -silence
+        This example connects to a virtual center and returns the list of powered on vCLS virtual machines
         but supresses all the log messages in the method
     #>
 
@@ -1346,7 +1347,7 @@ Function Get-VamiServiceStatus {
                 Start-Sleep 60
                 $retries -= 1
                 if (-Not $nolog) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to VAMI Service Console is taking some time. Please wait." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to vSphere Automation SDK server could take some time. Please wait." -Colour Yellow
                 }
             }
             if ($flag) {
@@ -1406,6 +1407,7 @@ Function Set-VamiServiceStatus {
         if (-Not $nolog) {
             Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VamiServiceStatus cmdlet." -Colour Yellow
         }
+        # TODO check if 443 is the default communication port
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
             if (-Not $nolog) {
@@ -1425,7 +1427,7 @@ Function Set-VamiServiceStatus {
                 Start-Sleep 60
                 $retries -= 1
                 if (-Not $nolog) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to VAMI Service Console is taking some time. Please wait." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to vSphere Automation SDK server could take some time. Please wait." -Colour Yellow
                 }
             }
             if ($flag) {
@@ -1762,17 +1764,17 @@ Export-ModuleMember -Function Set-Retreatmode
 Function Get-VMToClusterMapping {
     <#
         .SYNOPSIS
-        Get the list of all Virtual Machines which are mapped for a given vSphere Clusters
+        Get the list of all Virtual Machines which are running in a given vSphere Cluster
 
         .DESCRIPTION
-        The Get-VMToClusterMapping cmdlet gets all Virtual Machines belonging to a given  vSphere Clusters
+        The Get-VMToClusterMapping cmdlet gets all Virtual Machines belonging to a given vSphere Cluster
 
         .EXAMPLE
         Get-VMToClusterMapping -server $server -user $user -pass $pass -cluster $cluster -folder "VCLS"
-        This example gets all virtual machines (vCLS) belonging to a given vSphere Clusters $cluster
+        This example gets all virtual machines in folder vCLS belonging to a given vSphere Clusters $cluster
 
         Get-VMToClusterMapping -server $server -user $user -pass $pass -cluster $cluster -folder "VCLS" -powerstate "poweredon"
-        This example gets all virtual machines (vCLS) belonging to a given vSphere Clusters $cluster in the powered on state only
+        This example gets all virtual machines in vCLS folder belonging to a given vSphere Clusters $cluster in the powered on state only
 
     #>
 
@@ -1985,14 +1987,14 @@ Export-ModuleMember -Function Get-EdgeNodeFromNSXManager
 Function Get-NSXTComputeManger {
     <#
         .SYNOPSIS
-        This method reads list of compute managers mapped to NSX-T from from NSX manager
+        This method reads list of compute managers connected to NSX
 
         .DESCRIPTION
-        The Get-NSXTComputeManger used to read  list of compute managers mapped to NSX-T from NSX manager
+        The Get-NSXTComputeManger used to read the list of compute managers connected to NSX
 
         .EXAMPLE
         Get-NSXTComputeManger -server $server -user $user -pass $pass
-        This example returns list of compute manager mapped to the given server $server
+        This example returns list of compute manager mapped to the given NSX server $server
     #>
 
     Param(
@@ -2011,7 +2013,7 @@ Function Get-NSXTComputeManger {
             Connect-NsxTServer -server $server -user $user -password $pass | Out-Null
             if ($DefaultNsxTServers.Name -eq $server) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..."
-                #get compute managers info
+                # Get compute managers info
                 $compute_manager_var = Get-NsXtService com.vmware.nsx.fabric.compute_managers
                 $compute_manager_list = $compute_manager_var.list().results.server
                 Disconnect-NSXTServer * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
@@ -2143,3 +2145,4 @@ Function Debug-CatchWriterForPowerManagement {
 }
 Export-ModuleMember -Function Debug-CatchWriterForPowerManagement
 ######### End Useful Script Functions ##########
+# Test
