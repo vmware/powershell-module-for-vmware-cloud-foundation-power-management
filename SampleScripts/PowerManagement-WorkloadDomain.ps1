@@ -767,7 +767,7 @@ Try {
                     $WarningString = ""
                     if ($sddcClusterDetails.count -eq 1) {
                         $WarningString = "==========================================================`n"
-                        $WarningString += "Please start all the ESXi hosts belonging to the cluster '$($cluster.name)'. Once done, please enter yes`n"
+                        $WarningString += "Please start all the ESXi hosts belonging to the cluster '$($cluster.name)' and wait for the host console to come up. Once done, please enter yes`n"
                         $WarningString += "==========================================================`n"
                     } else {
                         $WarningString = "==========================================================`n"

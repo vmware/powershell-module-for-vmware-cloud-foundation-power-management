@@ -364,6 +364,14 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         } else {
             #Lockdown mode - if enabled on any host, we should stop the script
             Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+            #Check if hosts are out of maintenance mode before cluster shutdown
+            foreach ($esxiNode in $esxiWorkloadDomain) {
+                $HostConnectionState = Get-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                if ($HostConnectionState  -eq "Maintenance") {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Looks like $($esxiNode.fqdn) is in maintenance mode, hence unable to do cluster shutdown. Please take host out of maintenance mode and rerun script'." -Colour Red
+                    Exit
+                }
+            }
         }
 
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines from server $($vcServer.fqdn)..."
@@ -726,7 +734,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
             if ([float]$SDDCVer -gt [float]4.4) {
                 #TODO add check if hosts are up and running. If so, do not display this message
                 Write-Host "";
-                $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)'. Once done, please enter yes"
+                $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)' and wait for the host console to come up. Once done, please enter yes"
                 if (-Not $proceed) {
                     Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence stopping script execution." -Colour Cyan
                     Exit
