@@ -454,102 +454,6 @@ Function Get-MaintenanceMode {
 }
 Export-ModuleMember -Function Get-MaintenanceMode
 
-
-Function Get-HostStatus {
-    <#
-        .SYNOPSIS
-        This is used to get ESXi host status [Up/Down]
-
-        .DESCRIPTION
-        The Get-HostStatus cmdlet checks if all hosts are up and out of maintainance mode after start,
-        if status is passed as UP and TCP connection is not happening in case of DOWN status
-
-
-        .EXAMPLE
-        Get-HostStatus -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -status UP
-        This example places an ESXi host in maintenance mode
-
-        .EXAMPLE
-        Get-HostStatus -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -status DOWN
-        This example takes an ESXi host out of maintenance mode
-    #>
-
-    Param (
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory = $true)] [ValidateSet("UP", "DOWN")] [String]$status
-    )
-
-    Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-HostStatus cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
-        if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
-            if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
-            }
-            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-            if ($DefaultVIServer.Name -eq $server) {
-                Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to $state maintenance mode..."
-                $hostStatus = (Get-VMHost -Server $server)
-                if ($state -eq "UP") {
-                    if ($hostStatus.ConnectionState -eq "Connected") {
-                        Write-PowerManagementLogMessage -type INFO -Message "Attempting to enter maintenance mode for '$server'..."
-                        Get-View -Server $server -ViewType HostSystem -Filter @{"Name" = $server } | Where-Object { !$_.Runtime.InMaintenanceMode } | ForEach-Object { $_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode = (new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction = [VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction }) })) } | Out-Null
-                        $hostStatus = (Get-VMHost -Server $server)
-                        if ($hostStatus.ConnectionState -eq "Maintenance") {
-                            Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has entered maintenance mode successfully." -Colour Green
-                        }
-                        else {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' did not enter maintenance mode. Check your environment and try again." -Colour Red
-                        }
-                    }
-                    elseif ($hostStatus.ConnectionState -eq "Maintenance") {
-                        Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has already entered maintenance mode." -Colour Green
-                    }
-                    else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' is not currently connected." -Colour Red
-                    }
-                } else {
-                    if ($hostStatus.ConnectionState -eq "Maintenance") {
-                        Write-PowerManagementLogMessage -type INFO -Message "Attempting to exit maintenance mode for '$server'..."
-                        $task = Set-VMHost -VMHost $server -State "Connected" -RunAsync -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
-                        Wait-Task $task | out-null
-                        $hostStatus = (Get-VMHost -Server $server)
-                        if ($hostStatus.ConnectionState -eq "Connected") {
-                            Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has exited maintenance mode successfully." -Colour Green
-                        }
-                        else {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "The host '$server' did not exit maintenance mode. Check your environment and try again." -Colour Red
-                        }
-                    }
-                    elseif ($hostStatus.ConnectionState -eq "Connected") {
-                        Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has already exited maintenance mode" -Colour Yellow
-                    }
-                    else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' is not currently connected." -Colour Red
-                    }
-                }
-                Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
-            }
-            else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
-            }
-        }
-        else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
-        }
-    }
-    Catch {
-        Debug-CatchWriterForPowerManagement -object $_
-    }
-    Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-HostStatus cmdlet." -Colour Yellow
-    }
-}
-Export-ModuleMember -Function Get-HostStatus
-
 Function Set-DrsAutomationLevel {
     <#
         .SYNOPSIS
@@ -1098,7 +1002,7 @@ Function Test-VsanHealth {
                     Catch {
                         Write-PowerManagementLogMessage -Type INFO -Message "The vSAN health service is yet to come up, please wait ..."
                         Start-Sleep -s 60
-                        $count += 60
+                        $count += 1
                     }
                 }
 
