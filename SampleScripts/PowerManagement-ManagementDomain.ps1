@@ -849,8 +849,8 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         if ([float]$SDDCVer -gt [float]4.4) {
             # Lockdown mode check
             Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
-             # Start VSAN Cluster wizard
-             Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOn
+            # Start VSAN Cluster wizard
+            Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOn
         }
         # Check vSAN Status
         if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -ne 0) {

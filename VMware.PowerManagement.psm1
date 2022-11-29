@@ -756,9 +756,9 @@ Function Test-LockdownMode {
                     Write-PowerManagementLogMessage -Type ERROR -Message "looks like cluster $cluster is not present on a given server $server, please check the input" -Colour Red
                 }
 				if ([string]::IsNullOrEmpty($hostsWithLockdown))  {
-				    Write-PowerManagementLogMessage -Type INFO -Message "There are no hosts with enabled Lockdown mode in cluster $cluster" -Colour GREEN
+                    Write-PowerManagementLogMessage -Type INFO -Message "There are no hosts with enabled Lockdown mode in cluster $cluster" -Colour GREEN
 				} else {
-				    Write-PowerManagementLogMessage -Type INFO -Message "The following hosts have Lockdown mode enabled: $hostsWithLockdown. Please disable it in order to continue." -Colour Red
+                    Write-PowerManagementLogMessage -Type INFO -Message "The following hosts have Lockdown mode enabled: $hostsWithLockdown. Please disable it in order to continue." -Colour Red
                     Write-PowerManagementLogMessage -Type ERROR -Message "There are some hosts with Lockdon Mode enabled. Please disable it in order to continue." -Colour Red
 				}
             }
@@ -1159,7 +1159,7 @@ Function Get-VMsWithPowerStatus {
         if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMsWithPowerStatus cmdlet." -Colour Yellow}
         $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
         if ($checkServer) {
-           if(-not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."}
+            if(-not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."}
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
@@ -1344,7 +1344,7 @@ Function Set-VamiServiceStatus {
                             Write-PowerManagementLogMessage -Type INFO -Message "'$service' service is successfully started" -Colour Yellow
                         }
                     } else {
-                         Write-PowerManagementLogMessage -Type ERROR -Message "'$service' service is could not be started" -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "'$service' service is could not be started" -Colour Red
                     }
                 } elseif ($state -eq "stop") {
                     $vMonAPI.Stop($service)
@@ -1354,17 +1354,17 @@ Function Set-VamiServiceStatus {
                             Write-PowerManagementLogMessage -Type INFO -Message "'$service' service is successfully stopped" -Colour Yellow
                         }
                     } else {
-                         Write-PowerManagementLogMessage -Type ERROR -Message "'$service' service is could not be stopped" -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "'$service' service is could not be stopped" -Colour Red
                     }
                 } else {
                     $vMonAPI.ReStart($service)
                     $serviceStatus = $vMonAPI.Get($service, 0)
                     if($serviceStatus.state -eq "STARTED") {
-                         if (-Not $nolog) {
+                        if (-Not $nolog) {
                             Write-PowerManagementLogMessage -Type INFO -Message "'$service' service is successfully restarted" -Colour Yellow
-                         }
+                        }
                     } else {
-                         Write-PowerManagementLogMessage -Type ERROR -Message "'$service' service is could not be restarted" -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "'$service' service is could not be restarted" -Colour Red
                     }
                 }
             }

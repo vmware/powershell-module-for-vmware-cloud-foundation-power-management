@@ -302,7 +302,7 @@ Try {
             Try {
                 [Array]$nsxtEdgeNodes = Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $vcServer.fqdn
                 foreach ($node in $nsxtEdgeNodes) {
-                     [Array]$vcfvms += $node
+                    [Array]$vcfvms += $node
                 }
             }
             catch {
@@ -364,8 +364,8 @@ Try {
                         Exit
                     }
                 }
-               # Check Lockdown Mode
-               Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+                # Check Lockdown Mode
+                Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
             }
             # Check if Tanzu is enabled in WLD
             $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
@@ -607,14 +607,14 @@ Try {
                 ## TODO Add ESXi shutdown here
                 } else {
 
-                   # Check if hosts are in maintainence mode before cluster stop
-                   foreach ($esxiNode in $esxiDetails) {
+                    # Check if hosts are in maintainence mode before cluster stop
+                    foreach ($esxiNode in $esxiDetails) {
                         $HostConnectionState = Get-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
                         if ($HostConnectionState  -eq "Maintenance") {
                             Write-PowerManagementLogMessage -Type ERROR -Message "Looks like $($esxiNode.fqdn) is in maintainence mode before cluster shutdown. Automation could not proceeed. Please check vCenter Server UI for more details ." -Colour Red
                             Exit
                         }
-                   }
+                    }
                     #VSAN shutdown wizard automation
                     Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff
                     $esxiDetails = $esxiWorkloadCluster[$cluster.name]
@@ -803,19 +803,19 @@ Try {
                         }
                     }
 
-                   # Check if Lockdown Mode is enabled on ESXi hosts
+                    # Check if Lockdown Mode is enabled on ESXi hosts
                     Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
-                   # Start vSAN Cluster wizard
-                   Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOn
+                    # Start vSAN Cluster wizard
+                    Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOn
 
-                   # Check if host are out of maintainence mode after cluster restart
-                   foreach ($esxiNode in $esxiDetails) {
+                    # Check if host are out of maintainence mode after cluster restart
+                    foreach ($esxiNode in $esxiDetails) {
                         $HostConnectionState = Get-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
                         if ($HostConnectionState  -eq "Maintenance") {
                             Write-PowerManagementLogMessage -Type ERROR -Message "Looks like $($esxiNode.fqdn) is still in maintainence mode even after cluster restart. Please vCneter Server UI and take the necessery actions." -Colour Red
                             Exit
                         }
-                   }
+                    }
                 }
                 if ((Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Cluster health is good." -Colour Green
@@ -824,7 +824,7 @@ Try {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Cluster health is bad. Please check your environment and run the script again." -Colour Red
                     Exit
                 }
-                 # Check the health and sync status of the vSAN cluster
+                # Check the health and sync status of the vSAN cluster
                 if ((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
                     # Write-PowerManagementLogMessage -Type INFO -Message "vSAN object resynchronization is successful." -Colour Green
                 }
@@ -981,7 +981,7 @@ Try {
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "The following components have been started: $vcfvms_string , " -Colour Green
             if ([float]$SDDCVer -lt [float]4.5) {
-                 Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability has been enabled by the script. Disable it per your environment's design." -Colour Cyan
+                Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability has been enabled by the script. Disable it per your environment's design." -Colour Cyan
             }
             Write-PowerManagementLogMessage -Type INFO -Message "Check the list above and start any additional VMs, that are required, before you proceed with workload startup!" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -Colour Yellow
