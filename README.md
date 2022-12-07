@@ -13,7 +13,7 @@ Instead of the default step-by-step approach by using product user interface, yo
 
 # What's new
 - Version 1.1
-    - Use vSAN shutdown wizard for VMware Cloud Foundation 4.5.0 and newer.
+    - Sample scripts will use vSAN shutdown wizard API for VMware Cloud Foundation version 4.5.0 and newer.
     - Added support for multiple clusters in a single Workload Domains.
     - Added support for NSX Managers that are shared between several Workload Domains.
     - Bugfixes and workflows improvements
@@ -24,7 +24,7 @@ Instead of the default step-by-step approach by using product user interface, yo
 - For VMware Cloud Foundation before version 4.5.x, you must shut down the ESXi hosts manually. The scripts only place the hosts in maintenance mode.
 - The sample script for Management domain work only on Management domain with a single cluster.
 - You must stop and start NSX Edge bare-metal nodes manually.
-- If two or more VI workload domains use the same NSX Manager, you must shut down the customer workload VMs before running the script because NSX-T Data Center will be shut down with the first VI workload domain.
+- ESXi hosts startup is not handled by the scripts. They should be started before running the scripts.
 - To be able to shut down the customer VMs in the management domain or in a VI workload domain by using a script, 
 they must have VMware Tools running. The virtual machines are shut down
 in a random order by running the "Shutdown guest OS" command from vCenter Server.
@@ -35,8 +35,9 @@ in a random order by running the "Shutdown guest OS" command from vCenter Server
 # Known issues
 - VMware Workspace ONE Access that is integrated with NSX, should be started manually. For VMware Cloud Foundation version 4.5.x and newer, this could be done before using the script for starting the Management domain
 - All vCenter servers for Workload Domains will be started with first Workload Domain in order to get full inventory information in SDDC Manager.
-- Manual intervention is required during startup if you have multiple clusters in a single Workload Domains. Clusters should be put in the correct status (shutdown). See https://kb.vmware.com/s/article/87350 Scenario 3
+- Manual intervention is required, for VMware Cloud Foundation version 4.5.x and newer, during startup if you have multiple clusters in a single Workload Domains. Clusters should be put in the correct status (shutdown). See https://kb.vmware.com/s/article/87350 Scenario 3
 - From all service virtual machines, deployed by vSphere ESX Agent Manager, only the vCLS VMs will be handled in automatic way. All other service virtual machines (e.g. vSAN File Service Nodes) will lead to an error in the script. Clusters with such a VMs should be stopped through vCenter Server UI.
+- For Workload Domains with multiple clusters if you do not specify shutdown order, the clusters will be stopped in the order returned from SDDC Manager API. For granular control, please use -vsanCluster parameter.
 # Scripts for Shutdown and Startup of a Workload Domain
 - **PowerManagement-ManagementDomain.ps1** - Shut down or start up all software components in the management
 domain. The script does not support shutdown of vRealize Suite. Shut down the vRealize Suite components in your environment manually before running the script.
@@ -68,7 +69,7 @@ b) If the `Execute Get-ExecutionPolicy` command returns `Restricted`, run the
 `Set-ExecutionPolicy RemoteSigned` command.
 - If the target system uses self-signed or untrusted certificates, configure PowerCLI to ignore them.
 # How to use the sample scripts
-1. Enable SSH on the ESXi hosts in the workload domain by using the SoS utility of the SDDC
+1. Enable SSH on the ESXi hosts (Required for VMware Cloud Foundation before version 4.5.0) in the workload domain by using the SoS utility of the SDDC
 Manager appliance.
     - Log in to the SDDC Manager appliance by using a Secure Shell (SSH) client as vcf.
     - Switch to the root user by running the su command and entering the root password.
@@ -116,7 +117,7 @@ ___
 **Note** More usage examples are available in the scripts.
 ___
 # Troubleshooting
-- ESXi hosts must have SSH service up, running and accessible from the machine running the scripts.
+- ESXi hosts must have SSH service up, running and accessible from the machine running the scripts (Required for VMware Cloud Foundation before version 4.5.0).
 - In case of a failure, run the script with the same parameters in order to overcome some errors.
 - Identify the step that is causing the issue and continue the sequence following the manual guide in VMware Cloud Foundation documentation.
 - During shutdown of the management domain, if SDDC Manager is already stopped, the only option is to continue by following the manual steps in the VMware Cloud Foundation documentation.

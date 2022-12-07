@@ -9,14 +9,15 @@
     .Created By:    Gary Blake / Sowjanya V
     .Group:         Cloud Infrastructure Business Group (CIBG)
     .Organization:  VMware
-    .Version:       1.0 (Build 1000)
-    .Date:          2022-28-06
+    .Version:       1.1 (Build 1000)
+    .Date:          2022-08-12
     ===============================================================================================================
 
     .CHANGE_LOG
 
     - 0.6.0   (Gary Blake / 2022-02-22) - Initial release
-    - 1.0.0.1000   (Gary Blake / 2022-28-06) - GA version
+    - 1.0.0.1002   (Gary Blake / 2022-28-06) - GA version
+    - 1.1.0.1000   (Sowjanya V / 2022-08-12) - Add multi-cluster handling; NSX-T Manager that spans across Workload Domains; Support for VCF 4.5
 
     ===============================================================================================================
 
@@ -37,7 +38,11 @@
 
     .EXAMPLE
     PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -Startup
-    Initiates the startup of the Virtual Infrastructure Workload Domain 'sfo-w01'
+    Initiates the startup of all clusters in the the Virtual Infrastructure Workload Domain 'sfo-w01'
+
+    .EXAMPLE
+    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -vsanCluster cluster1, cluster2 -Startup
+    Initiates the startup of clusters 'cluster1' and 'cluster2' in the Virtual Infrastructure Workload Domain 'sfo-w01'. Startup order will be 'cluster1', then 'cluster2'.
 #>
 
 Param (
@@ -313,7 +318,7 @@ Try {
         $vcfvms_string = $vcfvms -join "; "
 
         # This variable holds True of False based on if NSX is spanned across workloads or not.
-        $NSXTSpannedAcrossWldVCArray = Get-NSXTComputeManger -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
+        $NSXTSpannedAcrossWldVCArray = Get-NSXTComputeManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
         $NSXTSpannedAcrossWld = $NSXTSpannedAcrossWldVCArray.count -gt 1
 
         # From here the looping of all clusters begin.

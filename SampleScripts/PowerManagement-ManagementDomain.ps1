@@ -9,14 +9,15 @@
     .Created By:    Gary Blake / Sowjanya V
     .Group:         Cloud Infrastructure Business Group (CIBG)
     .Organization:  VMware
-    .Version:       1.0 (Build 1000)
-    .Date:          2022-28-06
+    .Version:       1.1 (Build 1000)
+    .Date:          2022-08-12
     ===============================================================================================================
 
     .CHANGE_LOG
 
     - 0.6.0   (Gary Blake / 2022-02-22) - Initial release
     - 1.0.0.1000   (Gary Blake / 2022-28-06) - GA version
+    - 1.1.0.1000   (Sowjanya V / 2022-08-12) - Support for VCF 4.5
 
     ===============================================================================================================
 
