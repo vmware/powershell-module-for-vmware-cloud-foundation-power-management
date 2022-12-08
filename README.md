@@ -14,7 +14,7 @@ Instead of the default step-by-step approach by using product user interface, yo
 # What's new
 - Version 1.1
     - Sample scripts will use vSAN shutdown wizard API for VMware Cloud Foundation version 4.5.0 and newer.
-    - Added support for multiple clusters in a single Workload Domains.
+    - Added support for multiple clusters in a single Workload Domain.
     - Added support for NSX Managers that are shared between several Workload Domains.
     - Bugfixes and workflows improvements
 
@@ -25,18 +25,17 @@ Instead of the default step-by-step approach by using product user interface, yo
 - The sample script for Management domain work only on Management domain with a single cluster.
 - You must stop and start NSX Edge bare-metal nodes manually.
 - ESXi hosts startup is not handled by the scripts. They should be started before running the scripts.
-- To be able to shut down the customer VMs in the management domain or in a VI workload domain by using a script, 
-they must have VMware Tools running. The virtual machines are shut down
+- To be able to shut down the customer VMs in the management domain or in a VI workload domain by using a script, they must have VMware Tools running. The virtual machines are shut down
 in a random order by running the "Shutdown guest OS" command from vCenter Server.
 - The SSH service on the ESXi hosts must be running for VMware Cloud Foundation 4.3.x and VMware Cloud Foundation 4.4.x.
 - Scripts cannot handle simultaneous connections to multiple services. In the script's console, all sessions to services that are not used at the moment will be disconnected.
-- For VMware Cloud Foundation 4.5.0 and newer version the Lockdown Mode of ESXi hosts should be disabled before shutdown. It could be enabled, after the startup is completed.
+- For VMware Cloud Foundation 4.5.0 and newer versions the Lockdown Mode of ESXi hosts should be disabled before shutdown. It could be enabled, after the startup is completed.
 
 # Known issues
 - VMware Workspace ONE Access that is integrated with NSX, should be started manually. For VMware Cloud Foundation version 4.5.x and newer, this could be done before using the script for starting the Management domain
 - All vCenter servers for Workload Domains will be started with first Workload Domain in order to get full inventory information in SDDC Manager.
-- Manual intervention is required, for VMware Cloud Foundation version 4.5.x and newer, during startup if you have multiple clusters in a single Workload Domains. Clusters should be put in the correct status (shutdown). See https://kb.vmware.com/s/article/87350 Scenario 3
-- From all service virtual machines, deployed by vSphere ESX Agent Manager, only the vCLS VMs will be handled in automatic way. All other service virtual machines (e.g. vSAN File Service Nodes) will lead to an error in the script. Clusters with such a VMs should be stopped through vCenter Server UI.
+- Manual intervention is required, for VMware Cloud Foundation version 4.5.x and newer, during startup if you have multiple clusters in a single Workload Domain. Clusters should be put in the correct status (shutdown). See https://kb.vmware.com/s/article/87350 Scenario 3
+- From all service virtual machines, deployed by vSphere ESX Agent Manager, only the vCLS VMs will be handled in an automatic way. All other service virtual machines (e.g. vSAN File Service Nodes) will lead to an error in the script. Clusters with such virtual machines should be stopped through vCenter Server UI.
 - For Workload Domains with multiple clusters if you do not specify shutdown order, the clusters will be stopped in the order returned from SDDC Manager API. For granular control, please use -vsanCluster parameter.
 # Scripts for Shutdown and Startup of a Workload Domain
 - **PowerManagement-ManagementDomain.ps1** - Shut down or start up all software components in the management
