@@ -1,8 +1,7 @@
-# PowerShell module for Power Management of VMware Cloud Foundation
-
+# Copyright 2022 VMware, Inc.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
-# OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ### Note
@@ -402,7 +401,6 @@ Function Set-MaintenanceMode {
 }
 Export-ModuleMember -Function Set-MaintenanceMode
 
-
 Function Get-MaintenanceMode {
     <#
         .SYNOPSIS
@@ -523,7 +521,6 @@ Function Set-DrsAutomationLevel {
 }
 Export-ModuleMember -Function Set-DrsAutomationLevel
 
-
 Function Set-VsanClusterPowerStatus {
     <#
         .SYNOPSIS
@@ -624,7 +621,6 @@ Function Set-VsanClusterPowerStatus {
 }
 Export-ModuleMember -Function Set-VsanClusterPowerStatus
 
-
 Function Get-poweronVMsOnRemoteDS {
     <#
         .SYNOPSIS
@@ -697,7 +693,6 @@ Function Get-poweronVMsOnRemoteDS {
     }
 }
 Export-ModuleMember -Function Get-poweronVMsOnRemoteDS
-
 
 Function Test-LockdownMode {
     <#
@@ -778,7 +773,6 @@ Function Test-LockdownMode {
     }
 }
 Export-ModuleMember -Function Test-LockdownMode
-
 
 Function Get-VMRunningStatus {
     <#
@@ -1392,7 +1386,6 @@ Function Set-VamiServiceStatus {
 }
 Export-ModuleMember -Function Set-VamiServiceStatus
 
-
 Function Set-VsphereHA {
     <#
         .SYNOPSIS
@@ -1941,7 +1934,6 @@ Function Get-NSXTComputeManagers {
 }
 Export-ModuleMember -Function Get-NSXTComputeManagers
 
-
 Function Get-TanzuEnabledClusterStatus {
     <#
         .SYNOPSIS
@@ -2049,5 +2041,5 @@ Function Debug-CatchWriterForPowerManagement {
     Write-Error -Message $errorMessage
 }
 Export-ModuleMember -Function Debug-CatchWriterForPowerManagement
+
 ######### End Useful Script Functions ##########
-# Test
