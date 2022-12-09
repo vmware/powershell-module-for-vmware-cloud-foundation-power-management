@@ -1889,16 +1889,16 @@ Function Get-EdgeNodeFromNSXManager {
 }
 Export-ModuleMember -Function Get-EdgeNodeFromNSXManager
 
-Function Get-NSXTComputeManager {
+Function Get-NSXTComputeManagers {
     <#
         .SYNOPSIS
         Get the list of compute managers connected to a specified NSX Manager.
 
         .DESCRIPTION
-        The Get-NSXTComputeManager cmdlet returns the list of compute managers connected to a specified NSX Manager.
+        The Get-NSXTComputeManagers cmdlet returns the list of compute managers connected to a specified NSX Manager.
 
         .EXAMPLE
-        Get-NSXTComputeManager -server $server -user $user -pass $pass
+        Get-NSXTComputeManagers -server $server -user $user -pass $pass
         This example returns the list of compute managers mapped to NSX Manager $server.
     #>
 
@@ -1909,7 +1909,7 @@ Function Get-NSXTComputeManager {
     )
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-NSXTComputeManager cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-NSXTComputeManagers cmdlet." -Colour Yellow
         if (( Test-NetConnection -ComputerName $server -Port 443 ).TcpTestSucceeded) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultNSXTServers) {
@@ -1936,10 +1936,10 @@ Function Get-NSXTComputeManager {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-NSXTComputeManager cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-NSXTComputeManagers cmdlet." -Colour Yellow
     }
 }
-Export-ModuleMember -Function Get-NSXTComputeManager
+Export-ModuleMember -Function Get-NSXTComputeManagers
 
 
 Function Get-TanzuEnabledClusterStatus {

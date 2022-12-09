@@ -318,7 +318,7 @@ Try {
         $vcfvms_string = $vcfvms -join "; "
 
         # This variable holds True of False based on if NSX is spanned across workloads or not.
-        $NSXTSpannedAcrossWldVCArray = Get-NSXTComputeManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
+        $NSXTSpannedAcrossWldVCArray = Get-NSXTComputeManagers -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword
         $NSXTSpannedAcrossWld = $NSXTSpannedAcrossWldVCArray.count -gt 1
 
         # From here the looping of all clusters begin.
