@@ -4,4 +4,14 @@
 
 > Release Date: 2022-12-09
 
-Initial availability of the PowerShell module for VMware Cloud Foundation power management.
+Initial availability of the PowerShell module for VMware Cloud Foundation power management, `VMware.CloudFoundation.PowerManagement`, replacing `VMware.PowerManagement`.
+
+### Enhancements
+
+- Sample scripts use the vSAN shutdown wizard API (VMware Cloud Foundation version 4.5 and later.)
+
+- Added support for multiple clusters in a workload domain.
+
+- Added support for NSX Managers that are shared between workload domains.
+
+- Bugfixes and workflows improvements.
