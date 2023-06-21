@@ -1,5 +1,13 @@
 # Release History
 
+## v1.1.1 (Unreleased)
+
+> Release Date: Unreleased
+
+### Enhancements
+
+- Updated each cmdlet to include the `.PARAMETER` details. [GH-27](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/27)
+
 ## [v1.1.0](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/releases/tag/v1.1.0)
 
 > Release Date: 2022-12-09
