@@ -1,6 +1,6 @@
-# Contributing to powershell-module-for-vmware-cloud-foundation-power-management
+# Contributing
 
-The power-validated-solutions-for-cloud-foundation-power-management project team welcomes contributions from the community. Before you
+The project team welcomes contributions from the community. Before you
 start working with power-validated-solutions-for-cloud-foundation-power-management, please read our [Developer Certificate of Origin](https://cla.vmware.com/dco).
 
 All contributions to this repository must be signed as described on that page. Your signature certifies that you wrote

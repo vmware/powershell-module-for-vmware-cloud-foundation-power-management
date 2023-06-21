@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Shutdown and Startup of VMware Cloud Foundation
-    url: https://docs.vmware.com/en/VMware-Cloud-Foundation/4.5/vcf-operations/GUID-65F5FE47-5831-4C72-B0DB-9D0C537446E2.html
-    about: Follow the strict order and steps for shutdown and startup of the VMware Cloud Foundation management components.
+  - name: VMware Cloud Foundation Product Documentation
+    url: https://docs.vmware.com/en/VMware-Cloud-Foundation/
+    about: Efficiently manage virtual machine and container workloads. Deliver cloud benefits to on-premises, full-stack hyperconverged infrastructure deployments.
