@@ -1,0 +1,1 @@
+$sddcDomain = "sfo-w01"
