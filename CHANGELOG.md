@@ -4,7 +4,7 @@
 
 > Release Date: Unreleased
 
-### Enhancements
+**Enhancements**:
 
 - Updated each cmdlet to include the `.PARAMETER` details. [GH-27](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/27)
 
@@ -14,7 +14,7 @@
 
 Initial availability of the PowerShell module for VMware Cloud Foundation power management, `VMware.CloudFoundation.PowerManagement`, replacing `VMware.PowerManagement`.
 
-### Enhancements
+**Enhancements**:
 
 - Sample scripts use the vSAN shutdown wizard API (VMware Cloud Foundation version 4.5 and later.)
 
