@@ -171,6 +171,7 @@ nav:
     - Test-VsanObjectResync: documentation/functions/Test-VsanObjectResync.md
     - Wait-ForStableNsxtClusterStatus: documentation/functions/Wait-ForStableNsxtClusterStatus.md
 - Community:
+  - community/index.md
   - Contributing: community/contributing.md
   - Discussions: https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/discussions
   - Search Issues: https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/issues
