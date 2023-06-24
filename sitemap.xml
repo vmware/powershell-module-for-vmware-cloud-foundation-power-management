@@ -16,6 +16,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://vmware.github.io/powershell-module-for-vmware-cloud-foundation-power-management/community/</loc>
+         <lastmod>2023-06-24</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://vmware.github.io/powershell-module-for-vmware-cloud-foundation-power-management/community/code-of-conduct/</loc>
          <lastmod>2023-06-24</lastmod>
          <changefreq>daily</changefreq>
