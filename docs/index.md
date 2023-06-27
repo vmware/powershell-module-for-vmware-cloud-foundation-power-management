@@ -16,7 +16,7 @@ The following table lists the supported platforms for this module.
 
 Platform                                                     | Support
 -------------------------------------------------------------|------------------------------------
-:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.0.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
+:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.0.x on vSAN ReadyNodes | :fontawesome-solid-x:{ .red }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.5.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.4.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.3.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
