@@ -68,4 +68,4 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 [vmware-cla-dco]: https://cla.vmware.com/dco
 [vmware-cloud-foundation]: https://docs.vmware.com/en/VMware-Cloud-Foundation
 [vmware-kb-87350]: https://kb.vmware.com/s/article/87350
-[docs-module]: https://sowjuec.github.io/powershell-module-for-vmware-cloud-foundation-power-management
+[docs-module]: https://vmware.github.io/powershell-module-for-vmware-cloud-foundation-power-management
