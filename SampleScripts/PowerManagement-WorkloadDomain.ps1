@@ -61,6 +61,21 @@ Param (
     [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [Switch]$shutdown
 )
 
+# Error Handling (script scope function)
+Function Debug-CatchWriterForPowerManagement {
+    Param (
+        [Parameter (Mandatory = $true)] [PSObject]$object
+    )
+    $ErrorActionPreference = 'Stop'
+    $lineNumber = $object.InvocationInfo.ScriptLineNumber
+    $lineText = $object.InvocationInfo.Line.trim()
+    $errorMessage = $object.Exception.Message
+    Write-PowerManagementLogMessage -message " ERROR at Script Line $lineNumber" -Colour Red
+    Write-PowerManagementLogMessage -message " Relevant Command: $lineText" -Colour Red
+    Write-PowerManagementLogMessage -message " ERROR Message: $errorMessage" -Colour Red
+    Write-Error -Message $errorMessage
+}
+
 # Customer Questions Section
 Try {
     Clear-Host; Write-Host ""
@@ -189,15 +204,15 @@ Try {
             #$sddcShutdownOrder = $true
         }
 
-        # Gather vCenter Server Details and Credentials
+        # Gather Workload vCenter Server Details and Credentials
         $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id) })
-        $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).username
-        $vcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).password
+        $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).username
+        $vcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).password
 
-        # We are using same user name and password for both workload and management vc
+        # Gather Management vCenter Server Details and Credentials
         $mgmtVcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($managementDomain.id) })
-        $mgmtvcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).username
-        $mgmtvcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).password
+        $mgmtvcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($managementDomain.ssoId) }).username
+        $mgmtvcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($managementDomain.ssoId) }).password
 
         #[Array]$allvms = @()
         [Array]$vcfvms = @()
@@ -291,7 +306,7 @@ Try {
         #Check if NSX-T manager VMs are running. If they are stopped skip NSX-T edge shutdown
         $nsxManagerPowerOnVMs = 0
         foreach ($nsxtManager in $nsxtNodes) {
-            $state = Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch -powerstate "poweredon"
+            $state = Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $mgmtvcUser -pass $mgmtvcPass -pattern $nsxtManager -exactMatch -powerstate "poweredon"
             if ($state) { $nsxManagerPowerOnVMs += 1 }
             # If we have all NSX-T managers running or minimum of 2 nodes up - query NSX-T for edges.
             if (($nsxManagerPowerOnVMs -eq $nsxtNodes.count) -or ($nsxManagerPowerOnVMs -eq 2)) {
@@ -500,12 +515,12 @@ Try {
                     Write-PowerManagementLogMessage -Type WARNING -Message "NSX Manager is shared across workload domains. Some of the vCenter Server instances for these workload domains are still running. Hence, not shutting down NSX Manager at this point." -Colour Cyan
                 } else {
                     if ($lastelement) {
-                        Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
+                        Stop-CloudComponent -server $mgmtVcServer.fqdn -user $mgmtvcUser -pass $mgmtvcPass -nodes $nsxtNodes -timeout 600
                     }
                 }
             } else {
                 if ($lastelement) {
-                    Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
+                    Stop-CloudComponent -server $mgmtVcServer.fqdn -user $mgmtvcUser -pass $mgmtvcPass -nodes $nsxtNodes -timeout 600
                 }
             }
 
@@ -632,7 +647,7 @@ Try {
 
                 }
                 if ($lastelement) {
-                    Stop-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
+                    Stop-CloudComponent -server $mgmtVcServer.fqdn -user $mgmtvcUser -pass $mgmtvcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
                 }
                 $ClusterStatusMapping[$cluster.name] = 'DOWN'
 
@@ -719,10 +734,10 @@ Try {
             Write-PowerManagementLogMessage -Type INFO -Message "Trying to see if all vCenter Servers in a workload domain are already started"
             $service_status = 0
             foreach ($wldVC in $allWldVCs) {
-                $VcStarted = (Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $wldVC.Split(".")[0] -silence).count
+                $VcStarted = (Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $mgmtvcUser -pass $mgmtvcPass -powerstate "poweredon" -pattern $wldVC.Split(".")[0] -silence).count
                 if (-not $VcStarted) {
                     # Startup the Virtual Infrastructure Workload Domain vCenter Server
-                    Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $wldVC.Split(".")[0] -timeout 600
+                    Start-CloudComponent -server $mgmtVcServer.fqdn -user $mgmtvcUser -pass $mgmtvcPass -nodes $wldVC.Split(".")[0] -timeout 600
                     Write-PowerManagementLogMessage -Type INFO -Message "Waiting for the vCenter Server services to start on '$($wldVC.Split(".")[0])'. It will take some time." -Colour Yellow
                 } else {
                     Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server '$($wldVC.Split(".")[0])' is already started" -Colour Gre
@@ -940,11 +955,11 @@ Try {
                 $NsxtStarted = 0
                 foreach ($node in $nsxtNodes) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Checking if $node is already started."
-                    $NsxtStarted += (Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -pattern $node -silence).count
+                    $NsxtStarted += (Get-VMsWithPowerStatus -server $mgmtVcServer.fqdn -user $mgmtvcUser -pass $mgmtvcPass -powerstate "poweredon" -pattern $node -silence).count
                 }
                 if (-not ($NsxtStarted -eq $nsxtNodes.count)) {
                     # Startup the NSX Manager Nodes for Virtual Infrastructure Workload Domain
-                    Start-CloudComponent -server $mgmtVcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
+                    Start-CloudComponent -server $mgmtVcServer.fqdn -user $mgmtvcUser -pass $mgmtvcPass -nodes $nsxtNodes -timeout 600
                     if (!(Wait-ForStableNsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword)) {
                         Write-PowerManagementLogMessage -Type ERROR -Message "The NSX Manager cluster is not in 'STABLE' state. Exiting!" -Colour Red
                         Exit

@@ -67,6 +67,21 @@ Param (
     [Parameter (Mandatory = $true, ParameterSetName = "startup")] [ValidateNotNullOrEmpty()] [Switch]$startup
 )
 
+# Error Handling (script scope function)
+Function Debug-CatchWriterForPowerManagement {
+    Param (
+        [Parameter (Mandatory = $true)] [PSObject]$object
+    )
+    $ErrorActionPreference = 'Stop'
+    $lineNumber = $object.InvocationInfo.ScriptLineNumber
+    $lineText = $object.InvocationInfo.Line.trim()
+    $errorMessage = $object.Exception.Message
+    Write-PowerManagementLogMessage -message " ERROR at Script Line $lineNumber" -Colour Red
+    Write-PowerManagementLogMessage -message " Relevant Command: $lineText" -Colour Red
+    Write-PowerManagementLogMessage -message " ERROR Message: $errorMessage" -Colour Red
+    Write-Error -Message $errorMessage
+}
+
 # Customer Questions Section
 Try {
     Clear-Host; Write-Host ""
@@ -171,8 +186,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
 
             # Gather vCenter Server Details and Credentials
             $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id) })
-            $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).username
-            $vcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).password
+            $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).username
+            $vcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).password
             # Test if VC is reachable, if it is already stopped, we could not continue with the shutdown sequence in automatic way.
             if (-Not (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded ) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Could not connect to $($vcServer.fqdn)! The script could not continue without a connection to the management vCenter Server. " -Colour Cyan
