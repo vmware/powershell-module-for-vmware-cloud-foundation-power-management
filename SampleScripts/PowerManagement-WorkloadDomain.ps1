@@ -204,9 +204,9 @@ Try {
             #$sddcShutdownOrder = $true
         }
 
-        # Check the SDDC Manager version if VCF >=4.5 or greater than vcf4.5
-        $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
-        if ([float]$SDDCVer -lt [float]4.5) {
+        # Check the SDDC Manager version if VCF less than or greater than VCF 5.0
+        $vcfVersion = Get-VCFManager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
+        if ([float]$vcfVersion -lt [float]5.0) {
             # Gather vCenter Server Details and Credentials
             $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id) })
             $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).username
@@ -376,8 +376,8 @@ Try {
             $esxiDetails = $esxiWorkloadCluster[$cluster.name]
 
             # Check the SDDC Manager version if VCF >=4.5 or vcf4.5
-            $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
-            if ([float]$SDDCVer -lt [float]4.5) {
+            $vcfVersion = Get-VCFManager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
+            if ([float]$vcfVersion -lt [float]4.5) {
                 # For versions prior VCF 4.5
                 # Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
                 Try {
@@ -571,7 +571,7 @@ Try {
 
             # Check the health and sync status of the vSAN cluster
             if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
-                if ([float]$SDDCVer -gt [float]4.4) {
+                if ([float]$vcfVersion -gt [float]4.4) {
                     $RemoteVMs = @()
                     $RemoteVMs = Get-poweronVMsOnRemoteDS -server $vcServer.fqdn -user $vcUser -pass $vcPass -clustertocheck $cluster.name
                     if($RemoteVMs.count -eq 0) {
@@ -602,7 +602,7 @@ Try {
             }
 
             # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
-            if ([float]$SDDCVer -lt [float]4.5) {
+            if ([float]$vcfVersion -lt [float]4.5) {
                 # VCF before version 4.5
                 $runningVMs = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vm" -powerstate "poweredon" -silence
             } else {
@@ -617,7 +617,7 @@ Try {
             }
             else {
 
-                if ([float]$SDDCVer -lt [float]4.5) {
+                if ([float]$vcfVersion -lt [float]4.5) {
                     # Stop vSphere HA to avoid "orphaned" VMs during vSAN shutdown
                     if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -disableHA)) {
                         Write-PowerManagementLogMessage -Type ERROR -Message "Could not disable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
@@ -666,7 +666,7 @@ Try {
                 $ClusterStatusMapping[$cluster.name] = 'DOWN'
 
                 # End of shutdown
-                if ([float]$SDDCVer -lt [float]4.5) {
+                if ([float]$vcfVersion -lt [float]4.5) {
                     Write-PowerManagementLogMessage -Type INFO -Message "########################################################" -Colour Green
                     Write-PowerManagementLogMessage -Type INFO -Message "Note: ESXi hosts are still powered on. Please stop them manually." -Colour Green
                     Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence for the specified cluster $($cluster.name)!" -Colour Green
@@ -697,8 +697,8 @@ Try {
         $nsxMgrVIP = New-Object -TypeName PSCustomObject
         $nsxtMgrfqdn = ""
         $count = $sddcClusterDetails.count
-        $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
-        if ([float]$SDDCVer -lt [float]4.5) {
+        $vcfVersion = Get-VCFManager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
+        if ([float]$vcfVersion -lt [float]4.5) {
             foreach ($cluster in $ClusterDetails) {
                 $esxiDetails = $esxiWorkloadCluster[$cluster.name]
                 # Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
@@ -775,7 +775,7 @@ Try {
                                 Start-Sleep 60
                             }
                         }
-                        if (([float]$SDDCVer -lt [float]4.5) -and ($wldVC -eq $vcServer.fqdn)) {
+                        if (([float]$vcfVersion -lt [float]4.5) -and ($wldVC -eq $vcServer.fqdn)) {
                             # Workaround for ESXis that do not communicate their Maintenance status to vCenter Server
                             foreach ($esxiNode in $esxiDetails) {
                                 if ((Get-VMHost -name $esxiNode.fqdn).ConnectionState -eq "Maintenance") {
@@ -795,7 +795,7 @@ Try {
 
             if ($service_status -eq $allWldVCs.count) {
                 Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server has been started successfully." -Colour Green
-                if ([float]$SDDCVer -gt [float]4.4) {
+                if ([float]$vcfVersion -gt [float]4.4) {
                     #Start ESXi hosts here
                     Write-Host "";
                     $WarningString = ""
@@ -867,7 +867,7 @@ Try {
                     Exit
                 }
 
-                if ([float]$SDDCVer -lt [float]4.5) {
+                if ([float]$vcfVersion -lt [float]4.5) {
                     # Start vSphere HA to avoid triggering a "Cannot find vSphere HA master agent" error.
                     if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
                         Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
@@ -1014,16 +1014,16 @@ Try {
 
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "The following components have been started: $vcfvms_string , " -Colour Green
-            if ([float]$SDDCVer -lt [float]4.5) {
+            if ([float]$vcfVersion -lt [float]4.5) {
                 Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability has been enabled by the script. Disable it per your environment's design." -Colour Cyan
             }
             Write-PowerManagementLogMessage -Type INFO -Message "Check the list above and start any additional VMs, that are required, before you proceed with workload startup!" -Colour Green
             Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -Colour Yellow
             Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -Colour Yellow
-            if ([float]$SDDCVer -lt [float]4.5) {
+            if ([float]$vcfVersion -lt [float]4.5) {
                 Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts through SDDC manager, disable it at this point." -Colour Cyan
             }
-            if ([float]$SDDCVer -gt [float]4.4) {
+            if ([float]$vcfVersion -gt [float]4.4) {
                 Write-PowerManagementLogMessage -Type INFO -Message "If you have disabled lockdown mode for the ESXi hosts in workload cluster, you can enable it at this point." -Colour Cyan
             }
             Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green

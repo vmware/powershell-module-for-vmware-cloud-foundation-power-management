@@ -174,7 +174,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Exit
             }
             $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
-            $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
+            $vcfVersion = Get-VCFManager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
 
             $var = @{}
             $var["Domain"] = @{}
@@ -184,9 +184,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             $var["Cluster"] = @{}
             $var["Cluster"]["name"] = $cluster.name
 
-            # Check the SDDC Manager version if VCF >=4.5 or greater than vcf4.5
-            $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
-            if ([float]$SDDCVer -lt [float]4.5) {
+            # Check the SDDC Manager version if VCF less than or greater than VCF 5.0
+            if ([float]$vcfVersion -lt [float]5.0) {
                 # Gather vCenter Server Details and Credentials
                 $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id) })
                 $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).username
@@ -347,7 +346,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             $var["SDDC"]["fqdn"] = $server
             $var["SDDC"]["user"] = $user
             $var["SDDC"]["password"] = $pass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
-            $var["SDDC"]["version"] = $SDDCVer
+            $var["SDDC"]["version"] = $vcfVersion
 
             $var | ConvertTo-Json > ManagementStartupInput.json
             # Exit if json generation have selected
@@ -372,7 +371,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
 
         # Shutdown related code starts here
-        if ([float]$SDDCVer -lt [float]4.5) {
+        if ([float]$vcfVersion -lt [float]4.5) {
             # Check if SSH is enabled on the ESXI hosts before proceeding with the shutdown procedure.
             Try {
                 foreach ($esxiNode in $esxiWorkloadDomain) {
@@ -507,7 +506,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600
 
         # Workflow for VMware Cloud Foundation before version 4.5
-        if ([float]$SDDCVer -lt [float]4.5) {
+        if ([float]$vcfVersion -lt [float]4.5) {
 
             # Shut Down the vSphere Cluster Services Virtual Machines
             Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
@@ -569,7 +568,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             Exit
         }
 
-        if ([float]$SDDCVer -lt [float]4.5) {
+        if ([float]$vcfVersion -lt [float]4.5) {
             # Verify that there is only one VM running (vCenter Server) on the ESXis, then shutdown vCenter Server.
             $runningVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -silence
             if ($runningVMs.count -gt 1 ) {
@@ -592,7 +591,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         $runningVMs = @()
         $runningVclsVMs = @()
         foreach ($esxiNode in $esxiWorkloadDomain) {
-            if ([float]$SDDCVer -lt [float]4.5) {
+            if ([float]$vcfVersion -lt [float]4.5) {
                 $runningVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -silence
             } else {
                 $runningAllVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -silence
@@ -613,7 +612,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
         # Actual vSAN and ESXi shutdown happens here - once we are sure that there are no VMs running on hosts
         else {
-            if ([float]$SDDCVer -lt [float]4.5) {
+            if ([float]$vcfVersion -lt [float]4.5) {
                 # Disable cluster member updates from vCenter Server
                 foreach ($esxiNode in $esxiWorkloadDomain) {
                     Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
@@ -689,7 +688,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
 
         #Getting SDDC manager VM name
         $sddcmVMName = $MgmtInput.SDDC.name
-        $SDDCVer = $MgmtInput.SDDC.version
+        $vcfVersion = $MgmtInput.SDDC.version
 
         # Gather vCenter Server Details and Credentials
         $vcServer = New-Object -TypeName PSCustomObject
@@ -756,7 +755,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         # Check if VC is running - if so, skip ESXi operations
         if (-Not (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 -WarningAction SilentlyContinue ).TcpTestSucceeded ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to $($vcServer.fqdn). Starting vSAN..."
-            if ([float]$SDDCVer -gt [float]4.4) {
+            if ([float]$vcfVersion -gt [float]4.4) {
                 #TODO add check if hosts are up and running. If so, do not display this message
                 Write-Host "";
                 $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)' and wait for the host console to come up. Once done, please enter yes."
@@ -803,7 +802,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                     Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state DISABLE
                 }
             }
-            if ([float]$SDDCVer -lt [float]4.5) {
+            if ([float]$vcfVersion -lt [float]4.5) {
                 # Prepare the vSAN cluster for startup - Performed on a single host only
                 # We need some time before this step, setting hard sleep 30 sec
                 Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 30 seconds before starting vSAN..."
@@ -871,7 +870,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         }
 
         #Restart Cluster Via Wizard
-        if ([float]$SDDCVer -gt [float]4.4) {
+        if ([float]$vcfVersion -gt [float]4.4) {
             # Lockdown mode check
             Test-LockdownMode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
             # Start VSAN Cluster wizard
@@ -889,7 +888,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         }
 
         #Start workflow for VCF prior version 4.5
-        if ([float]$SDDCVer -lt [float]4.5) {
+        if ([float]$vcfVersion -lt [float]4.5) {
             # Start vSphere HA
             if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'." -Colour Red
@@ -948,16 +947,16 @@ if ($PsBoundParameters.ContainsKey("startup")) {
 
         # End of startup
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
-        if ([float]$SDDCVer -lt [float]4.5) {
+        if ([float]$vcfVersion -lt [float]4.5) {
             Write-PowerManagementLogMessage -Type INFO -Message "vSphere vSphere High Availability has been enabled by the script. Please disable it according to your environment's design." -Colour Cyan
         }
         Write-PowerManagementLogMessage -Type INFO -Message "Check your environment and start any additional virtual machines that you host in the management domain." -Colour Green
         Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -Colour Yellow
         Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -Colour Yellow
-        if ([float]$SDDCVer -lt [float]4.5) {
+        if ([float]$vcfVersion -lt [float]4.5) {
             Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts in management domain, disable it at this point." -Colour Cyan
         }
-        if ([float]$SDDCVer -gt [float]4.4) {
+        if ([float]$vcfVersion -gt [float]4.4) {
             Write-PowerManagementLogMessage -Type INFO -Message "If you have disabled lockdown mode for the ESXi hosts in management domain, enable it back at this point." -Colour Cyan
         }
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
