@@ -7,6 +7,7 @@
 **Enhancements**:
 
 - Updated each cmdlet to include the `.PARAMETER` details. [GH-27](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/27)
+- Added support for VMware Cloud Foundation 5.0. [GH-37](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/37)
 
 ## [v1.1.0](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/releases/tag/v1.1.0)
 
