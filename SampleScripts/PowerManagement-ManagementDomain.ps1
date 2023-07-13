@@ -184,11 +184,20 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             $var["Cluster"] = @{}
             $var["Cluster"]["name"] = $cluster.name
 
-            # Gather vCenter Server Details and Credentials
-            $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id) })
-            $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).username
-            $vcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).password
-            # Test if VC is reachable, if it is already stopped, we could not continue with the shutdown sequence in automatic way.
+            # Check the SDDC Manager version if VCF >=4.5 or greater than vcf4.5
+            $SDDCVer = Get-vcfmanager | select version | Select-String -Pattern '\d+\.\d+' -AllMatches | ForEach-Object {$_.matches.groups[0].value}
+            if ([float]$SDDCVer -lt [float]4.5) {
+                # Gather vCenter Server Details and Credentials
+                $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id) })
+                $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).username
+                $vcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" }).password
+            } else {
+                # Gather vCenter Server Details and Credentials
+                $vcServer = (Get-VCFvCenter | Where-Object { $_.domain.id -eq ($workloadDomain.id) })
+                $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).username
+                $vcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).password
+            }
+                # Test if VC is reachable, if it is already stopped, we could not continue with the shutdown sequence in automatic way.
             if (-Not (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded ) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Could not connect to $($vcServer.fqdn)! The script could not continue without a connection to the management vCenter Server. " -Colour Cyan
                 Write-PowerManagementLogMessage -Type ERROR -Message "Please check the current state and resolve the issue or continue with the shutdown operation by following the documentation of VMware Cloud Foundation. Exiting!" -Colour Red
