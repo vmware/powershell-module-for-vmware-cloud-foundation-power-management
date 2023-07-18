@@ -14,14 +14,14 @@
 
 The following table lists the supported platforms for this module.
 
-Platform                                                     | Support
--------------------------------------------------------------|------------------------------------
-:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.0.x on vSAN ReadyNodes | :fontawesome-solid-x:{ .red }
+Platform                                                                          | Support
+----------------------------------------------------------------------------------|------------------------------------
+:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.0.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.5.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.4.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.3.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
 
-!!! Note
+!!! note
 
     VMware Cloud Foundation on Dell EMC VxRail is not supported.
 
@@ -50,17 +50,14 @@ PowerShell Module                                    | Version   | Publisher    
 -----------------------------------------------------|-----------|--------------|---------------------------------------------------------------------------
 [VMware.PowerCLI][psgallery-module-powercli]         | >= 13.0.0 | VMware, Inc. | :fontawesome-solid-book: &nbsp; [Documentation][developer-module-powercli]
 [PowerVCF][psgallery-module-powervcf]                | >= 2.3.0  | VMware, Inc. | :fontawesome-solid-book: &nbsp; [Documentation][docs-module-powervcf]
-[PowerValidatedSolutions][psgallery-module-pvs]      | >= 2.4.0  | VMware, Inc. | :fontawesome-solid-book: &nbsp; [Documentation][docs-module-pvs]
-[PoshSSH][psgallery-module-poshssh]                  | >= 3.0.4  | darkoperator | :fontawesome-brands-github: &nbsp; [GitHub][github-module-poshssh]
+[PoshSSH][psgallery-module-poshssh]                  | >= 3.0.4  | Carlos Perez | :fontawesome-brands-github: &nbsp; [GitHub][github-module-poshssh]
 
 [docs-module-powervcf]: https://vmware.github.io/powershell-module-for-vmware-cloud-foundation
-[docs-module-pvs]: https://vmware-samples.github.io/power-validated-solutions-for-cloud-foundation
 [docs-vmware-cloud-foundation]: https://docs.vmware.com/en/VMware-Cloud-Foundation/index.html
 [microsoft-powershell]: https://docs.microsoft.com/en-us/powershell
 [psgallery-module-powercli]: https://www.powershellgallery.com/packages/VMware.PowerCLI
 [psgallery-module-powervcf]: https://www.powershellgallery.com/packages/PowerVCF
 [psgallery-module-power-management]: https://www.powershellgallery.com/packages/VMware.CloudFoundation.PowerManagement
-[psgallery-module-pvs]: https://www.powershellgallery.com/packages/PowerValidatedSolutions
 [psgallery-module-poshssh]: https://www.powershellgallery.com/packages/Posh-SSH
 [developer-module-powercli]: https://developer.vmware.com/tool/vmware-powercli
 [github-module-poshssh]: https://github.com/darkoperator/Posh-SSH
