@@ -1,8 +1,8 @@
 # Release History
 
-## v1.2.0 (Unreleased)
+## [v1.2.0](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/releases/tag/v1.2.0)
 
-> Release Date: Unreleased
+> Release Date: 2023-07-25
 
 Enhancement:
 
