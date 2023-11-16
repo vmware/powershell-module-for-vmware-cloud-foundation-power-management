@@ -1,6 +1,14 @@
 # Release History
 
-## [v1.2.0](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/releases/tag/v1.2.0)
+## v1.3.0
+
+> Release Date: Unreleased
+
+Enhancement:
+
+- Added secure strings for sensitive parameters. [GH-73](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/73)
+
+## v1.2.0
 
 > Release Date: 2023-07-25
 
@@ -14,7 +22,7 @@ Chore:
 - Updated PowerVCF from v2.2.0 to v2.3.0. [GH-38](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/38)
 - Updated Posh-SSH from v3.0.4 to v3.0.8. [GH-38](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/38)
 
-## [v1.1.0](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/releases/tag/v1.1.0)
+## v1.1.0
 
 > Release Date: 2022-12-09
 

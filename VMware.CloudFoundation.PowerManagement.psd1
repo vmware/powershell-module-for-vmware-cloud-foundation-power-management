@@ -12,7 +12,7 @@
     RootModule = 'VMware.CloudFoundation.PowerManagement.psm1'
 
     # Version number of this module.
-    ModuleVersion = '1.2.0.1001'
+    ModuleVersion = '1.3.0.1000'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -24,7 +24,7 @@
     Author = 'VMware'
 
     # Company or vendor of this module
-    CompanyName = 'VMware Inc.'
+    CompanyName = 'VMware, Inc.'
 
     # Copyright statement for this module
     Copyright = 'Copyright 2022-2023 VMware Inc.'
