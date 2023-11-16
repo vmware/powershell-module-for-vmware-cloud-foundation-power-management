@@ -38,6 +38,24 @@ if ($PSEdition -eq 'Desktop') {
 }
 # End of "Enable self-signed certificates" section
 
+##########################################################################
+#Region     Non Exported Functions                                  ######
+Function Get-Password {
+    param (
+        [string]$user,
+        [string]$password
+    )
+
+    if ([string]::IsNullOrEmpty($password)) {
+        $secureString = Read-Host -Prompt "Enter the password for $user" -AsSecureString
+        $password = ConvertFrom-SecureString $secureString -AsPlainText
+    }
+    return $password
+}
+
+#EndRegion  Non Exported Functions                                  ######
+##########################################################################
+
 Function Stop-CloudComponent {
     <#
         .SYNOPSIS
@@ -79,12 +97,14 @@ Function Stop-CloudComponent {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$noWait,
         [Parameter (ParameterSetName = 'Node', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes,
         [Parameter (ParameterSetName = 'Pattern', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$pattern
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Stop-CloudComponent cmdlet." -Colour Yellow
@@ -235,11 +255,13 @@ Function Start-CloudComponent {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [Int]$timeout,
         [Parameter (ParameterSetName = 'Node', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$nodes,
         [Parameter (ParameterSetName = 'Pattern', Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]]$pattern
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Start-CloudComponent cmdlet." -Colour Yellow
@@ -377,9 +399,11 @@ Function Set-MaintenanceMode {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateSet("ENABLE", "DISABLE")] [String]$state
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-MaintenanceMode cmdlet." -Colour Yellow
@@ -477,8 +501,10 @@ Function Get-MaintenanceMode {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-MaintenanceMode cmdlet." -Colour Yellow
@@ -543,10 +569,12 @@ Function Set-DrsAutomationLevel {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster,
         [Parameter (Mandatory = $true)] [ValidateSet("FullyAutomated", "Manual", "PartiallyAutomated", "Disabled")] [String]$level
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-DrsAutomationLevel cmdlet." -Colour Yellow
@@ -633,11 +661,13 @@ Function Set-VsanClusterPowerStatus {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$clustername,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$mgmt,
         [Parameter (Mandatory = $true)] [ValidateSet("clusterPoweredOff", "clusterPoweredOn")] [String]$PowerStatus
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsanClusterPowerStatus cmdlet." -Colour Yellow
@@ -742,9 +772,11 @@ Function Get-poweronVMsOnRemoteDS {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$clustertocheck
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-poweronVMsOnRemoteDS cmdlet." -Colour Yellow
@@ -827,9 +859,11 @@ Function Test-LockdownMode {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-LockdownMode cmdlet." -Colour Yellow
@@ -922,10 +956,12 @@ Function Get-VMRunningStatus {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pattern,
         [Parameter (Mandatory = $false)] [ValidateSet("Running", "NotRunning")] [String]$Status = "Running"
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMRunningStatus cmdlet." -Colour Yellow
@@ -1006,10 +1042,12 @@ Function Invoke-EsxCommand {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cmd,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$expected
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Invoke-EsxCommand cmdlet." -Colour Yellow
@@ -1074,8 +1112,10 @@ Function Get-SSHEnabledStatus {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-SSHEnabledStatus cmdlet." -Colour Yellow
@@ -1135,9 +1175,11 @@ Function Test-VsanHealth {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-VsanHealth cmdlet." -Colour Yellow
@@ -1251,9 +1293,11 @@ Function Test-VsanObjectResync {
     Param(
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-VsanObjectResync cmdlet." -Colour Yellow
@@ -1342,12 +1386,14 @@ Function Get-VMsWithPowerStatus {
     Param(
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateSet("poweredon","poweredoff")] [String]$powerstate,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pattern = $null ,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$exactMatch,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$silence
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
 
@@ -1433,10 +1479,12 @@ Function Get-VamiServiceStatus {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$nolog,
         [Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         if (-Not $nolog) {
@@ -1530,11 +1578,13 @@ Function Set-VamiServiceStatus {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
         [Parameter (Mandatory = $true)] [ValidateSet("start", "stop", "restart")] [String]$state,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$nolog,
         [Parameter (Mandatory = $true)] [ValidateSet("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp")] [String]$service
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         if (-Not $nolog) {
@@ -1657,11 +1707,13 @@ Function Set-VsphereHA {
     Param(
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String] $pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster,
         [Parameter (Mandatory = $true, ParameterSetName = "enable")] [Switch] $enableHA,
         [Parameter (Mandatory = $true, ParameterSetName = "disable")] [Switch] $disableHA
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsphereHA cmdlet." -Colour Yellow
@@ -1798,9 +1850,11 @@ Function Get-DrsAutomationLevel {
     Param(
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String] $pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-DrsAutomationLevel cmdlet." -Colour Yellow
@@ -1877,10 +1931,12 @@ Function Set-Retreatmode {
     Param(
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String] $pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster,
         [Parameter (Mandatory = $true)] [ValidateSet("enable", "disable")] [String] $mode
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-Retreatmode cmdlet." -Colour Yellow
@@ -1979,13 +2035,15 @@ Function Get-VMToClusterMapping {
     Param(
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String] $pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String[]] $cluster,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $folder,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch] $silence,
         [Parameter (Mandatory = $false)] [ValidateSet("poweredon","poweredoff")] [String] $powerstate
 
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMToClusterMapping cmdlet." -Colour Yellow}
@@ -2054,8 +2112,10 @@ Function Wait-ForStableNsxtClusterStatus {
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String] $pass
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Wait-ForStableNsxtClusterStatus cmdlet." -Colour Yellow
@@ -2149,9 +2209,11 @@ Function Get-EdgeNodeFromNSXManager {
     Param(
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String] $pass,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String] $VCfqdn
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-EdgeNodeFromNSXManager cmdlet." -Colour Yellow
@@ -2228,8 +2290,10 @@ Function Get-NSXTComputeManagers {
     Param(
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String] $pass
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-NSXTComputeManagers cmdlet." -Colour Yellow
@@ -2292,9 +2356,11 @@ Function Get-TanzuEnabledClusterStatus {
     Param(
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $user,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $pass,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String] $pass,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String] $cluster
     )
+
+    $pass = Get-Password -User $user -Password $pass
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-TanzuEnabledClusterStatus cmdlet." -Colour Yellow

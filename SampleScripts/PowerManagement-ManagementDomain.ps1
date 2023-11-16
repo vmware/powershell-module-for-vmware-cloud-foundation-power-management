@@ -59,13 +59,35 @@ Param (
     [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [String]$server,
     [Parameter (Mandatory = $true, ParameterSetName = "genjson")]
     [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [String]$user,
-    [Parameter (Mandatory = $true, ParameterSetName = "genjson")]
-    [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [String]$pass,
+    [Parameter (Mandatory = $false, ParameterSetName = "genjson")]
+    [Parameter (Mandatory = $false, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [String]$pass,
     [Parameter (Mandatory = $true, ParameterSetName = "genjson")] [ValidateNotNullOrEmpty()] [Switch]$genjson,
     # Startup
     [Parameter (Mandatory = $false, ParameterSetName = "startup")] [ValidateNotNullOrEmpty()] [String]$json,
     [Parameter (Mandatory = $true, ParameterSetName = "startup")] [ValidateNotNullOrEmpty()] [Switch]$startup
 )
+
+##########################################################################
+#Region     Non Exported Functions                                  ######
+Function Get-Password {
+    param (
+        [string]$user,
+        [string]$password
+    )
+
+    if ([string]::IsNullOrEmpty($password)) {
+        $secureString = Read-Host -Prompt "Enter the password for $user" -AsSecureString
+        $password = ConvertFrom-SecureString $secureString -AsPlainText
+    }
+    return $password
+}
+
+#EndRegion  Non Exported Functions                                  ######
+##########################################################################
+
+
+$pass = Get-Password -User $user -Password $pass
+
 
 # Error Handling (script scope function)
 Function Debug-CatchWriterForPowerManagement {
