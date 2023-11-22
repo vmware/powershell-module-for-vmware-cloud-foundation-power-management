@@ -254,6 +254,42 @@ Try {
         [Array]$vcfvms = @()
         [Array]$vcfvms += ($vcServer.fqdn).Split(".")[0]
 
+        # Gather VxRail Manager Details for the VI Workload Domain, if exists
+        if ($PsBoundParameters.ContainsKey("shutdown")) {
+            $vxRailCred = (Get-VCFCredential | Where-Object { $_.resource.resourceType -eq "VXRAIL_MANAGER" -and $_.resource.domainName -eq ($workloadDomain.name) -and $_.username -eq "root" })
+            if ($vxRailCred -ne $null)
+            {
+			    # Connecting to VC to get VxRail VM name
+			    if ($DefaultVIServers) {
+                        Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                }
+                if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 ).TcpTestSucceeded) {
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
+                    Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
+                    if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
+					    $vxrailVMObject = Get-VM | where-object {$_.Guest.Hostname -match $vxRailCred.resource.resourceName -Or $_.Guest.Hostname -match ($vxRailCred.resource.resourceName.Split("."))[0]}
+					    if ($vxrailVMObject) {
+					    	$vxRailVmName = $vxrailVMObject.Name
+					    } else {
+					    	Write-PowerManagementLogMessage -Type ERROR -Message "VxRail($($vxRailCred.resource.resourceName)) Virtual Machine object cannot be located within VC Server ($($vcServer.fqdn))" -Colour Red
+					    }
+				    }
+			    }
+			
+                $vxRailDetails = New-Object -TypeName PSCustomObject
+                $vxRailDetails | Add-Member -Type NoteProperty -Name fqdn -Value $vxRailCred.resource.resourceName
+			    $vxRailDetails | Add-Member -Type NoteProperty -Name vmName -Value $vxRailVmName
+                $vxRailDetails | Add-Member -Type NoteProperty -Name username -Value $vxRailCred.username
+                $vxRailDetails | Add-Member -Type NoteProperty -Name password -Value $vxRailCred.password
+                [Array]$vcfvms += ($vxRailDetails.vmName)
+                Write-PowerManagementLogMessage -Type INFO -Message "VxRail Manager($vxRailVmName) found within VC Server ($($vcServer.fqdn))" -Colour Yellow
+            }
+            else
+            {
+                $vxRailDetails = ""
+            }
+        }
+        
         # Gather ESXi Host Details for the VI Workload Domain
         $esxiWorkloadDomain = @()
         foreach ($esxiHost in (Get-VCFHost | Where-Object { $_.domain.id -eq $workloadDomain.id })) {
@@ -631,6 +667,9 @@ Try {
                 $runningAllVMs = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vm" -powerstate "poweredon" -silence
                 $runningVclsVMs = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon" -silence
                 $runningVMs = $runningAllVMs | ? { $runningVclsVMs -notcontains $_ }
+                if($vxRailDetails -ne "") {
+                    $runningVMs = $runningAllVMs | ? { $vcfvms -notcontains $_ }
+                }
             }
             if ($runningVMs.count) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
@@ -671,16 +710,49 @@ Try {
                             Exit
                         }
                     }
-                    #VSAN shutdown wizard automation
-                    Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff
-                    $esxiDetails = $esxiWorkloadCluster[$cluster.name]
-                    foreach ($esxiNode in $esxiDetails) {
-                        if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "$($esxiNode.fqdn) is still up. Check the FQDN or IP address, or the power state of the '$($esxiNode.fqdn)'." -Colour Red
-                            Exit
+					$esxiDetails = $esxiWorkloadCluster[$cluster.name]
+					
+                    #VSAN shutdown wizard automation or VxRail shutdown wizard automation
+                    if($vxRailDetails -ne "")
+                    {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Invoke Shutdown-vxrailcluster $($vxRailDetails.fqdn) $vcUser, and $vcPass"
+                        Invoke-VxrailClusterShutdown -server $vxRailDetails.fqdn -user $vcUser -pass $vcPass
+						Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 60 seconds before polling for ESXI hosts shutdown status check..."
+						Start-Sleep -s 60
+
+						$counter = 0
+						$sleepTime = 60 # in seconds
+
+						while ($counter -lt 1800)
+						{
+							$successcount = 0
+							#Verify if all ESXi hosts are down in here to conclude End of Shutdown sequence
+							foreach ($esxiNode in $esxiDetails) {
+								if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+									Write-PowerManagementLogMessage -Type WARNING -Message "$($esxiNode.fqdn) is still up. Check the FQDN or IP address, or the power state of the '$($esxiNode.fqdn)'." -Colour Yellow
+								} else {
+									$successcount++
+								}
+							}
+							if ($successcount -eq $esxiDetails.count) {
+								Write-PowerManagementLogMessage -Type INFO -Message "All Hosts have been shutdown successfully!" -Colour Green
+								Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Green
+								Exit
+							} else {
+								Start-Sleep $sleepTime
+								$counter += $sleepTime
+							}
+						}
+                    } else {
+                        #VSAN shutdown wizard automation
+                        Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff
+                        foreach ($esxiNode in $esxiDetails) {
+                            if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                                Write-PowerManagementLogMessage -Type ERROR -Message "$($esxiNode.fqdn) is still up. Check the FQDN or IP address, or the power state of the '$($esxiNode.fqdn)'." -Colour Red
+                                Exit
+                            }
                         }
                     }
-
                 }
                 if ($lastelement) {
                     Stop-CloudComponent -server $mgmtVcServer.fqdn -user $mgmtvcUser -pass $mgmtvcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600

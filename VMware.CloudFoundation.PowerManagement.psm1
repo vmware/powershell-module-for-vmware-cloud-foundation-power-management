@@ -744,6 +744,104 @@ Function Set-VsanClusterPowerStatus {
 }
 Export-ModuleMember -Function Set-VsanClusterPowerStatus
 
+Function Invoke-VxrailClusterShutdown{
+    <#
+        .SYNOPSIS
+        Invoke shut down command on a VxRail Cluster
+
+        .DESCRIPTION
+        The cmdlet will perform a dry run test prior to initiate a shutdown command on a VxRail cluster.
+
+        .EXAMPLE
+        Invoke-VxrailClusterShutdown -server sfo-w01-vxrm.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1!
+        This example powers off a Vxrail Cluster cluster which the VxRail server sfo-w01-vxrm.sfo.rainpole.io controls. 
+
+    #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass
+    )
+	
+    Try {
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Invoke-VxrailClusterShutdown cmdlet." -Colour Yellow
+
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        if ($checkServer) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
+            }
+
+            # Prepare VxRail rest API headers and payload
+            $payloadTest = @{ dryrun = 'true'} | ConvertTo-Json
+            $payloadRun = @{ dryrun = 'false'} | ConvertTo-Json
+            $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $pass))) # Create Basic Authentication Encoded Credentials
+            $headers = @{"Content-Type" = "application/json" }
+            $headers.Add("Authorization", "Basic $base64AuthInfo")
+			$Uri = "https://$server/rest/vxm/v1/cluster/shutdown"
+
+            Write-PowerManagementLogMessage -Type INFO -Message "Starting VxRail Cluster shutdown dry run." -Colour Yellow
+			$respond = Invoke-WebRequest -Method POST -Uri $uri -Headers $headers -Body $payloadTest -UseBasicParsing
+            if($respond.StatusCode -eq "202" -or $respond.StatusCode -eq "200") {
+                $requestID = $respond.content | ConvertFrom-JSON
+                Write-PowerManagementLogMessage -Type INFO -Message "VxRail Cluster shutdown request accepted(ID:$($requestID.request_id))"
+                $uri2 = "https://$server/rest/vxm/v1/requests/$($requestID.request_id)"
+                $loopCounter = 0
+                while ($loopCounter -lt 13){
+                    $respond2 = Invoke-WebRequest -Method GET -Uri $uri2 -Headers $headers -UseBasicParsing
+                    if ($respond2.StatusCode -eq "202" -or $respond2.StatusCode -eq "200") {
+                        $checkProgress = $respond2.content | ConvertFrom-JSON
+                        if($checkProgress.state -match "COMPLETED" -or $checkProgress.state -match "FAILED" ) {
+                            break
+                        }
+                    }
+                    sleep(10)
+                    $loopCounter += 1
+                }
+                
+                if($checkProgress.extension.passed -match "true") {
+                    Write-PowerManagementLogMessage -Type INFO -Message "VxRail Cluster shutdown dry run: SUCCESSED."
+                    Write-PowerManagementLogMessage -Type INFO -Message "Starting VxRail Cluster shutdown."
+
+                    $respond = Invoke-WebRequest -Method POST -Uri $uri -Headers $headers -Body $payloadRun -UseBasicParsing
+                    if ($respond.StatusCode -eq "202" -or $respond.StatusCode -eq "200") {
+                        return $true
+                    } else {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Invoke VxRail Cluster shutdown: FAILED" -Colour Red
+                    }
+                }
+                else {
+					$errorMsg = ""
+					$checkProgress = $respond2.content | ConvertFrom-JSON
+                    $parsingError = $checkProgress.extension.status
+					foreach($errorElement in $parsingError)
+                    {
+                        if($errorElement.checkResult -match "FAILED")
+                        {
+                            $errorMsg = $errorMsg + "Label: $($errorElement.label),($($errorElement.checkResult)) `nMessage: $($errorElement.message)`n"
+                        }
+                    }
+					Write-PowerManagementLogMessage -Type INFO -Message "VxRail Cluster shutdown dry run: FAILED `n $errorMsg" -Colour Red
+                }
+            } else {
+                Write-PowerManagementLogMessage -Type ERROR -Message "Invoke VxRail Cluster shutdown: FAILED" -Colour Red
+            }
+        }
+        else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+        }
+    }
+    Catch {
+        Debug-CatchWriterForPowerManagement -object $_
+    }
+    Finally {
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Invoke-VxrailClusterShutdown cmdlet." -Colour Yellow
+    }
+}
+Export-ModuleMember -Function Invoke-VxrailClusterShutdown
+
 Function Get-poweronVMsOnRemoteDS {
     <#
         .SYNOPSIS

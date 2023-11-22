@@ -21,10 +21,11 @@ Platform                                                                        
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.5.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.4.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.3.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
+:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.0.x on VxRail          | :fontawesome-solid-check:{ .green }
 
 !!! note
 
-    VMware Cloud Foundation on Dell EMC VxRail is not supported.
+    VMware Cloud Foundation on Dell EMC VxRail Mangement Domain is not supported.
 
 ### Operating Systems
 

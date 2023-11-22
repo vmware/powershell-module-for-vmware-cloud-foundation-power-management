@@ -1,5 +1,11 @@
 # Release History
 
+## v1.4.0
+> Release Date: Future
+
+Enhancement:
+- Added support for VMware Cloud Foundation 5.0 on VxRail.
+
 ## v1.3.0
 
 > Release Date: 2023-11-16
