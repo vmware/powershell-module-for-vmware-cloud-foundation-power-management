@@ -713,36 +713,34 @@ Try {
 					$esxiDetails = $esxiWorkloadCluster[$cluster.name]
 					
                     #VSAN shutdown wizard automation or VxRail shutdown wizard automation
-                    if($vxRailDetails -ne "")
-                    {
+                    if ($vxRailDetails -ne "") {
                         Write-PowerManagementLogMessage -Type INFO -Message "Invoke Shutdown-vxrailcluster $($vxRailDetails.fqdn) $vcUser, and $vcPass"
                         Invoke-VxrailClusterShutdown -server $vxRailDetails.fqdn -user $vcUser -pass $vcPass
-						Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 60 seconds before polling for ESXI hosts shutdown status check..."
-						Start-Sleep -s 60
-
-						$counter = 0
-						$sleepTime = 60 # in seconds
-
-						while ($counter -lt 1800)
-						{
-							$successcount = 0
-							#Verify if all ESXi hosts are down in here to conclude End of Shutdown sequence
-							foreach ($esxiNode in $esxiDetails) {
-								if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
-									Write-PowerManagementLogMessage -Type WARNING -Message "$($esxiNode.fqdn) is still up. Check the FQDN or IP address, or the power state of the '$($esxiNode.fqdn)'." -Colour Yellow
-								} else {
-									$successcount++
-								}
-							}
-							if ($successcount -eq $esxiDetails.count) {
-								Write-PowerManagementLogMessage -Type INFO -Message "All Hosts have been shutdown successfully!" -Colour Green
-								Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Green
-								Exit
-							} else {
-								Start-Sleep $sleepTime
-								$counter += $sleepTime
-							}
-						}
+                        Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 60 seconds before polling for ESXI hosts shutdown status check..."
+                        Start-Sleep -s 60
+                        
+                        $counter = 0
+                        $sleepTime = 60 # in seconds
+                        
+                        while ($counter -lt 1800) {
+                            $successcount = 0
+                            #Verify if all ESXi hosts are down in here to conclude End of Shutdown sequence
+                            foreach ($esxiNode in $esxiDetails) {
+                                if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                                    Write-PowerManagementLogMessage -Type WARNING -Message "$($esxiNode.fqdn) is still up. Sleeping for 60 seconds before next check..." -Colour Yellow
+                                } else {
+                                    $successcount++
+                                }
+                            }
+                            if ($successcount -eq $esxiDetails.count) {
+                                Write-PowerManagementLogMessage -Type INFO -Message "All Hosts have been shutdown successfully!" -Colour Green
+                                Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Green
+                                Exit
+                            } else {
+                                Start-Sleep -s $sleepTime
+                                $counter += $sleepTime
+                            }
+                        }
                     } else {
                         #VSAN shutdown wizard automation
                         Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff

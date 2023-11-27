@@ -25,7 +25,7 @@ Platform                                                                        
 
 !!! note
 
-    VMware Cloud Foundation on Dell EMC VxRail Mangement Domain is not supported.
+    VMware Cloud Foundation on Dell EMC VxRail cluster shut-down API cannot be used when Managed VMware vCenter Server is hosted on VxRail. [Shut down a VxRail cluster]
 
 ### Operating Systems
 
@@ -63,3 +63,4 @@ PowerShell Module                                    | Version   | Publisher    
 [psgallery-module-poshssh]: https://www.powershellgallery.com/packages/Posh-SSH
 [developer-module-powercli]: https://developer.vmware.com/tool/vmware-powercli
 [github-module-poshssh]: https://github.com/darkoperator/Posh-SSH
+[Shut down a VxRail cluster]: https://www.dell.com/support/manuals/en-us/vxrail-appliance-series/vxrail-8.x_admin_guide/shut-down-a-vxrail-cluster?guid=guid-da69fd52-38b2-465e-b8d9-45191b016679&lang=en-us

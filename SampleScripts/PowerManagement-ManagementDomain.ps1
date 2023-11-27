@@ -527,33 +527,32 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         # Shut Down the SDDC Manager Virtual Machine in the Management Domain.
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600
 
+
+        # Shut Down the vSphere Cluster Services Virtual Machines
+        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
+
+        # Waiting for vCLS VMs to be stopped for ($retries*10) seconds
+        Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take time. Please wait!" -Colour Yellow
+        $counter = 0
+        $retries = 10
+        $sleep_time = 30
+        while ($counter -ne $retries) {
+            $powerOnVMcount = (Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
+            if ( $powerOnVMcount ) {
+                Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until the next check..."
+                start-sleep $sleep_time
+                $counter += 1
+            } else {
+                Break
+            }
+        }
+        if ($counter -eq $retries) {
+            Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not shut down within the expected time. Stopping the script execution... " -Colour Red
+            Exit
+        }
+
         # Workflow for VMware Cloud Foundation before version 4.5
-        if ([float]$vcfVersion -lt [float]4.5) {
-
-            # Shut Down the vSphere Cluster Services Virtual Machines
-            Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
-
-            # Waiting for vCLS VMs to be stopped for ($retries*10) seconds
-            Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take time. Please wait!" -Colour Yellow
-            $counter = 0
-            $retries = 10
-            $sleep_time = 30
-            while ($counter -ne $retries) {
-                $powerOnVMcount = (Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
-                if ( $powerOnVMcount ) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until the next check..."
-                    start-sleep $sleep_time
-                    $counter += 1
-                }
-                else {
-                    Break
-                }
-            }
-            if ($counter -eq $retries) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not shut down within the expected time. Stopping the script execution... " -Colour Red
-                Exit
-            }
-
+        if ([float]$vcfVersion -le [float]4.5) {
             # Stop vSphere HA to avoid "orphaned" VMs during vSAN shutdown
             if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -disableHA)) {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Could not disable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
@@ -655,7 +654,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Write-PowerManagementLogMessage -Type INFO -Message "Shut down the ESXi hosts!" -Colour Cyan
             } else {
 
-                #VSAN shutdown wizard automation
+                # VSAN shutdown wizard automation 
                 Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff -mgmt
 
                 Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 60 seconds before checking ESXi hosts' shutdown status..."
@@ -681,7 +680,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                         Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Green
                         Exit
                     } else {
-                        Start-Sleep $sleepTime
+                        Start-Sleep -s $sleepTime
                         $counter += $sleepTime
                     }
                 }
@@ -924,29 +923,28 @@ if ($PsBoundParameters.ContainsKey("startup")) {
             else {
                 Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level $DrsAutomationLevel
             }
+        }
 
-            # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
-            Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
-            # Waiting for vCLS VMs to be started for ($retries*10) seconds
-            Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS virtual machines startup will take some time. Please wait." -Colour Yellow
-            $counter = 0
-            $retries = 10
-            $sleep_time = 30
-            while ($counter -ne $retries) {
-                $powerOnVMcount = (Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)" -silence).count
-                if ( $powerOnVMcount -lt 3 ) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
-                    start-sleep $sleep_time
-                    $counter += 1
-                }
-                else {
-                    Break
-                }
+        # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
+        Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
+        # Waiting for vCLS VMs to be started for ($retries*10) seconds
+        Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS virtual machines startup will take some time. Please wait." -Colour Yellow
+        $counter = 0
+        $retries = 10
+        $sleep_time = 30
+        while ($counter -ne $retries) {
+            $powerOnVMcount = (Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)" -silence).count
+            if ( $powerOnVMcount -lt 3 ) {
+                Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
+                start-sleep $sleep_time
+                $counter += 1
+            } else {
+                Break
             }
-            if ($counter -eq $retries) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS virtual machines did not start within the expected time. Stopping script execution..." -Colour Red
-                Exit
-            }
+        }
+        if ($counter -eq $retries) {
+            Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS virtual machines did not start within the expected time. Stopping script execution..." -Colour Red
+            Exit
         }
 
         #Startup the SDDC Manager Virtual Machine in the Management Workload Domain
