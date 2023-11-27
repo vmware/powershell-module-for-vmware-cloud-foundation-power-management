@@ -802,7 +802,7 @@ Function Invoke-VxrailClusterShutdown {
                 }
                 
                 if ($checkProgress.extension.passed -match "true") {
-                    Write-PowerManagementLogMessage -Type INFO -Message "VxRail cluster shutdown dry run: SUCCESSED." -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "VxRail cluster shutdown dry run: SUCCEEDED." -Colour Green
                     Write-PowerManagementLogMessage -Type INFO -Message "Starting VxRail cluster shutdown." -Colour Green
 
                     $respond = Invoke-WebRequest -Method POST -Uri $uri -Headers $headers -Body $payloadRun -UseBasicParsing
@@ -822,7 +822,7 @@ Function Invoke-VxrailClusterShutdown {
                             $errorMsg = $errorMsg + "Label: $($errorElement.label),($($errorElement.checkResult)) `nMessage: $($errorElement.message)`n"
                         }
                     }
-					Write-PowerManagementLogMessage -Type INFO -Message "VxRail cluster shutdown dry run: FAILED `n $errorMsg" -Colour Red
+					Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown dry run: FAILED `n $errorMsg" -Colour Red
                 }
             } else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown: FAILED" -Colour Red
