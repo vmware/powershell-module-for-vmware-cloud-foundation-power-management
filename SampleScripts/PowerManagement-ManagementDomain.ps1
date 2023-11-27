@@ -532,7 +532,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
 
         # Waiting for vCLS VMs to be stopped for ($retries*10) seconds
-        Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take time. Please wait!" -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take time. Please wait!" -Colour Green
         $counter = 0
         $retries = 10
         $sleep_time = 30
@@ -654,7 +654,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Write-PowerManagementLogMessage -Type INFO -Message "Shut down the ESXi hosts!" -Colour Cyan
             } else {
 
-                # VSAN shutdown wizard automation 
+                # vSAN shutdown wizard automation.
                 Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff -mgmt
 
                 Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 60 seconds before checking ESXi hosts' shutdown status..."
@@ -928,7 +928,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
         Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode disable
         # Waiting for vCLS VMs to be started for ($retries*10) seconds
-        Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS virtual machines startup will take some time. Please wait." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS virtual machines startup will take some time. Please wait."
         $counter = 0
         $retries = 10
         $sleep_time = 30

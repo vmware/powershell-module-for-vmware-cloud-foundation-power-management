@@ -254,12 +254,12 @@ Try {
         [Array]$vcfvms = @()
         [Array]$vcfvms += ($vcServer.fqdn).Split(".")[0]
 
-        # Gather VxRail Manager Details for the VI Workload Domain, if exists
+        # Gather VxRail Manager details for the VI workload domain, if it exists.
         if ($PsBoundParameters.ContainsKey("shutdown")) {
             $vxRailCred = (Get-VCFCredential | Where-Object { $_.resource.resourceType -eq "VXRAIL_MANAGER" -and $_.resource.domainName -eq ($workloadDomain.name) -and $_.username -eq "root" })
             if ($vxRailCred -ne $null)
             {
-			    # Connecting to VC to get VxRail VM name
+			    # Connecting to vCenter Server to get the VxRail Manager virtual machine name.
 			    if ($DefaultVIServers) {
                         Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
@@ -267,7 +267,7 @@ Try {
                     Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
                     Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
                     if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
-					    $vxrailVMObject = Get-VM | where-object {$_.Guest.Hostname -match $vxRailCred.resource.resourceName -Or $_.Guest.Hostname -match ($vxRailCred.resource.resourceName.Split("."))[0]}
+					    $vxrailVMObject = Get-VM | Where-Object {$_.Guest.Hostname -Match $vxRailCred.resource.resourceName -Or $_.Guest.Hostname -Match ($vxRailCred.resource.resourceName.Split("."))[0]}
 					    if ($vxrailVMObject) {
 					    	$vxRailVmName = $vxrailVMObject.Name
 					    } else {
@@ -282,10 +282,8 @@ Try {
                 $vxRailDetails | Add-Member -Type NoteProperty -Name username -Value $vxRailCred.username
                 $vxRailDetails | Add-Member -Type NoteProperty -Name password -Value $vxRailCred.password
                 [Array]$vcfvms += ($vxRailDetails.vmName)
-                Write-PowerManagementLogMessage -Type INFO -Message "VxRail Manager($vxRailVmName) found within VC Server ($($vcServer.fqdn))" -Colour Yellow
-            }
-            else
-            {
+                Write-PowerManagementLogMessage -Type INFO -Message "VxRail Manager($vxRailVmName) found within VC Server ($($vcServer.fqdn))"
+            } else {
                 $vxRailDetails = ""
             }
         }
@@ -538,15 +536,15 @@ Try {
             if ($clustercustomervms.count -ne 0) {
                 $clustercustomervms_string = $clustercustomervms -join "; "
                 if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still powered on. -shutdownCustomerVm is passed to the script." -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence shutting down VMs not managed by SDDC Manager to put the host in maintenance mode." -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: '$clustercustomervms_string'." -Colour Cyan
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still powered on. -shutdownCustomerVm is passed to the script." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence shutting down VMs not managed by SDDC Manager to put the host in maintenance mode." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: '$clustercustomervms_string'." -Colour Yellow
                     # Stop Customer VMs with one call to VC:
                     Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $clustercustomervms -timeout 300
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still powered on. -shutdownCustomerVm is not passed to the script." -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence not shutting down VMs that are not managed by VMware Cloud Foundation: '$clustercustomervms_string'." -Colour Cyan
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still powered on. -shutdownCustomerVm is not passed to the script." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence not shutting down VMs that are not managed by VMware Cloud Foundation: '$clustercustomervms_string'." -Colour Yellow
                     Write-PowerManagementLogMessage -Type ERROR -Message "Cannot proceed until these VMs are shut down manually or the customer VM Shutdown option is set to true. Please take the necessary action and run the script again." -Colour Red
                     Exit
                 }
@@ -672,8 +670,8 @@ Try {
                 }
             }
             if ($runningVMs.count) {
-                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed until all VMs are shut down. Shut them down manually and run the script again." -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Yellow
+                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed until all VMs are shut down. Shut them down manually and run the script again." -Colour Yellow
                 Write-PowerManagementLogMessage -Type ERROR -Message "The environment has running VMs: $($runningVMs). Could not continue with vSAN shutdown while there are running VMs. Exiting! " -Colour Red
             }
             else {
@@ -712,9 +710,9 @@ Try {
                     }
 					$esxiDetails = $esxiWorkloadCluster[$cluster.name]
 					
-                    #VSAN shutdown wizard automation or VxRail shutdown wizard automation
+                    # vSAN or VxRail Manager shutdown wizard automation.
                     if ($vxRailDetails -ne "") {
-                        Write-PowerManagementLogMessage -Type INFO -Message "Invoke Shutdown-vxrailcluster $($vxRailDetails.fqdn) $vcUser, and $vcPass"
+                        Write-PowerManagementLogMessage -Type INFO -Message "Invoke VxRail cluster shutdown $($vxRailDetails.fqdn) $vcUser, and $vcPass"
                         Invoke-VxrailClusterShutdown -server $vxRailDetails.fqdn -user $vcUser -pass $vcPass
                         Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 60 seconds before polling for ESXI hosts shutdown status check..."
                         Start-Sleep -s 60
@@ -742,7 +740,7 @@ Try {
                             }
                         }
                     } else {
-                        #VSAN shutdown wizard automation
+                        # vSAN shutdown wizard automation.
                         Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff
                         foreach ($esxiNode in $esxiDetails) {
                             if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
