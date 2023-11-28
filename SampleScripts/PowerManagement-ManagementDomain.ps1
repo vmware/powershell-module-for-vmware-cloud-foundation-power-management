@@ -540,7 +540,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             $powerOnVMcount = (Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
             if ( $powerOnVMcount ) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until the next check..."
-                start-sleep $sleep_time
+                Start-Sleep -s $sleep_time
                 $counter += 1
             } else {
                 Break
@@ -827,12 +827,12 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                 # Prepare the vSAN cluster for startup - Performed on a single host only
                 # We need some time before this step, setting hard sleep 30 sec
                 Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 30 seconds before starting vSAN..."
-                Start-Sleep 30
+                Start-Sleep -s 30
                 Invoke-EsxCommand -server $esxiWorkloadDomain.fqdn[0] -user $esxiWorkloadDomain.username[0] -pass $esxiWorkloadDomain.password[0] -expected "Cluster reboot/poweron is completed successfully!" -cmd "python /usr/lib/vmware/vsan/bin/reboot_helper.py recover"
 
                 # We need some time before this step, setting hard sleep 30 sec
                 Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 30 seconds before enabling vSAN updates..."
-                Start-Sleep 30
+                Start-Sleep -s 30
                 foreach ($esxiNode in $esxiWorkloadDomain) {
                     Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
                 }
@@ -844,7 +844,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
 
                 # Startup the Management Domain vCenter Server
                 Start-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.Name -timeout 600
-                Start-Sleep 5
+                Start-Sleep -s 5
                 if (-Not (Get-VMRunningStatus -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -Status "Running")) {
 
                     Write-PowerManagementLogMessage -Type Warning -Message "Cannot start vCenter Server on the host. Check if vCenter Server is located on host $vcHost. " -Colour Red
@@ -875,14 +875,14 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                     }
                     else {
                         Write-PowerManagementLogMessage -Type INFO -Message "The services on vCenter Server are still starting. Please wait. Sleeping for 60 seconds..."
-                        Start-Sleep 60
+                        Start-Sleep -s 60
                     }
                 }
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 break
             }
             Write-PowerManagementLogMessage -Type INFO -Message "The vCenter Server API is still not accessible. Please wait. Sleeping for 60 seconds..."
-            Start-Sleep 60
+            Start-Sleep -s 60
             $retries -= 1
         }
         # Check if VC have been started in the above time period
@@ -936,7 +936,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
             $powerOnVMcount = (Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)" -silence).count
             if ( $powerOnVMcount -lt 3 ) {
                 Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
-                start-sleep $sleep_time
+                Start-Sleep -s $sleep_time
                 $counter += 1
             } else {
                 Break
