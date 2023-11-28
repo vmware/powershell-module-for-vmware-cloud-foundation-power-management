@@ -21,10 +21,11 @@ Platform                                                                        
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.5.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.4.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.3.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
+:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.0.x on Dell VxRail     | :fontawesome-solid-check:{ .green }
 
 !!! note
 
-    VMware Cloud Foundation on Dell EMC VxRail is not supported.
+    VMware Cloud Foundation on Dell VxRail cluster shutdown API cannot be used when the managed VMware vCenter Server instance is running on VxRail. See [vxrail-cluster-shutdown](the Dell VxRail documentation).
 
 ### Operating Systems
 
@@ -62,3 +63,4 @@ PowerShell Module                                    | Version   | Publisher    
 [psgallery-module-poshssh]: https://www.powershellgallery.com/packages/Posh-SSH
 [developer-module-powercli]: https://developer.vmware.com/tool/vmware-powercli
 [github-module-poshssh]: https://github.com/darkoperator/Posh-SSH
+[vxrail-cluster-shutdown]: https://www.dell.com/support/manuals/en-us/vxrail-appliance-series/vxrail-8.x_admin_guide/shut-down-a-vxrail-cluster?guid=guid-da69fd52-38b2-465e-b8d9-45191b016679&lang=en-us

@@ -254,6 +254,40 @@ Try {
         [Array]$vcfvms = @()
         [Array]$vcfvms += ($vcServer.fqdn).Split(".")[0]
 
+        # Gather VxRail Manager details for the VI workload domain, if it exists.
+        if ($PsBoundParameters.ContainsKey("shutdown")) {
+            $vxRailCred = (Get-VCFCredential | Where-Object { $_.resource.resourceType -eq "VXRAIL_MANAGER" -and $_.resource.domainName -eq ($workloadDomain.name) -and $_.username -eq "root" })
+            if ($vxRailCred -ne $null)
+            {
+			    # Connecting to vCenter Server to get the VxRail Manager virtual machine name.
+			    if ($DefaultVIServers) {
+                        Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+                }
+                if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 ).TcpTestSucceeded) {
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
+                    Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
+                    if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
+					    $vxrailVMObject = Get-VM | Where-Object {$_.Guest.Hostname -Match $vxRailCred.resource.resourceName -Or $_.Guest.Hostname -Match ($vxRailCred.resource.resourceName.Split("."))[0]}
+					    if ($vxrailVMObject) {
+					    	$vxRailVmName = $vxrailVMObject.Name
+					    } else {
+					    	Write-PowerManagementLogMessage -Type ERROR -Message "VxRail($($vxRailCred.resource.resourceName)) Virtual Machine object cannot be located within VC Server ($($vcServer.fqdn))" -Colour Red
+					    }
+				    }
+			    }
+			
+                $vxRailDetails = New-Object -TypeName PSCustomObject
+                $vxRailDetails | Add-Member -Type NoteProperty -Name fqdn -Value $vxRailCred.resource.resourceName
+			    $vxRailDetails | Add-Member -Type NoteProperty -Name vmName -Value $vxRailVmName
+                $vxRailDetails | Add-Member -Type NoteProperty -Name username -Value $vxRailCred.username
+                $vxRailDetails | Add-Member -Type NoteProperty -Name password -Value $vxRailCred.password
+                [Array]$vcfvms += ($vxRailDetails.vmName)
+                Write-PowerManagementLogMessage -Type INFO -Message "VxRail Manager($vxRailVmName) found within VC Server ($($vcServer.fqdn))"
+            } else {
+                $vxRailDetails = ""
+            }
+        }
+        
         # Gather ESXi Host Details for the VI Workload Domain
         $esxiWorkloadDomain = @()
         foreach ($esxiHost in (Get-VCFHost | Where-Object { $_.domain.id -eq $workloadDomain.id })) {
@@ -502,15 +536,14 @@ Try {
             if ($clustercustomervms.count -ne 0) {
                 $clustercustomervms_string = $clustercustomervms -join "; "
                 if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still powered on. -shutdownCustomerVm is passed to the script." -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence shutting down VMs not managed by SDDC Manager to put the host in maintenance mode." -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: '$clustercustomervms_string'." -Colour Cyan
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still powered on. -shutdownCustomerVm is passed to the script." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence shutting down VMs not managed by SDDC Manager to put the host in maintenance mode." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: '$clustercustomervms_string'." -Colour Yellow
                     # Stop Customer VMs with one call to VC:
                     Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $clustercustomervms -timeout 300
-                }
-                else {
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still powered on. -shutdownCustomerVm is not passed to the script." -Colour Cyan
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence not shutting down VMs that are not managed by VMware Cloud Foundation: '$clustercustomervms_string'." -Colour Cyan
+                } else {
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still powered on. -shutdownCustomerVm is not passed to the script." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Hence not shutting down VMs that are not managed by VMware Cloud Foundation: '$clustercustomervms_string'." -Colour Yellow
                     Write-PowerManagementLogMessage -Type ERROR -Message "Cannot proceed until these VMs are shut down manually or the customer VM Shutdown option is set to true. Please take the necessary action and run the script again." -Colour Red
                     Exit
                 }
@@ -574,12 +607,12 @@ Try {
             Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take some time, please wait..." -Colour Yellow
             $counter = 0
             $retries = 10
-            $sleep_time = 30
+            $sleepTime = 30
             while ($counter -ne $retries) {
                 $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon" -silence).count
                 if ( $powerOnVMcount ) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until next check..."
-                    start-sleep $sleep_time
+                    Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleepTime seconds until next check..."
+                    Start-Sleep -s $sleepTime
                     $counter += 1
                 }
                 else {
@@ -631,10 +664,13 @@ Try {
                 $runningAllVMs = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vm" -powerstate "poweredon" -silence
                 $runningVclsVMs = Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon" -silence
                 $runningVMs = $runningAllVMs | ? { $runningVclsVMs -notcontains $_ }
+                if($vxRailDetails -ne "") {
+                    $runningVMs = $runningAllVMs | ? { $vcfvms -notcontains $_ }
+                }
             }
             if ($runningVMs.count) {
-                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed until all VMs are shut down. Shut them down manually and run the script again." -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Yellow
+                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed until all VMs are shut down. Shut them down manually and run the script again." -Colour Yellow
                 Write-PowerManagementLogMessage -Type ERROR -Message "The environment has running VMs: $($runningVMs). Could not continue with vSAN shutdown while there are running VMs. Exiting! " -Colour Red
             }
             else {
@@ -671,16 +707,47 @@ Try {
                             Exit
                         }
                     }
-                    #VSAN shutdown wizard automation
-                    Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff
-                    $esxiDetails = $esxiWorkloadCluster[$cluster.name]
-                    foreach ($esxiNode in $esxiDetails) {
-                        if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "$($esxiNode.fqdn) is still up. Check the FQDN or IP address, or the power state of the '$($esxiNode.fqdn)'." -Colour Red
-                            Exit
+					$esxiDetails = $esxiWorkloadCluster[$cluster.name]
+					
+                    # vSAN or VxRail Manager shutdown wizard automation.
+                    if ($vxRailDetails -ne "") {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Invoke VxRail cluster shutdown $($vxRailDetails.fqdn) $vcUser, and $vcPass"
+                        Invoke-VxrailClusterShutdown -server $vxRailDetails.fqdn -user $vcUser -pass $vcPass
+                        Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for 60 seconds before polling for ESXI hosts shutdown status check..."
+                        Start-Sleep -s 60
+                        
+                        $counter = 0
+                        $sleepTime = 60 # in seconds
+                        
+                        while ($counter -lt 1800) {
+                            $successcount = 0
+                            #Verify if all ESXi hosts are down in here to conclude End of Shutdown sequence
+                            foreach ($esxiNode in $esxiDetails) {
+                                if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                                    Write-PowerManagementLogMessage -Type WARNING -Message "$($esxiNode.fqdn) is still up. Sleeping for $sleepTime seconds before next check..." -Colour Yellow
+                                } else {
+                                    $successcount++
+                                }
+                            }
+                            if ($successcount -eq $esxiDetails.count) {
+                                Write-PowerManagementLogMessage -Type INFO -Message "All Hosts have been shutdown successfully!" -Colour Green
+                                Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Green
+                                Exit
+                            } else {
+                                Start-Sleep -s $sleepTime
+                                $counter += $sleepTime
+                            }
+                        }
+                    } else {
+                        # vSAN shutdown wizard automation.
+                        Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff
+                        foreach ($esxiNode in $esxiDetails) {
+                            if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                                Write-PowerManagementLogMessage -Type ERROR -Message "$($esxiNode.fqdn) is still up. Check the FQDN or IP address, or the power state of the '$($esxiNode.fqdn)'." -Colour Red
+                                Exit
+                            }
                         }
                     }
-
                 }
                 if ($lastelement) {
                     Stop-CloudComponent -server $mgmtVcServer.fqdn -user $mgmtvcUser -pass $mgmtvcPass -nodes $vcServer.fqdn.Split(".")[0] -timeout 600
@@ -794,7 +861,7 @@ Try {
                             }
                             else {
                                 Write-PowerManagementLogMessage -Type INFO -Message "The services on vCenter Server $wldVC are still starting. Please wait." -Colour Yellow
-                                Start-Sleep 60
+                                Start-Sleep -s 60
                             }
                         }
                         if (([float]$vcfVersion -lt [float]4.5) -and ($wldVC -eq $vcServer.fqdn)) {
@@ -809,7 +876,7 @@ Try {
                         Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                         break
                     }
-                    Start-Sleep 60
+                    Start-Sleep -s 60
                     $retries -= 1
                     Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server is still starting. Please wait." -Colour Yellow
                 }
@@ -913,12 +980,12 @@ Try {
             # Waiting for vCLS VMs to be started for ($retries*10) seconds
             $counter = 0
             $retries = 30
-            $sleep_time = 30
+            $sleepTime = 30
             while ($counter -ne $retries) {
                 $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -cluster $cluster.name -folder "vcls" -silence).count
                 if ( $powerOnVMcount -lt 3 ) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check..."
-                    start-sleep $sleep_time
+                    Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleepTime seconds until the next check..."
+                    Start-Sleep -s $sleepTime
                     $counter += 1
                 }
                 else {
@@ -953,21 +1020,21 @@ Try {
                 ## Gather NSX Manager Cluster Details
                 $counter = 0
                 $retries = 15
-                $sleep_time = 30
+                $sleepTime = 30
                 while ($counter -ne $retries) {
                     Try {
                         $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id -ErrorAction SilentlyContinue -InformationAction Ignore
                     }
                     Catch {
-                        Write-PowerManagementLogMessage -Type INFO -Message "SDDC Manager is still retrieving NSX-T Data Center information. Sleeping for $sleep_time seconds until the next check..."
-                        start-sleep $sleep_time
+                        Write-PowerManagementLogMessage -Type INFO -Message "SDDC Manager is still retrieving NSX-T Data Center information. Sleeping for $sleepTime seconds until the next check..."
+                        Start-Sleep -s $sleepTime
                         $counter += 1
                     }
                     # Stop loop if we have FQDN for NSX-T VIP
                     if ( $($nsxtCluster.vipFqdn) ) { Break }
                     else {
-                        Write-PowerManagementLogMessage -Type INFO -Message "SDDC Manager is still retrieving NSX-T Data Center information. Sleeping for $sleep_time seconds until the next check..."
-                        start-sleep $sleep_time
+                        Write-PowerManagementLogMessage -Type INFO -Message "SDDC Manager is still retrieving NSX-T Data Center information. Sleeping for $sleepTime seconds until the next check..."
+                        Start-Sleep -s $sleepTime
                         $counter += 1
                     }
                 }

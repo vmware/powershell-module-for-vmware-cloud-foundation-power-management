@@ -137,7 +137,7 @@ Function Stop-CloudComponent {
                                     Write-PowerManagementLogMessage -Type INFO -Message "Waiting for node '$node' to shut down..."
                                     $sleepTime = 5
                                     While (($vm_obj.State -ne 'NotRunning') -and ($count -le $timeout)) {
-                                        Start-Sleep -Seconds $sleepTime
+                                        Start-Sleep -s $sleepTime
                                         $count = $count + $sleepTime
                                         $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                     }
@@ -181,7 +181,7 @@ Function Stop-CloudComponent {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                                 $sleepTime = 1
                                 While (($vm_obj.State -ne 'NotRunning') -and ($count -le $timeout)) {
-                                    Start-Sleep -Seconds $sleepTime
+                                    Start-Sleep -s $sleepTime
                                     $count = $count + $sleepTime
                                     $vm_obj = Get-VMGuest -VM $node.Name | Where-Object VmUid -match $server
                                 }
@@ -287,11 +287,11 @@ Function Start-CloudComponent {
                                 }
                                 Write-PowerManagementLogMessage -Type INFO -Message "Attempting to start up node '$node'..."
                                 Start-VM -VM $node -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
-                                Start-Sleep -Seconds 5
+                                Start-Sleep -s 5
                                 $sleepTime = 10
                                 Write-PowerManagementLogMessage -Type INFO -Message "Waiting for node '$node' to start up..."
                                 While (($vm_obj.State -ne 'Running') -and ($count -le $timeout)) {
-                                    Start-Sleep -Seconds $sleepTime
+                                    Start-Sleep -s $sleepTime
                                     $count = $count + $sleepTime
                                     $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 }
@@ -332,7 +332,7 @@ Function Start-CloudComponent {
                             $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to start up node '$($node.name)'..."
                             While (($vm_obj.State -ne 'Running') -AND ($count -le $timeout)) {
-                                Start-Sleep -Seconds $sleepTime
+                                Start-Sleep -s $sleepTime
                                 $count = $count + $sleepTime
                                 $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             }
@@ -705,7 +705,7 @@ Function Set-VsanClusterPowerStatus {
                         if (-Not ($task.State -eq "Error")) {
                             Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is $($task.PercentComplete)% completed."
                         }
-                        Start-Sleep $sleepTime
+                        Start-Sleep -s $sleepTime
                         $counter += $sleepTime
                     } while($task.State -eq "Running" -and ($counter -lt 1800))
 
@@ -743,6 +743,101 @@ Function Set-VsanClusterPowerStatus {
     }
 }
 Export-ModuleMember -Function Set-VsanClusterPowerStatus
+
+Function Invoke-VxrailClusterShutdown {
+    <#
+        .SYNOPSIS
+        Invoke the shut down command on a VxRail cluster.
+
+        .DESCRIPTION
+        The cmdlet will perform a dry run test prior to initiate a shutdown command on a VxRail cluster.
+
+        .EXAMPLE
+        Invoke-VxrailClusterShutdown -server sfo-w01-vxrm.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
+        This example powers off a VxRail cluster cluster which is managed by the VxRail Manager sfo-w01-vxrm.sfo.rainpole.io controls. 
+
+    #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$pass
+    )
+	
+    Try {
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Invoke-VxrailClusterShutdown cmdlet." -Colour Green
+
+        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        if ($checkServer) {
+            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            if ($DefaultVIServers) {
+                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction  SilentlyContinue | Out-Null
+            }
+
+            # Prepare VxRail rest API headers and payload
+            $payloadTest = @{ dryrun = 'true'} | ConvertTo-Json
+            $payloadRun = @{ dryrun = 'false'} | ConvertTo-Json
+            $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $pass))) # Create Basic Authentication Encoded Credentials
+            $headers = @{"Content-Type" = "application/json" }
+            $headers.Add("Authorization", "Basic $base64AuthInfo")
+			$uri = "https://$server/rest/vxm/v1/cluster/shutdown"
+
+            Write-PowerManagementLogMessage -Type INFO -Message "Starting VxRail cluster shutdown dry run." -Colour Green
+			$respond = Invoke-WebRequest -Method POST -Uri $uri -Headers $headers -Body $payloadTest -UseBasicParsing -SkipCertificateCheck
+            if($respond.StatusCode -eq "202" -or $respond.StatusCode -eq "200") {
+                $requestID = $respond.content | ConvertFrom-JSON
+                Write-PowerManagementLogMessage -Type INFO -Message "VxRail cluster shutdown request accepted(ID:$($requestID.request_id))"
+                $uri2 = "https://$server/rest/vxm/v1/requests/$($requestID.request_id)"
+                $loopCounter = 0
+                while ($loopCounter -lt 13){
+                    $respond2 = Invoke-WebRequest -Method GET -Uri $uri2 -Headers $headers -UseBasicParsing -SkipCertificateCheck
+                    if ($respond2.StatusCode -eq "202" -or $respond2.StatusCode -eq "200") {
+                        $checkProgress = $respond2.content | ConvertFrom-JSON
+                        if($checkProgress.state -Match "COMPLETED" -or $checkProgress.state -Match "FAILED" ) {
+                            break
+                        }
+                    }
+                    Start-Sleep -s 10
+                    $loopCounter += 1
+                }
+                
+                if ($checkProgress.extension.passed -match "true") {
+                    Write-PowerManagementLogMessage -Type INFO -Message "VxRail cluster shutdown dry run: SUCCEEDED." -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "Starting VxRail cluster shutdown." -Colour Green
+
+                    $respond = Invoke-WebRequest -Method POST -Uri $uri -Headers $headers -Body $payloadRun -UseBasicParsing -SkipCertificateCheck
+                    if ($respond.StatusCode -eq "202" -or $respond.StatusCode -eq "200") {
+                        return $true
+                    } else {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown: FAILED" -Colour Red
+                    }
+                } else {
+					$errorMsg = ""
+					$checkProgress = $respond2.content | ConvertFrom-JSON
+                    $parsingError = $checkProgress.extension.status
+					foreach($errorElement in $parsingError)
+                    {
+                        if ($errorElement.checkResult -match "FAILED")
+                        {
+                            $errorMsg = $errorMsg + "Label: $($errorElement.label),($($errorElement.checkResult)) `nMessage: $($errorElement.message)`n"
+                        }
+                    }
+					Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown dry run: FAILED `n $errorMsg" -Colour Red
+                }
+            } else {
+                Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown: FAILED" -Colour Red
+            }
+        }
+        else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+        }
+    } Catch {
+        Debug-CatchWriterForPowerManagement -object $_
+    } Finally {
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Invoke-VxrailClusterShutdown cmdlet." -Colour Green
+    }
+}
+Export-ModuleMember -Function Invoke-VxrailClusterShutdown
 
 Function Get-poweronVMsOnRemoteDS {
     <#
@@ -1506,7 +1601,7 @@ Function Get-VamiServiceStatus {
                     $flag = 1
                     break
                 }
-                Start-Sleep 60
+                Start-Sleep -s 60
                 $retries -= 1
                 if (-Not $nolog) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Connecting to the vSphere Automation API endpoint might take some time. Please wait." -Colour Yellow
@@ -1607,7 +1702,7 @@ Function Set-VamiServiceStatus {
                     $flag = 1
                     break
                 }
-                Start-Sleep 60
+                Start-Sleep -s 60
                 $retries -= 1
                 if (-Not $nolog) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Connecting to the vSphere Automation API endpoint might take some time. Please wait." -Colour Yellow
@@ -1745,11 +1840,11 @@ Function Set-VsphereHA {
                             }
                             $retryCount++
                             # Get running tasks
-                            Start-Sleep 5
+                            Start-Sleep -s 5
                             $runningTasks = get-task -Status Running
                             if (($runningTasks -match "Update vSAN configuration") -or ($runningTasks -match "Configuring vSphere HA")) {
                                 Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability configuration changes are not applied. Sleeping for $SecondsDelay seconds..."
-                                Start-Sleep $SecondsDelay
+                                Start-Sleep -s $SecondsDelay
                                 continue
                             }
                             else {
@@ -1782,11 +1877,11 @@ Function Set-VsphereHA {
                             }
                             $retryCount++
                             # Get running tasks
-                            Start-Sleep 5
+                            Start-Sleep -s 5
                             $runningTasks = get-task -Status Running
                             if (($runningTasks -match "Update vSAN configuration") -or ($runningTasks -match "Configuring vSphere HA")) {
                                 Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability configuration changes are not applied. Sleeping for $SecondsDelay seconds..."
-                                Start-Sleep $SecondsDelay
+                                Start-Sleep -s $SecondsDelay
                                 continue
                             }
                             else {
@@ -2145,7 +2240,7 @@ Function Wait-ForStableNsxtClusterStatus {
             }
             Catch {
                 Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to NSX Manager '$server'! Sleeping $($SecondsDelay * $aditionalWaitMultiplier) seconds before next attempt."
-                Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
+                Start-Sleep -s $($SecondsDelay * $aditionalWaitMultiplier)
                 continue
             }
             $successfulConnections++
@@ -2154,11 +2249,11 @@ Function Wait-ForStableNsxtClusterStatus {
                 # Add longer sleep during fiest several attempts to avoid locking the NSX-T account just after power-on
                 if ($successfulConnections -lt 4) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for $($SecondsDelay * $aditionalWaitMultiplier) seconds before next check..."
-                    Start-Sleep $($SecondsDelay * $aditionalWaitMultiplier)
+                    Start-Sleep -s $($SecondsDelay * $aditionalWaitMultiplier)
                 }
                 else {
                     Write-PowerManagementLogMessage -Type INFO -Message "Sleeping for $SecondsDelay seconds until the next check..."
-                    Start-Sleep $SecondsDelay
+                    Start-Sleep -s $SecondsDelay
                 }
             }
             else {
