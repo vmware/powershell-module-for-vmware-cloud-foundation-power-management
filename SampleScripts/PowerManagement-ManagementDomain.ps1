@@ -535,12 +535,12 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take time. Please wait!" -Colour Green
         $counter = 0
         $retries = 10
-        $sleep_time = 30
+        $sleepTime = 30
         while ($counter -ne $retries) {
             $powerOnVMcount = (Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)").count
             if ( $powerOnVMcount ) {
-                Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until the next check..."
-                Start-Sleep -s $sleep_time
+                Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleepTime seconds until the next check..."
+                Start-Sleep -s $sleepTime
                 $counter += 1
             } else {
                 Break
@@ -931,12 +931,12 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS virtual machines startup will take some time. Please wait."
         $counter = 0
         $retries = 10
-        $sleep_time = 30
+        $sleepTime = 30
         while ($counter -ne $retries) {
             $powerOnVMcount = (Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)" -silence).count
             if ( $powerOnVMcount -lt 3 ) {
-                Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check."
-                Start-Sleep -s $sleep_time
+                Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleepTime seconds until the next check."
+                Start-Sleep -s $sleepTime
                 $counter += 1
             } else {
                 Break

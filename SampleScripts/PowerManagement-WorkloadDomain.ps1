@@ -607,12 +607,12 @@ Try {
             Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take some time, please wait..." -Colour Yellow
             $counter = 0
             $retries = 10
-            $sleep_time = 30
+            $sleepTime = 30
             while ($counter -ne $retries) {
                 $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -folder "vcls" -powerstate "poweredon" -silence).count
                 if ( $powerOnVMcount ) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleep_time seconds until next check..."
-                    Start-Sleep -s $sleep_time
+                    Write-PowerManagementLogMessage -Type INFO -Message "Some vCLS VMs are still running. Sleeping for $sleepTime seconds until next check..."
+                    Start-Sleep -s $sleepTime
                     $counter += 1
                 }
                 else {
@@ -980,12 +980,12 @@ Try {
             # Waiting for vCLS VMs to be started for ($retries*10) seconds
             $counter = 0
             $retries = 30
-            $sleep_time = 30
+            $sleepTime = 30
             while ($counter -ne $retries) {
                 $powerOnVMcount = (Get-VMToClusterMapping -server $vcServer.fqdn -user $vcUser -pass $vcPass -powerstate "poweredon" -cluster $cluster.name -folder "vcls" -silence).count
                 if ( $powerOnVMcount -lt 3 ) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleep_time seconds until the next check..."
-                    Start-Sleep -s $sleep_time
+                    Write-PowerManagementLogMessage -Type INFO -Message "There are $powerOnVMcount vCLS virtual machines running. Sleeping for $sleepTime seconds until the next check..."
+                    Start-Sleep -s $sleepTime
                     $counter += 1
                 }
                 else {
@@ -1020,21 +1020,21 @@ Try {
                 ## Gather NSX Manager Cluster Details
                 $counter = 0
                 $retries = 15
-                $sleep_time = 30
+                $sleepTime = 30
                 while ($counter -ne $retries) {
                     Try {
                         $nsxtCluster = Get-VCFNsxtCluster -id $workloadDomain.nsxtCluster.id -ErrorAction SilentlyContinue -InformationAction Ignore
                     }
                     Catch {
-                        Write-PowerManagementLogMessage -Type INFO -Message "SDDC Manager is still retrieving NSX-T Data Center information. Sleeping for $sleep_time seconds until the next check..."
-                        Start-Sleep -s $sleep_time
+                        Write-PowerManagementLogMessage -Type INFO -Message "SDDC Manager is still retrieving NSX-T Data Center information. Sleeping for $sleepTime seconds until the next check..."
+                        Start-Sleep -s $sleepTime
                         $counter += 1
                     }
                     # Stop loop if we have FQDN for NSX-T VIP
                     if ( $($nsxtCluster.vipFqdn) ) { Break }
                     else {
-                        Write-PowerManagementLogMessage -Type INFO -Message "SDDC Manager is still retrieving NSX-T Data Center information. Sleeping for $sleep_time seconds until the next check..."
-                        Start-Sleep -s $sleep_time
+                        Write-PowerManagementLogMessage -Type INFO -Message "SDDC Manager is still retrieving NSX-T Data Center information. Sleeping for $sleepTime seconds until the next check..."
+                        Start-Sleep -s $sleepTime
                         $counter += 1
                     }
                 }
