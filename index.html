@@ -9,7 +9,7 @@
         <meta name="description" content="PowerShell Module for VMware Cloud Foundation Power Management">
       
       
-        <meta name="author" content="VMware, Inc.">
+        <meta name="author" content="Broadcom">
       
       
         <link rel="canonical" href="https://vmware.github.io/powershell-module-for-vmware-cloud-foundation-power-management/">
@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="favicon.ico">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.6">
     
     
       
@@ -28,7 +28,7 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.4b4a2bd9.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.35e1ed30.min.css">
       
         
         <link rel="stylesheet" href="assets/stylesheets/palette.356b1318.min.css">
@@ -49,8 +49,6 @@
         <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
     
-    
-      <link rel="stylesheet" href="css/timeago.css">
     
       <link rel="stylesheet" href="assets/stylesheets/extra.css">
     
@@ -1595,7 +1593,7 @@
 </table>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>VMware Cloud Foundation on Dell EMC VxRail is not supported.</p>
+<p>VMware Cloud Foundation on Dell VxRail cluster shutdown API cannot be used when the managed VMware vCenter Server instance is running on VxRail. See <a href="the Dell VxRail documentation">vxrail-cluster-shutdown</a>.</p>
 </div>
 <h3 id="operating-systems">Operating Systems<a class="headerlink" href="#operating-systems" title="Permanent link">&para;</a></h3>
 <p>The following table lists the supported operating systems for this module.</p>
@@ -1648,13 +1646,13 @@
 <tr>
 <td><a href="https://www.powershellgallery.com/packages/VMware.PowerCLI">VMware.PowerCLI</a></td>
 <td>&gt;= 13.0.0</td>
-<td>VMware, Inc.</td>
+<td>Broadcom</td>
 <td><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M96 0C43 0 0 43 0 96v320c0 53 43 96 96 96h320c17.7 0 32-14.3 32-32s-14.3-32-32-32v-64c17.7 0 32-14.3 32-32V32c0-17.7-14.3-32-32-32H96zm0 384h256v64H96c-17.7 0-32-14.3-32-32s14.3-32 32-32zm32-240c0-8.8 7.2-16 16-16h192c8.8 0 16 7.2 16 16s-7.2 16-16 16H144c-8.8 0-16-7.2-16-16zm16 48h192c8.8 0 16 7.2 16 16s-7.2 16-16 16H144c-8.8 0-16-7.2-16-16s7.2-16 16-16z"/></svg></span> &nbsp; <a href="https://developer.vmware.com/tool/vmware-powercli">Documentation</a></td>
 </tr>
 <tr>
 <td><a href="https://www.powershellgallery.com/packages/PowerVCF">PowerVCF</a></td>
 <td>&gt;= 2.3.0</td>
-<td>VMware, Inc.</td>
+<td>Broadcom</td>
 <td><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M96 0C43 0 0 43 0 96v320c0 53 43 96 96 96h320c17.7 0 32-14.3 32-32s-14.3-32-32-32v-64c17.7 0 32-14.3 32-32V32c0-17.7-14.3-32-32-32H96zm0 384h256v64H96c-17.7 0-32-14.3-32-32s14.3-32 32-32zm32-240c0-8.8 7.2-16 16-16h192c8.8 0 16 7.2 16 16s-7.2 16-16 16H144c-8.8 0-16-7.2-16-16zm16 48h192c8.8 0 16 7.2 16 16s-7.2 16-16 16H144c-8.8 0-16-7.2-16-16s7.2-16 16-16z"/></svg></span> &nbsp; <a href="https://vmware.github.io/powershell-module-for-vmware-cloud-foundation">Documentation</a></td>
 </tr>
 <tr>
@@ -1718,7 +1716,9 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2023 - VMware, Inc.
+      Copyright &copy; 2023 Broadcom. All Rights Reserved.<br/>
+The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.<br/><br/>
+
     </div>
   
   
@@ -1742,11 +1742,7 @@
     <script id="__config" type="application/json">{"base": ".", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.tabs.link", "navigation.expand", "navigation.footer", "navigation.header", "navigation.indexes", "navigation.instant", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="assets/javascripts/bundle.81fa17fe.min.js"></script>
-      
-        <script src="js/timeago.min.js"></script>
-      
-        <script src="js/timeago_mkdocs_material.js"></script>
+      <script src="assets/javascripts/bundle.aecac24b.min.js"></script>
       
         <script src="js/open_in_new_tab.js"></script>
       
