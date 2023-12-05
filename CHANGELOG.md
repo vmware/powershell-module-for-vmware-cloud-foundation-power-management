@@ -2,7 +2,7 @@
 
 ## v1.4.0
 
-> Release Date: Unreleased
+> Release Date: 2023-12-05
 
 Enhancement:
 
