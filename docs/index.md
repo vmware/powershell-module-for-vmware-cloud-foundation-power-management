@@ -14,14 +14,13 @@
 
 The following table lists the supported platforms for this module.
 
-Platform                                                                          | Support
-----------------------------------------------------------------------------------|------------------------------------
-:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.1.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
-:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.0.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
-:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.5.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
-:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.4.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
-:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.3.x on vSAN ReadyNodes | :fontawesome-solid-check:{ .green }
-:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.0.x on Dell VxRail     | :fontawesome-solid-check:{ .green }
+Platform                                                     | vSAN ReadyNodes                     | Dell VxRail
+-------------------------------------------------------------|-------------------------------------|------------------------------------
+:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.1 | :fontawesome-solid-check:{ .green } | :fontawesome-solid-x:{ .red }
+:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.0 | :fontawesome-solid-check:{ .green } | :fontawesome-solid-check:{ .green }
+:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.5 | :fontawesome-solid-check:{ .green } | :fontawesome-solid-x:{ .red }
+:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.4 | :fontawesome-solid-check:{ .green } | :fontawesome-solid-x:{ .red }
+:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.3 | :fontawesome-solid-x:{ .red }       | :fontawesome-solid-x:{ .red }
 
 !!! note
 

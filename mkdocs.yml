@@ -13,7 +13,7 @@ edit_uri: blob/main/docs/
 
 # Copyright
 copyright: |
-  Copyright &copy; 2005-2023 Broadcom. All Rights Reserved.<br/>
+  Copyright &copy; 2005-2024 Broadcom. All Rights Reserved.<br/>
   The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.<br/><br/>
 
 # Configuration
@@ -96,8 +96,8 @@ markdown_extensions:
 - attr_list
 - md_in_html
 - pymdownx.emoji:
-    emoji_index: !!python/name:materialx.emoji.twemoji
-    emoji_generator: !!python/name:materialx.emoji.to_svg
+    emoji_index: !!python/name:material.extensions.emoji.twemoji
+    emoji_generator: !!python/name:material.extensions.emoji.to_svg
     options:
       custom_icons:
       - material/.icons
@@ -134,7 +134,7 @@ nav:
   - License: license.md
 - Reference:
   - documentation/index.md
-  - Cmdlets:
+  - Functions:
     - Get-DrsAutomationLevel: documentation/functions/Get-DrsAutomationLevel.md
     - Get-EdgeNodeFromNSXManager: documentation/functions/Get-EdgeNodeFromNSXManager.md
     - Get-MaintenanceMode: documentation/functions/Get-MaintenanceMode.md
@@ -147,6 +147,7 @@ nav:
     - Get-VMsWithPowerStatus: documentation/functions/Get-VMsWithPowerStatus.md
     - Get-VMToClusterMapping: documentation/functions/Get-VMToClusterMapping.md
     - Invoke-EsxCommand: documentation/functions/Invoke-EsxCommand.md
+    - Invoke-VxrailClusterShutdown: documentation/functions/Invoke-VxrailClusterShutdown.md
     - Set-DrsAutomationLevel: documentation/functions/Set-DrsAutomationLevel.md
     - Set-MaintenanceMode: documentation/functions/Set-MaintenanceMode.md
     - Set-Retreatmode: documentation/functions/Set-Retreatmode.md
