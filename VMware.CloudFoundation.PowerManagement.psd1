@@ -1,4 +1,4 @@
-# Copyright 2023 Broadcom. All Rights Reserved.
+# Copyright 2023-2024 Broadcom. All Rights Reserved.
 # SPDX-License-Identifier: BSD-2
 
 # Module manifest for module 'VMware.CloudFoundation.PowerManagement'
@@ -11,7 +11,7 @@
     RootModule = 'VMware.CloudFoundation.PowerManagement.psm1'
 
     # Version number of this module.
-    ModuleVersion = '1.4.0.1001'
+    ModuleVersion = '1.4.1.1000'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -26,7 +26,7 @@
     CompanyName = 'Broadcom'
 
     # Copyright statement for this module
-    Copyright = 'Copyright 2023 Broadcom. All Rights Reserved.'
+    Copyright = 'Copyright 2023-2024 Broadcom. All Rights Reserved.'
 
     # Description of the functionality provided by this module
     Description = 'PowerShell Module for VMware Cloud Foundation Power Management'
@@ -57,7 +57,11 @@
         }
         @{
             ModuleName    = 'PowerVCF';
-            ModuleVersion = '2.3.0'
+            ModuleVersion = '2.4.0'
+        }
+        @{
+            ModuleName    = 'PowerValidatedSolutions';
+            ModuleVersion = '2.8.0'
         }
     )
 

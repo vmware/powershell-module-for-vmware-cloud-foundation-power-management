@@ -1,4 +1,4 @@
-# Copyright 2023 Broadcom. All Rights Reserved.
+# Copyright 2023-2024 Broadcom. All Rights Reserved.
 # SPDX-License-Identifier: BSD-2
 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
@@ -110,7 +110,7 @@ Function Stop-CloudComponent {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Stop-CloudComponent cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -267,7 +267,7 @@ Function Start-CloudComponent {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Start-CloudComponent cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -409,7 +409,7 @@ Function Set-MaintenanceMode {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-MaintenanceMode cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -510,7 +510,7 @@ Function Get-MaintenanceMode {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-MaintenanceMode cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -581,7 +581,7 @@ Function Set-DrsAutomationLevel {
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-DrsAutomationLevel cmdlet." -Colour Yellow
 
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -674,7 +674,7 @@ Function Set-VsanClusterPowerStatus {
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsanClusterPowerStatus cmdlet." -Colour Yellow
 
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -769,7 +769,7 @@ Function Invoke-VxrailClusterShutdown {
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Invoke-VxrailClusterShutdown cmdlet." -Colour Green
 
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -878,7 +878,7 @@ Function Get-poweronVMsOnRemoteDS {
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-poweronVMsOnRemoteDS cmdlet." -Colour Yellow
 
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -965,7 +965,7 @@ Function Test-LockdownMode {
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-LockdownMode cmdlet." -Colour Yellow
 
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -981,7 +981,7 @@ Function Test-LockdownMode {
                         Write-PowerManagementLogMessage -Type INFO -Message "Checking lockdown mode for $esxiHost ...." -Colour Yellow
                         $lockdownStatus = (Get-VMHost -Name $esxiHost).ExtensionData.Config.LockdownMode
                         if ($lockdownStatus -eq $null) {
-                            $checkServer = (Test-NetConnection -ComputerName $esxiHost -Port 443).TcpTestSucceeded
+                            $checkServer = (Test-EndpointConnection -server $esxiHost -Port 443)
                             if ($checkServer) {
                                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot fetch information about lockdown mode for ESXi host $esxiHost!" -Colour RED
                             } else {
@@ -1062,7 +1062,7 @@ Function Get-VMRunningStatus {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMRunningStatus cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -1218,7 +1218,7 @@ Function Get-SSHEnabledStatus {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-SSHEnabledStatus cmdlet." -Colour Yellow
         $password = ConvertTo-SecureString $pass -AsPlainText -Force
         $Cred = New-Object System.Management.Automation.PSCredential ($user, $password)
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to open an SSH connection to server '$server'..."
             $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
@@ -1280,7 +1280,7 @@ Function Test-VsanHealth {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-VsanHealth cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -1398,7 +1398,7 @@ Function Test-VsanObjectResync {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-VsanObjectResync cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -1495,7 +1495,7 @@ Function Get-VMsWithPowerStatus {
     Try {
 
         if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMsWithPowerStatus cmdlet." -Colour Yellow}
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             if(-not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."}
             if ($DefaultVIServers) {
@@ -1587,7 +1587,7 @@ Function Get-VamiServiceStatus {
         if (-Not $nolog) {
             Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VAMIServiceStatus cmdlet." -Colour Yellow
         }
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             if (-Not $nolog) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -1688,7 +1688,7 @@ Function Set-VamiServiceStatus {
             Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VamiServiceStatus cmdlet." -Colour Yellow
         }
         # TODO check if 443 is the default communication port
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             if (-Not $nolog) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -1814,7 +1814,7 @@ Function Set-VsphereHA {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsphereHA cmdlet." -Colour Yellow
-        if ($(Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded) {
+        if ($(Test-EndpointConnection -server $server -Port 443)) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
@@ -1955,7 +1955,7 @@ Function Get-DrsAutomationLevel {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-DrsAutomationLevel cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -2037,7 +2037,7 @@ Function Set-Retreatmode {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-Retreatmode cmdlet." -Colour Yellow
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -2144,7 +2144,7 @@ Function Get-VMToClusterMapping {
 
     Try {
         if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMToClusterMapping cmdlet." -Colour Yellow}
-        $checkServer = (Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded
+        $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."}
             if ($DefaultVIServers) {
@@ -2314,7 +2314,7 @@ Function Get-EdgeNodeFromNSXManager {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-EdgeNodeFromNSXManager cmdlet." -Colour Yellow
-        if (( Test-NetConnection -ComputerName $server -Port 443 ).TcpTestSucceeded) {
+        if ( Test-EndpointConnection -server $server -Port 443 ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultNSXTServers) {
                 Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
@@ -2394,7 +2394,7 @@ Function Get-NSXTComputeManagers {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-NSXTComputeManagers cmdlet." -Colour Yellow
-        if (( Test-NetConnection -ComputerName $server -Port 443 ).TcpTestSucceeded) {
+        if ( Test-EndpointConnection -server $server -Port 443 ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultNSXTServers) {
                 Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
@@ -2461,7 +2461,7 @@ Function Get-TanzuEnabledClusterStatus {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-TanzuEnabledClusterStatus cmdlet." -Colour Yellow
-        if (( Test-NetConnection -ComputerName $server -Port 443 ).TcpTestSucceeded) {
+        if ( Test-EndpointConnection -server $server -Port 443 ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null

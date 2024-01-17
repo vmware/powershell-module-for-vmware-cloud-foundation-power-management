@@ -1,3 +1,6 @@
+# Copyright 2023-2024 Broadcom. All Rights Reserved.
+# SPDX-License-Identifier: BSD-2
+
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
 # WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
 # OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
@@ -7,8 +10,7 @@
     .NOTES
     ===============================================================================================================
     .Created By:    Gary Blake / Sowjanya V
-    .Group:         Cloud Infrastructure Business Group (CIBG)
-    .Organization:  VMware
+    .Organization:  Broadcom
     .Version:       1.1 (Build 1000)
     .Date:          2022-08-12
     ===============================================================================================================
@@ -85,9 +87,7 @@ Function Get-Password {
 #EndRegion  Non Exported Functions                                  ######
 ##########################################################################
 
-
 $pass = Get-Password -User $user -Password $pass
-
 
 # Error Handling (script scope function)
 Function Debug-CatchWriterForPowerManagement {
@@ -178,7 +178,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
     Try {
         # Check connection to SDDC Manager
         Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to gather system details."
-        if (!(Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded) {
+        if (!(Test-EndpointConnection -server $server -Port 443)) {
             Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with SDDC Manager ($server). Check the FQDN or IP address or the power state of '$server'." -Colour Red
             Exit
         }
@@ -219,7 +219,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 $vcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).password
             }
                 # Test if VC is reachable, if it is already stopped, we could not continue with the shutdown sequence in automatic way.
-            if (-Not (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded ) {
+            if (-Not (Test-EndpointConnection -server $vcServer.fqdn -Port 443) ) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Could not connect to $($vcServer.fqdn)! The script could not continue without a connection to the management vCenter Server. " -Colour Cyan
                 Write-PowerManagementLogMessage -Type ERROR -Message "Please check the current state and resolve the issue or continue with the shutdown operation by following the documentation of VMware Cloud Foundation. Exiting!" -Colour Red
                 Exit
@@ -344,7 +344,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                     Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
                 Connect-VIServer -server $vcServer.fqdn -user $vcUser -password $vcPass | Out-Null
-                $sddcManagerIP = (Test-NetConnection -ComputerName $server).RemoteAddress.IPAddressToString
+                #$sddcManagerIP = (Test-NetConnection -ComputerName $server).RemoteAddress.IPAddressToString
+                $sddcManagerIP = (Get-VCFManager | Select-Object ipAddress).ipAddress
                 $sddcmVMName = (Get-VM * | Where-Object { $_.Guest.IPAddress -eq $sddcManagerIP }).Name
                 $vcHost = (get-vm | where Name -eq $vcServer.fqdn.Split(".")[0] | Select-Object VMHost).VMHost.Name
                 $vcHostUser = (Get-VCFCredential -resourceType ESXI -resourceName $vcHost | Where-Object { $_.accountType -eq "USER" }).username
@@ -444,7 +445,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
             }
-            if (( Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 ).TcpTestSucceeded) {
+            if ( Test-EndpointConnection -server $vcServer.fqdn -Port 443 ) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
                 Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
                 if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
@@ -668,7 +669,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                     $successcount = 0
                     #Verify if all ESXi hosts are down in here to conclude End of Shutdown sequence
                     foreach ($esxiNode in $esxiWorkloadDomain) {
-                        if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                        if (Test-EndpointConnection -server $esxiNode.fqdn -Port 443) {
                             Write-PowerManagementLogMessage -Type WARNING -Message "Some hosts are still up. Sleeping for 60 seconds before next check..." -Colour cyan
                             break
                         } else {
@@ -774,7 +775,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
 
         # Startup workflow starts here
         # Check if VC is running - if so, skip ESXi operations
-        if (-Not (Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 -WarningAction SilentlyContinue ).TcpTestSucceeded ) {
+        if (-Not (Test-EndpointConnection -server $vcServer.fqdn -Port 443 -WarningAction SilentlyContinue )) {
             Write-PowerManagementLogMessage -Type INFO -Message "Could not connect to $($vcServer.fqdn). Starting vSAN..."
             if ([float]$vcfVersion -gt [float]4.4) {
                 #TODO add check if hosts are up and running. If so, do not display this message
@@ -798,7 +799,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                 }
 
                 foreach ($esxiNode in $esxiWorkloadDomain) {
-                    if (!(Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                    if (!(Test-EndpointConnection -server $esxiNode.fqdn -Port 443)) {
                         Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with host $($esxiNode.fqdn). Check the FQDN or IP address, or the power state of '$($esxiNode.fqdn)'." -Colour Red
                         Exit
                     }
