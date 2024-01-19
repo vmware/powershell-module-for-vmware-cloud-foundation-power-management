@@ -7,6 +7,7 @@
 Refactor:
 
 - Replaced the use of `Test-NetConnection` to with `Test-EndpointConnection` from the PowerShell module `PowerValidatedSolutions`. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
+- Replaced current if statement `nsxtedgeNodes` to check for Virtual Machines running on Overlay Network. [GH-86] (https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/86)
 
 Chore:
 
