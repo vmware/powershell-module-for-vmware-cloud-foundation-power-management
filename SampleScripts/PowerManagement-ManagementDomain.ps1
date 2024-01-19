@@ -494,14 +494,49 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             }
         }
 
+        # Check if there are any running Virtual Machines on the Overlay Networks before shutting down Edge Cluster.
         if ($nsxtEdgeNodes) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Stopping the NSX Edge nodes..." -Colour Green
-            Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
+            if (Test-VCFConnection -server $server) {
+                if (Test-VCFAuthentication -server $server -user $user -pass $pass) {
+                    $domain = Get-VCFWorkloadDomain | Select-Object name, type | Where-Object {$_.type -eq "MANAGEMENT"}
+                    if (($vcfVcenterDetails = Get-vCenterServerDetail -server $server -user $user -pass $pass -domain $domain.name)) {
+                        if (Test-vSphereConnection -server $($vcfVcenterDetails.fqdn)) {
+                            if (Test-vSphereAuthentication -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass) {
+                                if (($vcfNsxDetails = Get-NsxtServerDetail -fqdn $server -username $user -password $pass -domain $domain.name)) {
+                                    if (Test-NSXTConnection -server $vcfNsxDetails.fqdn) {
+                                        if (Test-NSXTAuthentication -server $vcfNsxDetails.fqdn -user $vcfNsxDetails.adminUser -pass $vcfNsxDetails.adminPass) {
+                                            $nsx_segments = Get-NsxtSegment | Select-Object display_name, type | Where-Object { $_.type -eq "ROUTED" }
+                                            foreach ($segment in $nsx_segments) {
+                                                $segmentName = $segment.display_name
+                                                $cloudvms = Get-VM | Get-NetworkAdapter | Where-Object { $_.NetworkName -eq $segmentName } | Select-Object Parent
+                                            }
+                                            $vmlist = $cloudvms.Parent
+                                            $stopExecuted = $false
+                                            foreach ($vm in $vmlist) {
+                                                $vmName = $vm.Name
+                                                $powerState = $vm.PowerState
+                                                if ($powerState -eq "PoweredOn") {
+                                                    Write-Output "VM Name: $vmName, Power State: $powerState, Please power off the VM(s) Connect to NSX-T Segments before you shutdown Edge Cluster"
+                                                    $stopExecuted = $true
+                                                }
+                                                if (-not $stopExecuted) {
+                                                    Write-PowerManagementLogMessage -Type INFO -Message "Stopping the NSX Edge nodes..." -Colour Green
+                                                    Stop-CloudComponent -server $server -user $user -pass $pass -nodes $nsxtEdgeNodes -timeout 600
+                                                    $stopExecuted = $true
+                                                }
+                                            }
+                                        } else {
+                                            Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes present. Skipping shutdown..." -Colour Cyan
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }  
+            }
         }
-        else {
-            Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes present. Skipping shutdown..." -Colour Cyan
-        }
-
+        
         #Stop NSX Manager nodes
         Write-PowerManagementLogMessage -Type INFO -Message "Stopping the NSX Manager nodes..." -Colour Green
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
