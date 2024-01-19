@@ -1,3 +1,6 @@
+# Copyright 2023-2024 Broadcom. All Rights Reserved.
+# SPDX-License-Identifier: BSD-2
+
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
 # WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
 # OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
@@ -7,8 +10,7 @@
     .NOTES
     ===============================================================================================================
     .Created By:    Gary Blake / Sowjanya V
-    .Group:         Cloud Infrastructure Business Group (CIBG)
-    .Organization:  VMware
+    .Organization:  Broadcom
     .Version:       1.1 (Build 1000)
     .Date:          2022-08-12
     ===============================================================================================================
@@ -79,9 +81,7 @@ Function Get-Password {
 #EndRegion  Non Exported Functions                                  ######
 ##########################################################################
 
-
 $pass = Get-Password -User $user -Password $pass
-
 
 # Error Handling (script scope function)
 Function Debug-CatchWriterForPowerManagement {
@@ -125,7 +125,7 @@ Try {
     Write-PowerManagementLogMessage -Type INFO -Message "Setting up the log file to path $logfile" -Colour Yellow
     if (-Not $null -eq $customerVmMessage) { Write-PowerManagementLogMessage -Type INFO -Message $customerVmMessage -Colour Yellow }
 
-    if (!(Test-NetConnection -ComputerName $server -Port 443).TcpTestSucceeded) {
+    if (!(Test-EndpointConnection -server $server -Port 443)) {
         Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with SDDC Manager ($server). Check the FQDN or IP address or power state of the '$server'." -Colour Red
         Exit
     }
@@ -263,7 +263,7 @@ Try {
 			    if ($DefaultVIServers) {
                         Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
-                if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 ).TcpTestSucceeded) {
+                if (Test-EndpointConnection -server $vcServer.fqdn -Port 443 ) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
                     Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
                     if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
@@ -315,7 +315,7 @@ Try {
                 if ($DefaultVIServers) {
                     Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
-                if (( Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 ).TcpTestSucceeded) {
+                if ( Test-EndpointConnection -server $vcServer.fqdn -Port 443 ) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
                     Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
                     if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
@@ -449,7 +449,7 @@ Try {
                 }
             } else {
                 foreach ($esxiNode in $esxiDetails) {
-                    if (!(Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                    if (!(Test-EndpointConnection -server $esxiNode.fqdn -Port 443)) {
                         Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with the host $($esxiNode.fqdn). Check the FQDN or IP address, or the power state of '$($esxiNode.fqdn)'." -Colour Red
                         Exit
                     }
@@ -501,7 +501,7 @@ Try {
                 if ($DefaultVIServers) {
                     Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
                 }
-                if (( Test-NetConnection -ComputerName $vcServer.fqdn -Port 443 ).TcpTestSucceeded) {
+                if ( Test-EndpointConnection -server $vcServer.fqdn -Port 443 ) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
                     Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
                     if ($DefaultVIServer.Name -eq $vcServer.fqdn) {
@@ -550,7 +550,7 @@ Try {
             }
 
             ## Gather NSX Edge Node Details from NSX-T Manager
-            if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
+            if (Test-EndpointConnection -server $vcServer.fqdn -Port 443) {
                 if ($nxtClusterEdgeNodes) {
                     Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nxtClusterEdgeNodes -timeout 600
                 }
@@ -573,7 +573,7 @@ Try {
                     if ($VCnode -eq ($vcServer.fqdn)) {
                         continue
                     } else {
-                        $checkServer = (Test-NetConnection -ComputerName $VCnode -Port 443).TcpTestSucceeded
+                        $checkServer = (Test-EndpointConnection -server $VCnode -Port 443)
                         if ($checkServer) {
                             $allothervcdown = $false
                             break
@@ -596,7 +596,7 @@ Try {
             ## The below block was supposed to be only for verison < 4.5, but due to the bug in 4.5
             ## vcls vms are not handled automatically though expected in vcf4.5
             ## Shut Down the vSphere Cluster Services Virtual Machines in the Virtual Infrastructure Workload Domain
-            if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
+            if (Test-EndpointConnection -server $vcServer.fqdn -Port 443) {
                 Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
             }
             else {
@@ -625,7 +625,7 @@ Try {
             }
 
             # Check the health and sync status of the vSAN cluster
-            if ((Test-NetConnection -ComputerName $vcServer.fqdn -Port 443).TcpTestSucceeded) {
+            if (Test-EndpointConnection -server $vcServer.fqdn -Port 443) {
                 if ([float]$vcfVersion -gt [float]4.4) {
                     $RemoteVMs = @()
                     $RemoteVMs = Get-poweronVMsOnRemoteDS -server $vcServer.fqdn -user $vcUser -pass $vcPass -clustertocheck $cluster.name
@@ -723,7 +723,7 @@ Try {
                             $successcount = 0
                             #Verify if all ESXi hosts are down in here to conclude End of Shutdown sequence
                             foreach ($esxiNode in $esxiDetails) {
-                                if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                                if (Test-EndpointConnection -server $esxiNode.fqdn -Port 443) {
                                     Write-PowerManagementLogMessage -Type WARNING -Message "$($esxiNode.fqdn) is still up. Sleeping for $sleepTime seconds before next check..." -Colour Yellow
                                 } else {
                                     $successcount++
@@ -742,7 +742,7 @@ Try {
                         # vSAN shutdown wizard automation.
                         Set-VsanClusterPowerStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -PowerStatus clusterPoweredOff
                         foreach ($esxiNode in $esxiDetails) {
-                            if ((Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                            if (Test-EndpointConnection -server $esxiNode.fqdn -Port 443) {
                                 Write-PowerManagementLogMessage -Type ERROR -Message "$($esxiNode.fqdn) is still up. Check the FQDN or IP address, or the power state of the '$($esxiNode.fqdn)'." -Colour Red
                                 Exit
                             }
@@ -920,7 +920,7 @@ Try {
 
                     $esxiDetails = $esxiWorkloadCluster[$cluster.name]
                     foreach ($esxiNode in $esxiDetails) {
-                        if (!(Test-NetConnection -ComputerName $esxiNode.fqdn -Port 443).TcpTestSucceeded) {
+                        if (!(Test-EndpointConnection -server $esxiNode.fqdn -Port 443)) {
                             Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with the host $($esxiNode.fqdn). Check the FQDN or IP address, or the power state of '$($esxiNode.fqdn)'." -Colour Red
                             Exit
                         }

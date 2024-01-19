@@ -1,12 +1,25 @@
 # Release History
 
+## v1.4.1
+
+> Release Date: Not Released
+
+Refactor:
+
+- Replaced the use of `Test-NetConnection` to with `Test-EndpointConnection` from the PowerShell module `PowerValidatedSolutions`. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
+
+Chore:
+
+- Updated `PowerVCF` from v2.3.0 to v2.4.0. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
+- Added `PowerValidatedSolutions` v2.8.0 as a module dependency. [GH-38](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/38)
+
 ## v1.4.0
 
 > Release Date: 2023-12-05
 
 Enhancement:
 
-- Added support for VMware Cloud Foundation 5.0 on Dell VxRail.
+- Added support for VMware Cloud Foundation 5.0 on Dell VxRail. [GH-75](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/75)
 
 ## v1.3.0
 

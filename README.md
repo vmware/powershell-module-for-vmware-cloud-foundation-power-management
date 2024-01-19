@@ -41,7 +41,7 @@ For more detailed information, refer to the [contribution guidelines][contributi
 
 ## License
 
-Copyright 2023 Broadcom. All Rights Reserved.
+Copyright 2023-2024 Broadcom. All Rights Reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
