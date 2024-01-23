@@ -493,6 +493,28 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Exit
             }
         }
+        # Check if VMware Aria Operations for Logs exists in environment, if so it will shutdown the nodes.
+        if (Test-VCFConnection -server $server) {
+            if (Test-VCFAuthentication -server $server -user $user -pass $pass) {
+                if (($vcfVrslcmDetails = Get-vRSLCMServerDetail -fqdn $server -username $user -password $pass)) {
+                    if (Test-vRSLCMAuthentication -server $vcfVrslcmDetails.fqdn -user $vcfVrslcmDetails.adminUser -pass $vcfVrslcmDetails.adminPass) {
+                        $productid = "vrli"
+                        $vmlist = Get-vRSLCMEnvironmentVMs -server $server -user $user -pass $pass -productid $productid
+                        if ($vmlist -ne $null) {
+                            $domain = Get-VCFWorkloadDomain | Select-Object name, type | Where-Object { $_.type -eq "MANAGEMENT" }
+                            if (($vcfVcenterDetails = Get-vCenterServerDetail -server $server -user $user -pass $pass -domain $domain.name)) {
+                                if (Test-vSphereConnection -server $($vcfVcenterDetails.fqdn)) {
+                                    if (Test-vSphereAuthentication -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass) {
+                                        Write-PowerManagementLogMessage -Type INFO -Message "Stopping the VMware Aria Operations for Logs nodes..." -Colour Green
+                                        Stop-CloudComponent -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass -nodes $vmlist -timeout 600     
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } 
 
         # Check if there are any running Virtual Machines on the Overlay Networks before shutting down Edge Cluster.
         if ($nsxtEdgeNodes) {
@@ -516,7 +538,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                                                 $vmName = $vm.Name
                                                 $powerState = $vm.PowerState
                                                 if ($powerState -eq "PoweredOn") {
-                                                    Write-Output "VM Name: $vmName, Power State: $powerState, Please power off the VM(s) Connect to NSX-T Segments before you shutdown Edge Cluster"
+                                                    Write-PowerManagementLogMessage -Type Error -Message "VM Name: $vmName, Power State: $powerState, Please power off the virtual machines connected to NSX Segments before you shutdown an NSX Edge Cluster" -Colour Red
                                                     $stopExecuted = $true
                                                 }
                                                 if (-not $stopExecuted) {
