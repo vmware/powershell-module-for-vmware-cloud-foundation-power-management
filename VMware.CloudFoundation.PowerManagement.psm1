@@ -109,7 +109,7 @@ Function Stop-CloudComponent {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Stop-CloudComponent cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Stop-CloudComponent cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -127,7 +127,7 @@ Function Stop-CloudComponent {
                             if (Get-VM | Where-Object { $_.Name -eq $node }) {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 if ($vm_obj.State -eq 'NotRunning') {
-                                    Write-PowerManagementLogMessage -Type INFO -Message "Node '$node' is already powered off." -Colour Cyan
+                                    Write-PowerManagementLogMessage -Type INFO -Message "Node '$node' is already powered off."
                                     Continue
                                 }
                                 Write-PowerManagementLogMessage -Type INFO -Message "Attempting to shut down node '$node'..."
@@ -144,15 +144,15 @@ Function Stop-CloudComponent {
                                         $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                     }
                                     if ($count -gt $timeout) {
-                                        Write-PowerManagementLogMessage -Type ERROR -Message "Node '$node' did not shut down within the expected timeout $timeout value."	-Colour Red
+                                        Write-PowerManagementLogMessage -Type ERROR -Message "Node '$node' did not shut down within the expected timeout $timeout value."
                                     }
                                     else {
-                                        Write-PowerManagementLogMessage -Type INFO -Message "Node '$node' has shut down successfully." -Colour Green
+                                        Write-PowerManagementLogMessage -Type INFO -Message "Node '$node' has shut down successfully."
                                     }
                                 }
                             }
                             else {
-                                Write-PowerManagementLogMessage -Type ERROR -Message "Unable to find node '$node' in the inventory of server '$server'." -Colour Red
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Unable to find node '$node' in the inventory of server '$server'."
                             }
                         }
                     }
@@ -171,7 +171,7 @@ Function Stop-CloudComponent {
                             $count = 0
                             $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             if ($vm_obj.State -eq 'NotRunning') {
-                                Write-PowerManagementLogMessage -Type INFO -Message "Node '$($node.name)' is already powered off." -Colour Cyan
+                                Write-PowerManagementLogMessage -Type INFO -Message "Node '$($node.name)' is already powered off."
                                 Continue
                             }
                             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to shut down node '$($node.name)'..."
@@ -188,33 +188,33 @@ Function Stop-CloudComponent {
                                     $vm_obj = Get-VMGuest -VM $node.Name | Where-Object VmUid -match $server
                                 }
                                 if ($count -gt $timeout) {
-                                    Write-PowerManagementLogMessage -Type ERROR -Message "Node '$($node.name)' did not shut down within the expected timeout $timeout value."	-Colour Red
+                                    Write-PowerManagementLogMessage -Type ERROR -Message "Node '$($node.name)' did not shut down within the expected timeout $timeout value."
                                 }
                                 else {
-                                    Write-PowerManagementLogMessage -Type INFO -Message "Node '$($node.name)' has shut down successfully." -Colour Green
+                                    Write-PowerManagementLogMessage -Type INFO -Message "Node '$($node.name)' has shut down successfully."
                                 }
                             }
                         }
                     }
                     elseif ($pattern) {
-                        Write-PowerManagementLogMessage -Type WARNING -Message "No nodes match pattern '$pattern' on host '$server'." -Colour Cyan
+                        Write-PowerManagementLogMessage -Type WARNING -Message "No nodes match pattern '$pattern' on host '$server'."
                     }
                 }
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Stop-CloudComponent cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Stop-CloudComponent cmdlet."
     }
 }
 Export-ModuleMember -Function Stop-CloudComponent
@@ -266,7 +266,7 @@ Function Start-CloudComponent {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Start-CloudComponent cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Start-CloudComponent cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -284,7 +284,7 @@ Function Start-CloudComponent {
                             if (Get-VM | Where-Object { $_.Name -eq $node }) {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 if ($vm_obj.State -eq 'Running') {
-                                    Write-PowerManagementLogMessage -Type INFO -Message "Node '$node' is already in powered on." -Colour Green
+                                    Write-PowerManagementLogMessage -Type INFO -Message "Node '$node' is already in powered on."
                                     Continue
                                 }
                                 Write-PowerManagementLogMessage -Type INFO -Message "Attempting to start up node '$node'..."
@@ -298,15 +298,15 @@ Function Start-CloudComponent {
                                     $vm_obj = Get-VMGuest -Server $server -VM $node -ErrorAction SilentlyContinue
                                 }
                                 if ($count -gt $timeout) {
-                                    Write-PowerManagementLogMessage -Type ERROR -Message "Node '$node' did not start up within the expected timeout $timeout value." -Colour Red
+                                    Write-PowerManagementLogMessage -Type ERROR -Message "Node '$node' did not start up within the expected timeout $timeout value."
                                     Break
                                 }
                                 else {
-                                    Write-PowerManagementLogMessage -Type INFO -Message "Node '$node' has started successfully." -Colour Green
+                                    Write-PowerManagementLogMessage -Type INFO -Message "Node '$node' has started successfully."
                                 }
                             }
                             else {
-                                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot find '$node' in the inventory of host '$server'." -Colour Red
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot find '$node' in the inventory of host '$server'."
                             }
                         }
                     }
@@ -325,7 +325,7 @@ Function Start-CloudComponent {
                             $count = 0
                             $vm_obj = Get-VMGuest -server $server -VM $node.Name | Where-Object VmUid -match $server
                             if ($vm_obj.State -eq 'Running') {
-                                Write-PowerManagementLogMessage -Type INFO -Message "Node '$($node.name)' is already powered on." -Colour Green
+                                Write-PowerManagementLogMessage -Type INFO -Message "Node '$($node.name)' is already powered on."
                                 Continue
                             }
 
@@ -339,32 +339,32 @@ Function Start-CloudComponent {
                                 $vm_obj = Get-VMGuest -Server $server -VM $node.Name | Where-Object VmUid -match $server
                             }
                             if ($count -gt $timeout) {
-                                Write-PowerManagementLogMessage -Type ERROR -Message "Node '$($node.name)' did not start up within the expected timeout $timeout value."	-Colour Red
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Node '$($node.name)' did not start up within the expected timeout $timeout value."
                             }
                             else {
-                                Write-PowerManagementLogMessage -Type INFO -Message "Node '$($node.name)' has started successfully." -Colour Green
+                                Write-PowerManagementLogMessage -Type INFO -Message "Node '$($node.name)' has started successfully."
                             }
                         }
                     }
                     elseif ($pattern) {
-                        Write-PowerManagementLogMessage -Type WARNING -Message "No nodes match pattern '$pattern' on host '$server'." -Colour Cyan
+                        Write-PowerManagementLogMessage -Type WARNING -Message "No nodes match pattern '$pattern' on host '$server'."
                     }
                 }
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to host '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to host '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Start-CloudComponent cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Start-CloudComponent cmdlet."
     }
 }
 Export-ModuleMember -Function Start-CloudComponent
@@ -408,7 +408,7 @@ Function Set-MaintenanceMode {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-MaintenanceMode cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-MaintenanceMode cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -425,17 +425,17 @@ Function Set-MaintenanceMode {
                         Get-View -Server $server -ViewType HostSystem -Filter @{"Name" = $server } | Where-Object { !$_.Runtime.InMaintenanceMode } | ForEach-Object { $_.EnterMaintenanceMode(0, $false, (new-object VMware.Vim.HostMaintenanceSpec -Property @{vsanMode = (new-object VMware.Vim.VsanHostDecommissionMode -Property @{objectAction = [VMware.Vim.VsanHostDecommissionModeObjectAction]::NoAction }) })) } | Out-Null
                         $hostStatus = (Get-VMHost -Server $server)
                         if ($hostStatus.ConnectionState -eq "Maintenance") {
-                            Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has entered maintenance mode successfully." -Colour Green
+                            Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has entered maintenance mode successfully."
                         }
                         else {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' did not enter maintenance mode. Check your environment and try again." -Colour Red
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' did not enter maintenance mode. Check your environment and try again."
                         }
                     }
                     elseif ($hostStatus.ConnectionState -eq "Maintenance") {
-                        Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has already entered maintenance mode." -Colour Green
+                        Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has already entered maintenance mode."
                     }
                     else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' is not currently connected." -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' is not currently connected."
                     }
                 }
 
@@ -446,34 +446,34 @@ Function Set-MaintenanceMode {
                         Wait-Task $task | out-null
                         $hostStatus = (Get-VMHost -Server $server)
                         if ($hostStatus.ConnectionState -eq "Connected") {
-                            Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has exited maintenance mode successfully." -Colour Green
+                            Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has exited maintenance mode successfully."
                         }
                         else {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "The host '$server' did not exit maintenance mode. Check your environment and try again." -Colour Red
+                            Write-PowerManagementLogMessage -Type ERROR -Message "The host '$server' did not exit maintenance mode. Check your environment and try again."
                         }
                     }
                     elseif ($hostStatus.ConnectionState -eq "Connected") {
-                        Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has already exited maintenance mode" -Colour Yellow
+                        Write-PowerManagementLogMessage -Type INFO -Message "Host '$server' has already exited maintenance mode"
                     }
                     else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' is not currently connected." -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Host '$server' is not currently connected."
                     }
                 }
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-MaintenanceMode cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-MaintenanceMode cmdlet."
     }
 }
 Export-ModuleMember -Function Set-MaintenanceMode
@@ -509,7 +509,7 @@ Function Get-MaintenanceMode {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-MaintenanceMode cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-MaintenanceMode cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -524,18 +524,18 @@ Function Get-MaintenanceMode {
                 return $hostStatus.ConnectionState
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again."
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-MaintenanceMode cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-MaintenanceMode cmdlet."
     }
 }
 Export-ModuleMember -Function Get-MaintenanceMode
@@ -579,7 +579,7 @@ Function Set-DrsAutomationLevel {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-DrsAutomationLevel cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-DrsAutomationLevel cmdlet."
 
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
@@ -592,36 +592,36 @@ Function Set-DrsAutomationLevel {
                 $drsStatus = Get-Cluster -Name $cluster -ErrorAction SilentlyContinue
                 if ($drsStatus) {
                     if ($drsStatus.DrsAutomationLevel -eq $level) {
-                        Write-PowerManagementLogMessage -Type INFO -Message "The vSphere DRS automation level for cluster '$cluster' is already '$level'." -Colour Green
+                        Write-PowerManagementLogMessage -Type INFO -Message "The vSphere DRS automation level for cluster '$cluster' is already '$level'."
                     }
                     else {
                         $drsStatus = Set-Cluster -Cluster $cluster -DrsAutomationLevel $level -Confirm:$false
                         if ($drsStatus.DrsAutomationLevel -eq $level) {
-                            Write-PowerManagementLogMessage -Type INFO -Message "The vSphere DRS automation level for cluster '$cluster' has been set to '$level' successfully." -Colour Green
+                            Write-PowerManagementLogMessage -Type INFO -Message "The vSphere DRS automation level for cluster '$cluster' has been set to '$level' successfully."
                         }
                         else {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "Failed to set the vSphere DRS automation level for cluster '$cluster' to '$level'." -Colour Red
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Failed to set the vSphere DRS automation level for cluster '$cluster' to '$level'."
                         }
                     }
                     Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cluster '$cluster' not found on host '$server'. Check your environment and try again." -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Cluster '$cluster' not found on host '$server'. Check your environment and try again."
                 }
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-DrsAutomationLevel cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-DrsAutomationLevel cmdlet."
     }
 }
 Export-ModuleMember -Function Set-DrsAutomationLevel
@@ -672,7 +672,7 @@ Function Set-VsanClusterPowerStatus {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsanClusterPowerStatus cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsanClusterPowerStatus cmdlet."
 
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
@@ -713,15 +713,15 @@ Function Set-VsanClusterPowerStatus {
 
                     if ($task.State -eq "Error"){
                         if ($task.ExtensionData.Info.Error.Fault.FaultMessage -like "VMware.Vim.LocalizableMessage")  {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "'$($PowerStatus)' task exited with a localized error message. Go to the vSphere Client for details and to take the necessary actions." -Colour Red
+                            Write-PowerManagementLogMessage -Type ERROR -Message "'$($PowerStatus)' task exited with a localized error message. Go to the vSphere Client for details and to take the necessary actions."
                         } else {
-                            Write-PowerManagementLogMessage -Type WARN -Message "'$($PowerStatus)' task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)." -Colour Cyan
-                            Write-PowerManagementLogMessage -Type ERROR -Message "Go to the vSphere Client for details and to take the necessary actions." -Colour Red
+                            Write-PowerManagementLogMessage -Type WARN -Message "'$($PowerStatus)' task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)."
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Go to the vSphere Client for details and to take the necessary actions."
                         }
                     }
 
                     if ($task.State -eq "Success"){
-                        Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is completed successfully." -colour GREEN
+                        Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is completed successfully."
                     } else {
                         Write-PowerManagementLogMessage -Type ERROR -Message "$PowerStatus task is blocked in $($task.State) state."
                     }
@@ -730,18 +730,18 @@ Function Set-VsanClusterPowerStatus {
 
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-VsanClusterPowerStatus cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-VsanClusterPowerStatus cmdlet."
     }
 }
 Export-ModuleMember -Function Set-VsanClusterPowerStatus
@@ -767,7 +767,7 @@ Function Invoke-VxrailClusterShutdown {
     )
 	
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Invoke-VxrailClusterShutdown cmdlet." -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Invoke-VxrailClusterShutdown cmdlet."
 
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
@@ -784,7 +784,7 @@ Function Invoke-VxrailClusterShutdown {
             $headers.Add("Authorization", "Basic $base64AuthInfo")
 			$uri = "https://$server/rest/vxm/v1/cluster/shutdown"
 
-            Write-PowerManagementLogMessage -Type INFO -Message "Starting VxRail cluster shutdown dry run." -Colour Green
+            Write-PowerManagementLogMessage -Type INFO -Message "Starting VxRail cluster shutdown dry run."
 			$respond = Invoke-WebRequest -Method POST -Uri $uri -Headers $headers -Body $payloadTest -UseBasicParsing -SkipCertificateCheck
             if($respond.StatusCode -eq "202" -or $respond.StatusCode -eq "200") {
                 $requestID = $respond.content | ConvertFrom-JSON
@@ -804,14 +804,14 @@ Function Invoke-VxrailClusterShutdown {
                 }
                 
                 if ($checkProgress.extension.passed -match "true") {
-                    Write-PowerManagementLogMessage -Type INFO -Message "VxRail cluster shutdown dry run: SUCCEEDED." -Colour Green
-                    Write-PowerManagementLogMessage -Type INFO -Message "Starting VxRail cluster shutdown." -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "VxRail cluster shutdown dry run: SUCCEEDED."
+                    Write-PowerManagementLogMessage -Type INFO -Message "Starting VxRail cluster shutdown."
 
                     $respond = Invoke-WebRequest -Method POST -Uri $uri -Headers $headers -Body $payloadRun -UseBasicParsing -SkipCertificateCheck
                     if ($respond.StatusCode -eq "202" -or $respond.StatusCode -eq "200") {
                         return $true
                     } else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown: FAILED" -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown: FAILED"
                     }
                 } else {
 					$errorMsg = ""
@@ -824,19 +824,19 @@ Function Invoke-VxrailClusterShutdown {
                             $errorMsg = $errorMsg + "Label: $($errorElement.label),($($errorElement.checkResult)) `nMessage: $($errorElement.message)`n"
                         }
                     }
-					Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown dry run: FAILED `n $errorMsg" -Colour Red
+					Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown dry run: FAILED `n $errorMsg"
                 }
             } else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown: FAILED" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "VxRail cluster shutdown: FAILED"
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     } Catch {
         Debug-CatchWriterForPowerManagement -object $_
     } Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Invoke-VxrailClusterShutdown cmdlet." -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Invoke-VxrailClusterShutdown cmdlet."
     }
 }
 Export-ModuleMember -Function Invoke-VxrailClusterShutdown
@@ -876,7 +876,7 @@ Function Get-poweronVMsOnRemoteDS {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-poweronVMsOnRemoteDS cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-poweronVMsOnRemoteDS cmdlet."
 
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
@@ -912,18 +912,18 @@ Function Get-poweronVMsOnRemoteDS {
                 return $PoweredOnVMs
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-poweronVMsOnRemoteDS cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-poweronVMsOnRemoteDS cmdlet."
     }
 }
 Export-ModuleMember -Function Get-poweronVMsOnRemoteDS
@@ -963,7 +963,7 @@ Function Test-LockdownMode {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-LockdownMode cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-LockdownMode cmdlet."
 
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
@@ -978,46 +978,46 @@ Function Test-LockdownMode {
 				$hostsWithLockdown = ""
 				if ($hostsInCluster.count -ne 0) {
                     foreach ($esxiHost in $hostsInCluster) {
-                        Write-PowerManagementLogMessage -Type INFO -Message "Checking lockdown mode for $esxiHost ...." -Colour Yellow
+                        Write-PowerManagementLogMessage -Type INFO -Message "Checking lockdown mode for $esxiHost ...."
                         $lockdownStatus = (Get-VMHost -Name $esxiHost).ExtensionData.Config.LockdownMode
                         if ($lockdownStatus -eq $null) {
                             $checkServer = (Test-EndpointConnection -server $esxiHost -Port 443)
                             if ($checkServer) {
-                                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot fetch information about lockdown mode for ESXi host $esxiHost!" -Colour RED
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot fetch information about lockdown mode for ESXi host $esxiHost!"
                             } else {
-                                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot fetch information about lockdown mode. Host $esxiHost is not reachable." -Colour Cyan
-                                Write-PowerManagementLogMessage -Type ERROR -Message "Check the status on the ESXi host $esxiHost!" -Colour RED
+                                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot fetch information about lockdown mode. Host $esxiHost is not reachable."
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Check the status on the ESXi host $esxiHost!"
                             }
                         } else {
                             if ($lockdownStatus -ne "lockdownDisabled") {
-                                Write-PowerManagementLogMessage -Type WARNING -Message "Lockdown mode is enabled for ESXi host $esxiHost" -Colour Cyan
+                                Write-PowerManagementLogMessage -Type WARNING -Message "Lockdown mode is enabled for ESXi host $esxiHost"
                                 $hostsWithLockdown += ", $esxiHost"
                             }
                         }
                     }
                 } else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cluster $cluster is not present on server $server. Check the input to the cmdlet." -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Cluster $cluster is not present on server $server. Check the input to the cmdlet."
                 }
 				if ([string]::IsNullOrEmpty($hostsWithLockdown))  {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Cluster $cluster does not have ESXi hosts in lockdown mode." -Colour GREEN
+                    Write-PowerManagementLogMessage -Type INFO -Message "Cluster $cluster does not have ESXi hosts in lockdown mode."
 				} else {
-                    Write-PowerManagementLogMessage -Type INFO -Message "The following ESXi hosts are in lockdown mode: $hostsWithLockdown. Disable lockdown mode to continue." -Colour Red
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Some hosts are in lockdown mode. Disable lockdown mode to continue." -Colour Red
+                    Write-PowerManagementLogMessage -Type INFO -Message "The following ESXi hosts are in lockdown mode: $hostsWithLockdown. Disable lockdown mode to continue."
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Some hosts are in lockdown mode. Disable lockdown mode to continue."
 				}
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again."
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Test-LockdownMode cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Test-LockdownMode cmdlet."
     }
 }
 Export-ModuleMember -Function Test-LockdownMode
@@ -1061,7 +1061,7 @@ Function Get-VMRunningStatus {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMRunningStatus cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMRunningStatus cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -1073,7 +1073,7 @@ Function Get-VMRunningStatus {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to host '$server' and checking if nodes named '$pattern' are in the '$($status.ToUpper())' state..."
                 $nodes = Get-VM | Where-Object Name -match $pattern | Select-Object Name, PowerState, VMHost
                 if ($nodes.Name.Count -eq 0) {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot find nodes matching pattern '$pattern' in the inventory of host '$server'." -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot find nodes matching pattern '$pattern' in the inventory of host '$server'."
                 }
                 else {
                     foreach ($node in $nodes) {
@@ -1092,18 +1092,18 @@ Function Get-VMRunningStatus {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMRunningStatus cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMRunningStatus cmdlet."
     }
 }
 Export-ModuleMember -Function Get-VMRunningStatus
@@ -1147,7 +1147,7 @@ Function Invoke-EsxCommand {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Invoke-EsxCommand cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Invoke-EsxCommand cmdlet."
         $password = ConvertTo-SecureString $pass -AsPlainText -Force
         $Cred = New-Object System.Management.Automation.PSCredential ($user, $password)
         Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -1157,29 +1157,29 @@ Function Invoke-EsxCommand {
             $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd -Timeout 900
             if ($expected ) {
                 if (($commandOutput.Output -match $expected)) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Command '$cmd' completed with  expected output on server '$server'." -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "Command '$cmd' completed with  expected output on server '$server'."
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Failure. The `"$($expected)`" is not present in `"$($commandOutput.Output)`" output" -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Failure. The `"$($expected)`" is not present in `"$($commandOutput.Output)`" output"
                 }
             }
             elseif ($commandOutput.exitStatus -eq 0) {
-                Write-PowerManagementLogMessage -Type INFO -Message "Success. The command completed successfully." -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "Success. The command completed successfully."
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Failure. The command could not be run." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Failure. The command could not be run."
             }
             Remove-SSHSession -Index $session.SessionId | Out-Null
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Invoke-EsxCommand cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Invoke-EsxCommand cmdlet."
     }
 }
 Export-ModuleMember -Function Invoke-EsxCommand
@@ -1215,7 +1215,7 @@ Function Get-SSHEnabledStatus {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-SSHEnabledStatus cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-SSHEnabledStatus cmdlet."
         $password = ConvertTo-SecureString $pass -AsPlainText -Force
         $Cred = New-Object System.Management.Automation.PSCredential ($user, $password)
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
@@ -1223,7 +1223,7 @@ Function Get-SSHEnabledStatus {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to open an SSH connection to server '$server'..."
             $session = New-SSHSession -ComputerName  $server -Credential $Cred -Force -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
             if ($session) {
-                Write-PowerManagementLogMessage -Type INFO -Message "SSH is enabled on '$server'." -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "SSH is enabled on '$server'."
                 Remove-SSHSession -Index $session.SessionId | Out-Null
                 return $True
             }
@@ -1232,14 +1232,14 @@ Function Get-SSHEnabledStatus {
                 return $False
             }
         } else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with server '$server'. Check the power state of the server." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with server '$server'. Check the power state of the server."
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-SSHEnabledStatus cmdlet" -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-SSHEnabledStatus cmdlet"
     }
 }
 Export-ModuleMember -Function Get-SSHEnabledStatus
@@ -1279,7 +1279,7 @@ Function Test-VsanHealth {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-VsanHealth cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-VsanHealth cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -1308,7 +1308,7 @@ Function Test-VsanHealth {
                 }
 
                 if (-Not $flag) {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot run the Test-VsanHealth cmdlet because the vSAN health service is not running." -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot run the Test-VsanHealth cmdlet because the vSAN health service is not running."
                 }
                 else {
                     Start-Sleep -s 60
@@ -1335,29 +1335,29 @@ Function Test-VsanHealth {
                         $healthCheckResults += $healthCheckGroupResult
                     }
                     if ($health_status -eq 'GREEN' -and $results.OverallHealth -ne 'red') {
-                        Write-PowerManagementLogMessage -Type INFO -Message "The vSAN health status for $cluster is good." -Colour Green
+                        Write-PowerManagementLogMessage -Type INFO -Message "The vSAN health status for $cluster is good."
                         return 0
                     }
                     else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "The vSAN health status for $cluster is bad." -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "The vSAN health status for $cluster is bad."
                         return 1
                     }
                     Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
                 }
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Test-VsanHealth cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Test-VsanHealth cmdlet."
     }
 }
 Export-ModuleMember -Function Test-VsanHealth
@@ -1397,7 +1397,7 @@ Function Test-VsanObjectResync {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-VsanObjectResync cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-VsanObjectResync cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -1410,28 +1410,28 @@ Function Test-VsanObjectResync {
                 $no_resyncing_objects = Get-VsanResyncingComponent -Server $server -cluster $cluster -ErrorAction Ignore
                 Write-PowerManagementLogMessage -Type INFO -Message "Number of resynchronizing objects: $no_resyncing_objects."
                 if ($no_resyncing_objects.count -eq 0) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "No resynchronizing objects." -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "No resynchronizing objects."
                     return 0
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Resynchronizing objects in progress..." -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Resynchronizing objects in progress..."
                     return 1
                 }
                 Disconnect-VIServer  -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Test-VsanObjectResync cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Test-VsanObjectResync cmdlet."
     }
 }
 Export-ModuleMember -Function Test-VsanObjectResync
@@ -1494,7 +1494,7 @@ Function Get-VMsWithPowerStatus {
 
     Try {
 
-        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMsWithPowerStatus cmdlet." -Colour Yellow}
+        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMsWithPowerStatus cmdlet."}
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             if(-not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."}
@@ -1526,18 +1526,18 @@ Function Get-VMsWithPowerStatus {
                     Return $no_of_vms
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMsWithPowerStatus cmdlet." -Colour Yellow}
+        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMsWithPowerStatus cmdlet."}
     }
 }
 Export-ModuleMember -Function Get-VMsWithPowerStatus
@@ -1585,7 +1585,7 @@ Function Get-VamiServiceStatus {
 
     Try {
         if (-Not $nolog) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VAMIServiceStatus cmdlet." -Colour Yellow
+            Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VAMIServiceStatus cmdlet."
         }
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
@@ -1606,7 +1606,7 @@ Function Get-VamiServiceStatus {
                 Start-Sleep -s 60
                 $retries -= 1
                 if (-Not $nolog) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to the vSphere Automation API endpoint might take some time. Please wait." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to the vSphere Automation API endpoint might take some time. Please wait."
                 }
             }
             if ($flag) {
@@ -1615,11 +1615,11 @@ Function Get-VamiServiceStatus {
                 return $serviceStatus.state
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message  "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message  "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message  "Testing the connection to server '$server' has failed. Check your details and try again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message  "Testing the connection to server '$server' has failed. Check your details and try again."
         }
     }
     Catch {
@@ -1631,7 +1631,7 @@ Function Get-VamiServiceStatus {
         }
         Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
         if (-Not $nolog) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VAMIServiceStatus cmdlet." -Colour Yellow
+            Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VAMIServiceStatus cmdlet."
         }
     }
 }
@@ -1685,7 +1685,7 @@ Function Set-VamiServiceStatus {
 
     Try {
         if (-Not $nolog) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VamiServiceStatus cmdlet." -Colour Yellow
+            Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VamiServiceStatus cmdlet."
         }
         # TODO check if 443 is the default communication port
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
@@ -1707,7 +1707,7 @@ Function Set-VamiServiceStatus {
                 Start-Sleep -s 60
                 $retries -= 1
                 if (-Not $nolog) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to the vSphere Automation API endpoint might take some time. Please wait." -Colour Yellow
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connecting to the vSphere Automation API endpoint might take some time. Please wait."
                 }
             }
             if ($flag) {
@@ -1717,39 +1717,39 @@ Function Set-VamiServiceStatus {
                     $serviceStatus = $vMonAPI.Get($service, 0)
                     if($serviceStatus.state -eq "STARTED") {
                         if (-Not $nolog) {
-                            Write-PowerManagementLogMessage -Type INFO -Message "Service '$service' is successfully started." -Colour Yellow
+                            Write-PowerManagementLogMessage -Type INFO -Message "Service '$service' is successfully started."
                         }
                     } else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Could not start service '$service'." -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Could not start service '$service'."
                     }
                 } elseif ($state -eq "stop") {
                     $vMonAPI.Stop($service)
                     $serviceStatus = $vMonAPI.Get($service, 0)
                     if($serviceStatus.state -eq "STOPPED") {
                         if (-Not $nolog) {
-                            Write-PowerManagementLogMessage -Type INFO -Message "Service '$service' is successfully stopped." -Colour Yellow
+                            Write-PowerManagementLogMessage -Type INFO -Message "Service '$service' is successfully stopped."
                         }
                     } else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Could not stop service '$service'." -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Could not stop service '$service'."
                     }
                 } else {
                     $vMonAPI.ReStart($service)
                     $serviceStatus = $vMonAPI.Get($service, 0)
                     if($serviceStatus.state -eq "STARTED") {
                         if (-Not $nolog) {
-                            Write-PowerManagementLogMessage -Type INFO -Message "Service '$service' is successfully restarted." -Colour Yellow
+                            Write-PowerManagementLogMessage -Type INFO -Message "Service '$service' is successfully restarted."
                         }
                     } else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Could not restart service '$service'." -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Could not restart service '$service'."
                     }
                 }
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message  "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message  "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message  "Testing the connection to server '$server' has failed. Check your details and try again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message  "Testing the connection to server '$server' has failed. Check your details and try again."
         }
     }
     Catch {
@@ -1761,7 +1761,7 @@ Function Set-VamiServiceStatus {
         }
         Disconnect-CisServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
         if (-Not $nolog) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-VamiServiceStatus cmdlet." -Colour Yellow
+            Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-VamiServiceStatus cmdlet."
         }
     }
 }
@@ -1813,7 +1813,7 @@ Function Set-VsphereHA {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsphereHA cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsphereHA cmdlet."
         if ($(Test-EndpointConnection -server $server -Port 443)) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -1837,7 +1837,7 @@ Function Set-VsphereHA {
                         While (-not $completed) {
                             # Check iteration number
                             if ($retrycount -ge $Retries) {
-                                Write-PowerManagementLogMessage -Type WARNING -Message "Set vSphere High Availability timeouted after $($SecondsDelay * $Retries) seconds. There are still reconfiguratons in progress." -Colour Cyan
+                                Write-PowerManagementLogMessage -Type WARNING -Message "Set vSphere High Availability timeouted after $($SecondsDelay * $Retries) seconds. There are still reconfiguratons in progress."
                                 return $false
                             }
                             $retryCount++
@@ -1852,11 +1852,11 @@ Function Set-VsphereHA {
                             else {
                                 $completed = $true
                                 if ($(get-cluster -Name $cluster).HAEnabled) {
-                                    Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability for cluster '$cluster' changed to 'Enabled'." -Colour Green
+                                    Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability for cluster '$cluster' changed to 'Enabled'."
                                     return $true
                                 }
                                 else {
-                                    Write-PowerManagementLogMessage -Type WARNING -Message "Failed to set vSphere High Availability for cluster '$cluster' to 'Enabled'." -Colour Cyan
+                                    Write-PowerManagementLogMessage -Type WARNING -Message "Failed to set vSphere High Availability for cluster '$cluster' to 'Enabled'."
                                     return $false
                                 }
                             }
@@ -1874,7 +1874,7 @@ Function Set-VsphereHA {
                         While (-not $completed) {
                             # Check iteration number
                             if ($retrycount -ge $Retries) {
-                                Write-PowerManagementLogMessage -Type WARNING -Message "Set vSphere High Availability timeouted after $($SecondsDelay * $Retries) seconds. There are still reconfiguratons in progress." -Colour Cyan
+                                Write-PowerManagementLogMessage -Type WARNING -Message "Set vSphere High Availability timeouted after $($SecondsDelay * $Retries) seconds. There are still reconfiguratons in progress."
                                 return $false
                             }
                             $retryCount++
@@ -1889,11 +1889,11 @@ Function Set-VsphereHA {
                             else {
                                 $completed = $true
                                 if (!$(get-cluster -Name $cluster).HAEnabled) {
-                                    Write-PowerManagementLogMessage -Type INFO -Message "Disabled vSphere High Availability for cluster '$cluster'." -Colour Green
+                                    Write-PowerManagementLogMessage -Type INFO -Message "Disabled vSphere High Availability for cluster '$cluster'."
                                     return $true
                                 }
                                 else {
-                                    Write-PowerManagementLogMessage -Type WARNING -Message "Failed to disable vSphere High Availability for cluster '$cluster'." -Colour Cyan
+                                    Write-PowerManagementLogMessage -Type WARNING -Message "Failed to disable vSphere High Availability for cluster '$cluster'."
                                     return $false
                                 }
                             }
@@ -1902,18 +1902,18 @@ Function Set-VsphereHA {
                 }
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again."
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-VsphereHA cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-VsphereHA cmdlet."
     }
 
 }
@@ -1954,7 +1954,7 @@ Function Get-DrsAutomationLevel {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-DrsAutomationLevel cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-DrsAutomationLevel cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -1976,18 +1976,18 @@ Function Get-DrsAutomationLevel {
                 return $clsdrsvalue
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-DrsAutomationLevel cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-DrsAutomationLevel cmdlet."
     }
 
 }
@@ -2036,7 +2036,7 @@ Function Set-Retreatmode {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-Retreatmode cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-Retreatmode cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -2054,38 +2054,38 @@ Function Set-Retreatmode {
                     Write-PowerManagementLogMessage -Type INFO -Message "Advanced setting $advanced_setting is present."
                     if ($mode -eq 'enable') {
                         Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'false' -Confirm:$false | out-null
-                        Write-PowerManagementLogMessage -Type INFO -Message "Advanced setting $advanced_setting is set to false."  -Colour Green
+                        Write-PowerManagementLogMessage -Type INFO -Message "Advanced setting $advanced_setting is set to false."
                     }
                     else {
                         Get-AdvancedSetting -Entity $server -Name $advanced_setting | Set-AdvancedSetting -Value 'true' -Confirm:$false  | Out-Null
-                        Write-PowerManagementLogMessage -Type INFO -Message "Advanced setting $advanced_setting is set to true." -Colour Green
+                        Write-PowerManagementLogMessage -Type INFO -Message "Advanced setting $advanced_setting is set to true."
                     }
                 }
                 else {
                     if ($mode -eq 'enable') {
                         New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'false' -Confirm:$false  | Out-Null
-                        Write-PowerManagementLogMessage -Type INFO -Message "Advanced setting $advanced_setting is set to false." -Colour Green
+                        Write-PowerManagementLogMessage -Type INFO -Message "Advanced setting $advanced_setting is set to false."
                     }
                     else {
                         New-AdvancedSetting -Entity $server -Name $advanced_setting -Value 'true' -Confirm:$false  | Out-Null
-                        Write-PowerManagementLogMessage -Type INFO -Message "Advanced setting $advanced_setting is set to true." -Colour Green
+                        Write-PowerManagementLogMessage -Type INFO -Message "Advanced setting $advanced_setting is set to true."
                     }
                 }
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue  -ErrorAction  SilentlyContinue | Out-Null
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-Retreatmode cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-Retreatmode cmdlet."
     }
 
 }
@@ -2143,7 +2143,7 @@ Function Get-VMToClusterMapping {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMToClusterMapping cmdlet." -Colour Yellow}
+        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-VMToClusterMapping cmdlet."}
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."}
@@ -2167,18 +2167,18 @@ Function Get-VMToClusterMapping {
 
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMToClusterMapping cmdlet." -Colour Yellow}
+        if(-not $silence) {Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-VMToClusterMapping cmdlet."}
     }
 
 }
@@ -2215,7 +2215,7 @@ Function Wait-ForStableNsxtClusterStatus {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Wait-ForStableNsxtClusterStatus cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Wait-ForStableNsxtClusterStatus cmdlet."
         Write-PowerManagementLogMessage -Type INFO -Message "Waiting the cluster to become 'STABLE' for NSX Manager '$server'... This could take up to 20 min."
         # Create NSX-T header
         $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $pass))) # Create Basic Authentication Encoded Credentials
@@ -2232,7 +2232,7 @@ Function Wait-ForStableNsxtClusterStatus {
         While (-not $completed) {
             # Check iteration number
             if ($retrycount -ge $Retries) {
-                Write-PowerManagementLogMessage -Type WARNING -Message "Request to '$uri' failed after $retryCount attempts." -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "Request to '$uri' failed after $retryCount attempts."
                 return $false
             }
             $retryCount++
@@ -2260,7 +2260,7 @@ Function Wait-ForStableNsxtClusterStatus {
             }
             else {
                 $completed = $true
-                Write-PowerManagementLogMessage -Type INFO -Message "The state of the NSX Manager cluster '$server' is 'STABLE'." -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "The state of the NSX Manager cluster '$server' is 'STABLE'."
                 return $true
             }
         }
@@ -2269,7 +2269,7 @@ Function Wait-ForStableNsxtClusterStatus {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Wait-ForStableNsxtClusterStatus cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Wait-ForStableNsxtClusterStatus cmdlet."
     }
 }
 Export-ModuleMember -Function Wait-ForStableNsxtClusterStatus
@@ -2313,7 +2313,7 @@ Function Get-EdgeNodeFromNSXManager {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-EdgeNodeFromNSXManager cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-EdgeNodeFromNSXManager cmdlet."
         if ( Test-EndpointConnection -server $server -Port 443 ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultNSXTServers) {
@@ -2345,19 +2345,19 @@ Function Get-EdgeNodeFromNSXManager {
                 return $edge_nodes_list
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details."
             }
 
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-EdgeNodeFromNSXManager cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-EdgeNodeFromNSXManager cmdlet."
     }
 }
 Export-ModuleMember -Function Get-EdgeNodeFromNSXManager
@@ -2393,7 +2393,7 @@ Function Get-NSXTComputeManagers {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-NSXTComputeManagers cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-NSXTComputeManagers cmdlet."
         if ( Test-EndpointConnection -server $server -Port 443 ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultNSXTServers) {
@@ -2409,18 +2409,18 @@ Function Get-NSXTComputeManagers {
                 return $compute_manager_list
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details."
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again."
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-NSXTComputeManagers cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-NSXTComputeManagers cmdlet."
     }
 }
 Export-ModuleMember -Function Get-NSXTComputeManagers
@@ -2460,7 +2460,7 @@ Function Get-TanzuEnabledClusterStatus {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-TanzuEnabledClusterStatus cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-TanzuEnabledClusterStatus cmdlet."
         if ( Test-EndpointConnection -server $server -Port 443 ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -2470,7 +2470,7 @@ Function Get-TanzuEnabledClusterStatus {
             if ($DefaultVIServer.Name -eq $server) {
                 $out = get-wmcluster -cluster $cluster -server $server -ErrorVariable ErrorMsg -ErrorAction SilentlyContinue
                 if ($out.count -gt 0) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "vSphere with Tanzu is enabled." -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "vSphere with Tanzu is enabled."
                     return $True
                 }
                 elseif (([string]$ErrorMsg -match "does not have Workloads enabled") -or ([string]::IsNullOrEmpty($ErrorMsg))) {
@@ -2478,61 +2478,64 @@ Function Get-TanzuEnabledClusterStatus {
                     return $False
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot fetch information related to vSphere with Tanzu. ERROR message from 'get-wmcluster' command: '$ErrorMsg'" -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot fetch information related to vSphere with Tanzu. ERROR message from 'get-wmcluster' command: '$ErrorMsg'"
                 }
             }
             else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details."
             }
 
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
     }
     Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-TanzuEnabledClusterStatus cmdlet." -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Get-TanzuEnabledClusterStatus cmdlet."
     }
 }
 Export-ModuleMember -Function Get-TanzuEnabledClusterStatus
 
 ######### Start Useful Script Functions ##########
 Function Write-PowerManagementLogMessage {
-        <#
-        .SYNOPSIS
-        This cmdlet is used for logging messages.
+    <#
+    .SYNOPSIS
+    This cmdlet is used for logging messages.
 
-        .DESCRIPTION
-        This cmdlet is used for logging messages on the console.
+    .DESCRIPTION
+    This cmdlet is used for logging messages on the console.
 
-        .EXAMPLE
-        Write-PowerManagementLogMessage -Type ERROR -Message "Error message" -Colour Red
-        This logs the error message on the conolse in red colour and aborts execution immediately.
+    .EXAMPLE
+    Write-PowerManagementLogMessage -Type ERROR -Message "Error message" 
+   Logs as a error message and uses the assigned color.
 
-        Write-PowerManagementLogMessage -Type WARNING -Message "Warning message" -Colour Cyan
-        This logs the warning message on the conosle in cyan colour and execution is continued.
+    Write-PowerManagementLogMessage -Type WARNING -Message "Warning message"
+    Logs as a warning message and uses the assigned color.
 
-        Write-PowerManagementLogMessage -Type INFO -Message "Info message" 
-        This logs the information message on the conosle in white colour and execution is continued.
+    Write-PowerManagementLogMessage -Type INFO -Message "Info message" 
+    Logs as a info message and uses the assigned color.
 
-        Write-PowerManagementLogMessage -Type EXCEPTION -Message "Exception message" -Colour Red
-        This logs the exception message on the conolse in red colour and aborts execution immediately.
-        
-        .PARAMETER Message
-        The message to be logged on the console.
+    Write-PowerManagementLogMessage -Type EXCEPTION -Message "Exception message"
+    Logs as an exception message and uses the assigned color.
 
-        .PARAMETER type
-        The type of the log message. The value can be one amongst ("INFO", "ERROR", "WARNING", "EXCEPTION").
+    Write-PowerManagementLogMessage -Type INFO -Message "Exception message" -Colour Cyan
+    Logs as an exception message and uses the the specified color.
+    
+    .PARAMETER Message
+    The message to be logged on the console.
 
-        .PARAMETER Colour
-        The colour of the log message.
+    .PARAMETER type
+    The type of the log message. The value can be one amongst ("INFO", "ERROR", "WARNING", "EXCEPTION").
 
-        .PARAMETER Skipnewline
-        This is used to skip new line while logging message.
-        #>
+    .PARAMETER Colour
+    The colour of the log message. This will override the default color for the log type.
+
+    .PARAMETER Skipnewline
+    This is used to skip new line while logging message.
+    #>
     Param (
         [Parameter (Mandatory = $true)] [AllowEmptyString()] [String]$Message,
         [Parameter (Mandatory = $false)] [ValidateSet("INFO", "ERROR", "WARNING", "EXCEPTION")] [String]$type,
@@ -2540,8 +2543,25 @@ Function Write-PowerManagementLogMessage {
         [Parameter (Mandatory = $false)] [String]$Skipnewline
     )    
     $ErrorActionPreference = 'Stop'
+
     if (!$Colour) {
-        $Colour = "White"
+        switch ($type) {
+            "INFO" {
+                $Colour = "Green" 
+            }
+            "WARNING" {
+                $Colour = "Yellow" 
+            }
+            "ERROR" {
+                $Colour = "Red" 
+            }
+            "EXCEPTION" {
+                $Colour = "Magenta" 
+            }
+            default {
+                $Colour = "White" 
+            }
+        }
     }
 
     $timeStamp = Get-Date -Format "MM-dd-yyyy_HH:mm:ss"
@@ -2551,13 +2571,13 @@ Function Write-PowerManagementLogMessage {
         Write-Host -NoNewline -ForegroundColor $Colour " $type $Message"
     }
     else {
-        Write-Host -ForegroundColor $colour " $Type $Message"
+        Write-Host -ForegroundColor $Colour " $Type $Message"
     }
     $logContent = '[' + $timeStamp + '] ' + $Type + ' ' + $Message    
     if ($type -match "ERROR") {
         Write-Error -Message $Message
     }
-}
+} 
 Export-ModuleMember -Function Write-PowerManagementLogMessage
 
 Function Debug-CatchWriterForPowerManagement {

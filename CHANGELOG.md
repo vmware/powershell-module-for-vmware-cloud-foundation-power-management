@@ -14,6 +14,7 @@ Chore:
 
 - Updated `PowerVCF` from v2.3.0 to v2.4.0. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
 - Added `PowerValidatedSolutions` v2.8.0 as a module dependency. [GH-38](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/38)
+- Updated `Write-PowerManagementLogMessage` to set colour for message types. This will allow for all references to use colour based on function. [GH-89](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/89)
 
 ## v1.4.0
 
