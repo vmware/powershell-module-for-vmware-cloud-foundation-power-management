@@ -98,9 +98,9 @@ Function Debug-CatchWriterForPowerManagement {
     $lineNumber = $object.InvocationInfo.ScriptLineNumber
     $lineText = $object.InvocationInfo.Line.trim()
     $errorMessage = $object.Exception.Message
-    Write-PowerManagementLogMessage -message " ERROR at Script Line $lineNumber" -Colour Red
-    Write-PowerManagementLogMessage -message " Relevant Command: $lineText" -Colour Red
-    Write-PowerManagementLogMessage -message " ERROR Message: $errorMessage" -Colour Red
+    Write-PowerManagementLogMessage -Type ERROR -Message " ERROR at Script Line $lineNumber"
+    Write-PowerManagementLogMessage -Type ERROR -Message " Relevant Command: $lineText"
+    Write-PowerManagementLogMessage -Type ERROR -Message " ERROR Message: $errorMessage"
     Write-Error -Message $errorMessage
 }
 
@@ -118,32 +118,32 @@ Try {
         $defaultFile = "./ManagementStartupInput.json"
         $inputFile = $null
         if ($json) {
-            Write-PowerManagementLogMessage -Type INFO -Message "The input JSON file provided." -Colour Green
+            Write-PowerManagementLogMessage -Type INFO -Message "The input JSON file provided."
             $inputFile = $json
         }
         elseif (Test-Path -Path $defaultFile -PathType Leaf) {
-            Write-PowerManagementLogMessage -Type INFO -Message "No path to JSON provided in the command line. Using the auto-created input file ManagementStartupInput.json in the current directory." -Colour Yellow
+            Write-PowerManagementLogMessage -Type INFO -Message "No path to JSON provided in the command line. Using the auto-created input file ManagementStartupInput.json in the current directory."
             $inputFile = $defaultFile
         }
         if ([string]::IsNullOrEmpty($inputFile)) {
-            Write-PowerManagementLogMessage -Type WARNING -Message "JSON input file is not provided. Cannot proceed! Exiting! " -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "JSON input file is not provided. Cannot proceed! Exiting! "
             Exit
         }
         Write-Host "";
         $proceed = Read-Host "The following JSON file $inputFile will be used for the operation, please confirm (Yes or No)[default:No]"
         if (-Not $proceed) {
-            Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence stopping script execution." -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence stopping script execution."
             Exit
         }
         else {
             if (($proceed -match "no") -or ($proceed -match "yes")) {
                 if ($proceed -match "no") {
-                    Write-PowerManagementLogMessage -Type WARNING -Message "Stopping script execution because the input is 'No'." -Colour Cyan
+                    Write-PowerManagementLogMessage -Type WARNING -Message "Stopping script execution because the input is 'No'."
                     Exit
                 }
             }
             else {
-                Write-PowerManagementLogMessage -Type WARNING -Message "Pass the right string, either 'Yes' or 'No'." -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "Pass the right string, either 'Yes' or 'No'."
                 Exit
             }
         }
@@ -164,9 +164,9 @@ Try {
     if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) { $str2 = $str2 + " -shutdownCustomerVm" }
     if ($PsBoundParameters.ContainsKey("genjson")) { $str2 = $str2 + " -genjson" }
     if ($json) { $str2 = $str2 + " -json $json" }
-    Write-PowerManagementLogMessage -Type INFO -Message "Script used: $str1" -Colour Yellow
-    Write-PowerManagementLogMessage -Type INFO -Message "Script syntax: $str2" -Colour Yellow
-    if (-Not $null -eq $customerVmMessage) { Write-PowerManagementLogMessage -Type INFO -Message $customerVmMessage -Colour Yellow }
+    Write-PowerManagementLogMessage -Type INFO -Message "Script used: $str1"
+    Write-PowerManagementLogMessage -Type INFO -Message "Script syntax: $str2"
+    if (-Not $null -eq $customerVmMessage) { Write-PowerManagementLogMessage -Type INFO -Message $customerVmMessage}
 }
 Catch {
     Debug-CatchWriterForPowerManagement -object $_
@@ -179,20 +179,20 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         # Check connection to SDDC Manager
         Write-PowerManagementLogMessage -Type INFO -Message "Attempting to connect to VMware Cloud Foundation to gather system details."
         if (!(Test-EndpointConnection -server $server -Port 443)) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with SDDC Manager ($server). Check the FQDN or IP address or the power state of '$server'." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with SDDC Manager ($server). Check the FQDN or IP address or the power state of '$server'."
             Exit
         }
         $StatusMsg = Request-VCFToken -fqdn $server -username $user -password $pass -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -WarningVariable WarnMsg -ErrorVariable ErrorMsg
         if ( $StatusMsg ) { Write-PowerManagementLogMessage -Type INFO -Message $StatusMsg }
-        if ( $WarnMsg ) { Write-PowerManagementLogMessage -Type WARNING -Message $WarnMsg -Colour Cyan }
-        if ( $ErrorMsg ) { Write-PowerManagementLogMessage -Type ERROR -Message $ErrorMsg -Colour Red }
+        if ( $WarnMsg ) { Write-PowerManagementLogMessage -Type WARNING -Message $WarnMsg}
+        if ( $ErrorMsg ) { Write-PowerManagementLogMessage -Type ERROR -Message $ErrorMsg}
         if ($accessToken) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Connection to SDDC Manager has been validated successfully." -Colour Green
+            Write-PowerManagementLogMessage -Type INFO -Message "Connection to SDDC Manager has been validated successfully."
             Write-PowerManagementLogMessage -Type INFO -Message "Gathering system details from the SDDC Manager inventory. It will take some time."
             $workloadDomain = Get-VCFWorkloadDomain | Where-Object { $_.type -eq "MANAGEMENT" }
             # Check if we have single cluster in the MGMT domain
             if ($workloadDomain.clusters.id.count -gt 1) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "There are multiple clusters in Management domain. This script supports only a single cluster per domain. Exiting!" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "There are multiple clusters in Management domain. This script supports only a single cluster per domain. Exiting!"
                 Exit
             }
             $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
@@ -220,13 +220,13 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             }
                 # Test if VC is reachable, if it is already stopped, we could not continue with the shutdown sequence in automatic way.
             if (-Not (Test-EndpointConnection -server $vcServer.fqdn -Port 443) ) {
-                Write-PowerManagementLogMessage -Type WARNING -Message "Could not connect to $($vcServer.fqdn)! The script could not continue without a connection to the management vCenter Server. " -Colour Cyan
-                Write-PowerManagementLogMessage -Type ERROR -Message "Please check the current state and resolve the issue or continue with the shutdown operation by following the documentation of VMware Cloud Foundation. Exiting!" -Colour Red
+                Write-PowerManagementLogMessage -Type WARNING -Message "Could not connect to $($vcServer.fqdn)! The script could not continue without a connection to the management vCenter Server. "
+                Write-PowerManagementLogMessage -Type ERROR -Message "Please check the current state and resolve the issue or continue with the shutdown operation by following the documentation of VMware Cloud Foundation. Exiting!"
                 Exit
             }
             $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
             if ($status -eq $True) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Currently we are not supporting VMware Tanzu enabled domains. Please try on other workload domains." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Currently we are not supporting VMware Tanzu enabled domains. Please try on other workload domains."
                 Exit
             }
             if ($vcPass) {
@@ -309,7 +309,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 }
             }
             if ($statusOfNsxtClusterVMs -ne 'running') {
-                Write-PowerManagementLogMessage -Type WARNING -Message "NSX Manager VMs have been stopped. NSX Edge VMs will not be handled automatically." -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "NSX Manager VMs have been stopped. NSX Edge VMs will not be handled automatically."
             }
             else {
                 Try {
@@ -319,7 +319,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                     Write-PowerManagementLogMessage -Type INFO -Message "The NSX Edge VMs are $edgenodesstring."
                 }
                 catch {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Something went wrong! Cannot fetch NSX Edge nodes information from NSX Manager '$nsxtMgrfqdn'. Exiting!" -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Something went wrong! Cannot fetch NSX Edge nodes information from NSX Manager '$nsxtMgrfqdn'. Exiting!"
                 }
             }
 
@@ -376,20 +376,20 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             if ($genjson) {
                 if (Test-Path -Path "ManagementStartupInput.json" -PathType Leaf) {
                     $location = Get-Location
-                    Write-PowerManagementLogMessage -Type INFO -Message "#############################################################" -Colour Green
-                    Write-PowerManagementLogMessage -Type INFO -Message "JSON generation is successful!"  -Colour Green
-                    Write-PowerManagementLogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path." -Colour Green
-                    Write-PowerManagementLogMessage -Type INFO -Message "#############################################################" -Colour Green
+                    Write-PowerManagementLogMessage -Type INFO -Message "#############################################################"
+                    Write-PowerManagementLogMessage -Type INFO -Message "JSON generation is successful!"
+                    Write-PowerManagementLogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path."
+                    Write-PowerManagementLogMessage -Type INFO -Message "#############################################################"
                     Exit
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "JSON file is not created. Check for permissions in the $location path" -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "JSON file is not created. Check for permissions in the $location path"
                     Exit
                 }
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot obtain an access token from SDDC Manager ($server). Check your credentials." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot obtain an access token from SDDC Manager ($server). Check your credentials."
             Exit
         }
 
@@ -400,13 +400,13 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 foreach ($esxiNode in $esxiWorkloadDomain) {
                     $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
                     if (-Not $status) {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it."
                         Exit
                     }
                 }
             }
             catch {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it."
             }
         } else {
             #Lockdown mode - if enabled on any host, stop the script
@@ -415,7 +415,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             foreach ($esxiNode in $esxiWorkloadDomain) {
                 $HostConnectionState = Get-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
                 if ($HostConnectionState  -eq "Maintenance") {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "$($esxiNode.fqdn) is in maintenance mode. Unable to shut down the cluster. Please take the host out of maintenance mode and run the script again." -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "$($esxiNode.fqdn) is in maintenance mode. Unable to shut down the cluster. Please take the host out of maintenance mode and run the script again."
                     Exit
                 }
             }
@@ -432,10 +432,10 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
 
         $customervms = $allvms | ? { $vcfvms -notcontains $_ }
         $vcfvms_string = $vcfvms -join "; "
-        Write-PowerManagementLogMessage -Type INFO -Message "Management virtual machines covered by the script: '$($vcfvms_string)' ." -Colour Cyan
+        Write-PowerManagementLogMessage -Type INFO -Message "Management virtual machines covered by the script: '$($vcfvms_string)' ."
         if ($customervms.count -ne 0) {
             $customervms_string = $customervms -join "; "
-            Write-PowerManagementLogMessage -Type INFO -Message "Virtual machines not covered by the script: '$($customervms_string)' . Those VMs will be stopped in a random order if the 'shutdownCustomerVm' flag is passed." -Colour Cyan
+            Write-PowerManagementLogMessage -Type INFO -Message "Virtual machines not covered by the script: '$($customervms_string)' . Those VMs will be stopped in a random order if the 'shutdownCustomerVm' flag is passed."
         }
 
         # Check if VMware Tools are running in the customer VMs - if not we could not stop them gracefully
@@ -462,7 +462,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                     }
                 }
                 else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to vCenter Server '$($vcServer.fqdn)'. Command returned the following error: '$vcConnectError'." -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to vCenter Server '$($vcServer.fqdn)'. Command returned the following error: '$vcConnectError'."
                 }
             }
             # Disconnect from the VC
@@ -471,8 +471,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             }
             if ($VMwareToolsNotRunningVMs.count -ne 0) {
                 $noToolsVMs = $VMwareToolsNotRunningVMs -join "; "
-                Write-PowerManagementLogMessage -Type WARNING -Message "There are some non VCF maintained VMs where VMwareTools NotRunning, hence unable to shutdown these VMs:'$noToolsVMs'." -Colour cyan
-                Write-PowerManagementLogMessage -Type ERROR -Message "Unless these VMs are shutdown manually, we cannot proceed. Please shutdown manually and rerun the script." -Colour Red
+                Write-PowerManagementLogMessage -Type WARNING -Message "There are some non VCF maintained VMs where VMwareTools NotRunning, hence unable to shutdown these VMs:'$noToolsVMs'."
+                Write-PowerManagementLogMessage -Type ERROR -Message "Unless these VMs are shutdown manually, we cannot proceed. Please shutdown manually and rerun the script."
                 Exit
             }
         }
@@ -480,16 +480,16 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         if ($customervms.count -ne 0) {
             $customervms_string = $customervms -join "; "
             if ($PsBoundParameters.ContainsKey("shutdownCustomerVm")) {
-                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state. -shutdownCustomerVm is passed to the script." -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "Hence shutting down VMs not managed by SDDC Manager to put the host in maintenance mode." -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: '$customervms_string'." -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state. -shutdownCustomerVm is passed to the script."
+                Write-PowerManagementLogMessage -Type WARNING -Message "Hence shutting down VMs not managed by SDDC Manager to put the host in maintenance mode."
+                Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: '$customervms_string'."
                 # Stop Customer VMs with one call to VC:
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $customervms -timeout 300
             }
             else {
-                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state. -shutdownCustomerVm is not passed to the script." -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "Hence not shutting down management VMs not managed by SDDC Manager: $($customervms_string) ." -Colour Cyan
-                Write-PowerManagementLogMessage -Type ERROR -Message "The script cannot proceed unless these VMs are shut down manually or the -shutdownCustomerVm option is present.  Take the necessary action and run the script again." -Colour Red
+                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state. -shutdownCustomerVm is not passed to the script."
+                Write-PowerManagementLogMessage -Type WARNING -Message "Hence not shutting down management VMs not managed by SDDC Manager: $($customervms_string) ." 
+                Write-PowerManagementLogMessage -Type ERROR -Message "The script cannot proceed unless these VMs are shut down manually or the -shutdownCustomerVm option is present.  Take the necessary action and run the script again."
                 Exit
             }
         }
@@ -505,7 +505,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                             if (($vcfVcenterDetails = Get-vCenterServerDetail -server $server -user $user -pass $pass -domain $domain.name)) {
                                 if (Test-vSphereConnection -server $($vcfVcenterDetails.fqdn)) {
                                     if (Test-vSphereAuthentication -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass) {
-                                        Write-PowerManagementLogMessage -Type INFO -Message "Stopping the VMware Aria Operations for Logs nodes..." -Colour Green
+                                        Write-PowerManagementLogMessage -Type INFO -Message "Stopping the VMware Aria Operations for Logs nodes..."
                                         Stop-CloudComponent -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass -nodes $vmlist -timeout 600     
                                     }
                                 }
@@ -538,17 +538,17 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                                                 $vmName = $vm.Name
                                                 $powerState = $vm.PowerState
                                                 if ($powerState -eq "PoweredOn") {
-                                                    Write-PowerManagementLogMessage -Type Error -Message "VM Name: $vmName, Power State: $powerState, Please power off the virtual machines connected to NSX Segments before you shutdown an NSX Edge Cluster" -Colour Red
+                                                    Write-PowerManagementLogMessage -Type Error -Message "VM Name: $vmName, Power State: $powerState, Please power off the virtual machines connected to NSX Segments before you shutdown an NSX Edge Cluster"
                                                     $stopExecuted = $true
                                                 }
                                                 if (-not $stopExecuted) {
-                                                    Write-PowerManagementLogMessage -Type INFO -Message "Stopping the NSX Edge nodes..." -Colour Green
+                                                    Write-PowerManagementLogMessage -Type INFO -Message "Stopping the NSX Edge nodes..."
                                                     Stop-CloudComponent -server $server -user $user -pass $pass -nodes $nsxtEdgeNodes -timeout 600
                                                     $stopExecuted = $true
                                                 }
                                             }
                                         } else {
-                                            Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes present. Skipping shutdown..." -Colour Cyan
+                                            Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes present. Skipping shutdown..."
                                         }
                                     }
                                 }
@@ -560,25 +560,25 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
         
         #Stop NSX Manager nodes
-        Write-PowerManagementLogMessage -Type INFO -Message "Stopping the NSX Manager nodes..." -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "Stopping the NSX Manager nodes..."
         Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
 
 
         #Check the vSAN health before SDDC manager is stopped
         if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-            #Write-PowerManagementLogMessage -Type INFO -Message "vSAN cluster health is good." -Colour Green
+            #Write-PowerManagementLogMessage -Type INFO -Message "vSAN cluster health is good."
         }
         else {
-            Write-PowerManagementLogMessage -Type WARNING -Message "The vSAN cluster isn't in a healthy state. Check the vSAN cluster status in vCenter Server '$($vcServer.fqdn)'. After you resolve the vSAN health issues, run the script again." -Colour Cyan
-            Write-PowerManagementLogMessage -Type WARNING -Message "If the script has reached ESXi vSAN shutdown previously, this error is expected. Continue the shutdown workflow by following the documentation of VMware Cloud Foundation. " -Colour Cyan
-            Write-PowerManagementLogMessage -Type ERROR -Message "The vSAN cluster isn't in a healthy state. Check the messages above for a solution." -Colour Red
+            Write-PowerManagementLogMessage -Type WARNING -Message "The vSAN cluster isn't in a healthy state. Check the vSAN cluster status in vCenter Server '$($vcServer.fqdn)'. After you resolve the vSAN health issues, run the script again."
+            Write-PowerManagementLogMessage -Type WARNING -Message "If the script has reached ESXi vSAN shutdown previously, this error is expected. Continue the shutdown workflow by following the documentation of VMware Cloud Foundation. "
+            Write-PowerManagementLogMessage -Type ERROR -Message "The vSAN cluster isn't in a healthy state. Check the messages above for a solution."
             Exit
         }
         if ((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-            #Write-PowerManagementLogMessage -Type INFO -Message "vSAN object resynchronization is successful." -Colour Green
+            #Write-PowerManagementLogMessage -Type INFO -Message "vSAN object resynchronization is successful."
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization is running. Stopping the script... Wait until the vSAN object resynchronization is completed and run the script again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization is running. Stopping the script... Wait until the vSAN object resynchronization is completed and run the script again."
             Exit
         }
 
@@ -590,7 +590,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         Set-Retreatmode -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -mode enable
 
         # Waiting for vCLS VMs to be stopped for ($retries*10) seconds
-        Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take time. Please wait!" -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "vCLS retreat mode has been set. vCLS shutdown will take time. Please wait!"
         $counter = 0
         $retries = 10
         $sleepTime = 30
@@ -605,7 +605,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             }
         }
         if ($counter -eq $retries) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not shut down within the expected time. Stopping the script execution... " -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS VMs were not shut down within the expected time. Stopping the script execution... "
             Exit
         }
 
@@ -613,7 +613,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         if ([float]$vcfVersion -le [float]4.5) {
             # Stop vSphere HA to avoid "orphaned" VMs during vSAN shutdown
             if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -disableHA)) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Could not disable vSphere High Availability for cluster '$cluster'. Exiting!" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Could not disable vSphere High Availability for cluster '$cluster'. Exiting!"
             }
 
             # Set DRS Automation Level to Manual in the Management Domain
@@ -624,26 +624,26 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         $RemoteVMs = @()
         $RemoteVMs = Get-poweronVMsOnRemoteDS -server $vcServer.fqdn -user $vcUser -pass $vcPass -clustertocheck $cluster.name
         if($RemoteVMs.count -eq 0) {
-            Write-PowerManagementLogMessage -Type INFO -Message "All remote VMs are powered off." -Colour Green
+            Write-PowerManagementLogMessage -Type INFO -Message "All remote VMs are powered off."
         } else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Some remote VMs are still powered-on : $($RemoteVMs.Name). Cannot proceed until the powered-on VMs are shut down. Check your environment." -Colour RED
+            Write-PowerManagementLogMessage -Type ERROR -Message "Some remote VMs are still powered-on : $($RemoteVMs.Name). Cannot proceed until the powered-on VMs are shut down. Check your environment."
         }
 
         #Testing VSAN health after SDDC manager is stopped
         if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-            Write-PowerManagementLogMessage -Type INFO -Message "vSAN cluster health is good." -Colour Green
+            Write-PowerManagementLogMessage -Type INFO -Message "vSAN cluster health is good."
         }
         else {
-            Write-PowerManagementLogMessage -Type WARNING -Message "The vSAN cluster isn't in a healthy state. Check the vSAN status in vCenter Server '$($vcServer.fqdn)'. After you resolve the vSAN issues, run the script again." -Colour Cyan
-            Write-PowerManagementLogMessage -Type WARNING -Message "If the script has reached ESXi vSAN shutdown previously, this error is expected. Continue by following the documentation of VMware Cloud Foundation. " -Colour Cyan
-            Write-PowerManagementLogMessage -Type ERROR -Message "The vSAN cluster isn't in a healthy state. Check the messages above for a solution." -Colour Red
+            Write-PowerManagementLogMessage -Type WARNING -Message "The vSAN cluster isn't in a healthy state. Check the vSAN status in vCenter Server '$($vcServer.fqdn)'. After you resolve the vSAN issues, run the script again."
+            Write-PowerManagementLogMessage -Type WARNING -Message "If the script has reached ESXi vSAN shutdown previously, this error is expected. Continue by following the documentation of VMware Cloud Foundation. "
+            Write-PowerManagementLogMessage -Type ERROR -Message "The vSAN cluster isn't in a healthy state. Check the messages above for a solution."
             Exit
         }
         if ((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
-            Write-PowerManagementLogMessage -Type INFO -Message "VSAN object resynchronization is successful." -Colour Green
+            Write-PowerManagementLogMessage -Type INFO -Message "VSAN object resynchronization is successful."
         }
         else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization is running. Stopping the script. Wait until the vSAN object resynchronization is completed and run the script again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization is running. Stopping the script. Wait until the vSAN object resynchronization is completed and run the script again."
             Exit
         }
 
@@ -651,21 +651,21 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             # Verify that there is only one VM running (vCenter Server) on the ESXis, then shutdown vCenter Server.
             $runningVMs = Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -silence
             if ($runningVMs.count -gt 1 ) {
-                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed until the powered-on VMs are shut down. Shut them down them manually and continue with the shutdown operation by following documentation of VMware Cloud Foundation." -Colour Cyan
-                Write-PowerManagementLogMessage -Type ERROR -Message "There are running VMs in environment: $($runningVMs). Exiting! " -Colour Red
+                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state."
+                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed until the powered-on VMs are shut down. Shut them down them manually and continue with the shutdown operation by following documentation of VMware Cloud Foundation."
+                Write-PowerManagementLogMessage -Type ERROR -Message "There are running VMs in environment: $($runningVMs). Exiting! "
             }
             else {
                 Write-PowerManagementLogMessage -Type INFO -Message "There are no VMs in powered-on state. Hence, shutting down vCenter Server..."
                 # Shutdown vCenter Server
                 Stop-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -timeout 600
                 if (Get-VMRunningStatus -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -Status "Running") {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot stop vCenter Server on the host. Exiting!" -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot stop vCenter Server on the host. Exiting!"
                 }
             }
         }
         # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
-        Write-PowerManagementLogMessage -Type INFO -Message "Checking that there are no running VMs on the ESXi hosts before stopping vSAN." -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "Checking that there are no running VMs on the ESXi hosts before stopping vSAN."
         $runningVMsPresent = $False
         $runningVMs = @()
         $runningVclsVMs = @()
@@ -679,15 +679,15 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 $runningVMs = $runningAllVMs | ? { $runningVclsVMs -notcontains $_ }
             }
             if ($runningVMs.count) {
-                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state." -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed until the powered-on VMs are shut down. Shut down them down manually and run the script again." -Colour Cyan
-                Write-PowerManagementLogMessage -Type WARNING -Message "ESXi with VMs running: $($esxiNode.fqdn) VMs are:$($runningVMs) " -Colour Cyan
+                Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state."
+                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed until the powered-on VMs are shut down. Shut down them down manually and run the script again."
+                Write-PowerManagementLogMessage -Type WARNING -Message "ESXi with VMs running: $($esxiNode.fqdn) VMs are:$($runningVMs) "
                 $runningVMsPresent = $True
             }
         }
         # Verify that there are no running VMs on the ESXis and shutdown the vSAN cluster.
         if ($runningVMsPresent) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Some VMs on the ESXi hosts are still in powered-on state. Check the console log, stop the VMs and continue the shutdown operation manually." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Some VMs on the ESXi hosts are still in powered-on state. Check the console log, stop the VMs and continue the shutdown operation manually."
         }
         # Actual vSAN and ESXi shutdown happens here - once we are sure that there are no VMs running on hosts
         else {
@@ -708,8 +708,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                     Set-MaintenanceMode -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -state ENABLE
                 }
                 # End of shutdown
-                Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Cyan
-                Write-PowerManagementLogMessage -Type INFO -Message "Shut down the ESXi hosts!" -Colour Cyan
+                Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!"
+                Write-PowerManagementLogMessage -Type INFO -Message "Shut down the ESXi hosts!"
             } else {
 
                 # vSAN shutdown wizard automation.
@@ -727,15 +727,15 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                     #Verify if all ESXi hosts are down in here to conclude End of Shutdown sequence
                     foreach ($esxiNode in $esxiWorkloadDomain) {
                         if (Test-EndpointConnection -server $esxiNode.fqdn -Port 443) {
-                            Write-PowerManagementLogMessage -Type WARNING -Message "Some hosts are still up. Sleeping for 60 seconds before next check..." -Colour cyan
+                            Write-PowerManagementLogMessage -Type WARNING -Message "Some hosts are still up. Sleeping for 60 seconds before next check..."
                             break
                         } else {
                             $successcount++
                         }
                     }
                     if ($successcount -eq $esxiWorkloadDomain.count) {
-                        Write-PowerManagementLogMessage -Type INFO -Message "All hosts have been shut down successfully!" -Colour Green
-                        Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!" -Colour Green
+                        Write-PowerManagementLogMessage -Type INFO -Message "All hosts have been shut down successfully!"
+                        Write-PowerManagementLogMessage -Type INFO -Message "End of the shutdown sequence!"
                         Exit
                     } else {
                         Start-Sleep -s $sleepTime
@@ -839,25 +839,25 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                 Write-Host "";
                 $proceed = Read-Host "Please start all the ESXi host belonging to the cluster '$($cluster.name)' and wait for the host console to come up. Once done, please enter yes."
                 if (-Not $proceed) {
-                    Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence, stopping script execution..." -Colour Cyan
+                    Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence, stopping script execution..."
                     Exit
                 }
                 else {
                     if (($proceed -match "no") -or ($proceed -match "yes")) {
                         if ($proceed -match "no") {
-                            Write-PowerManagementLogMessage -Type WARNING -Message "Stopping script execution because the input is 'No'..." -Colour Cyan
+                            Write-PowerManagementLogMessage -Type WARNING -Message "Stopping script execution because the input is 'No'..."
                             Exit
                         }
                     }
                     else {
-                        Write-PowerManagementLogMessage -Type WARNING -Message "Pass the right string - either 'Yes' or 'No'." -Colour Cyan
+                        Write-PowerManagementLogMessage -Type WARNING -Message "Pass the right string - either 'Yes' or 'No'."
                         Exit
                     }
                 }
 
                 foreach ($esxiNode in $esxiWorkloadDomain) {
                     if (!(Test-EndpointConnection -server $esxiNode.fqdn -Port 443)) {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with host $($esxiNode.fqdn). Check the FQDN or IP address, or the power state of '$($esxiNode.fqdn)'." -Colour Red
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with host $($esxiNode.fqdn). Check the FQDN or IP address, or the power state of '$($esxiNode.fqdn)'."
                         Exit
                     }
                 }
@@ -867,13 +867,13 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                     foreach ($esxiNode in $esxiWorkloadDomain) {
                         $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
                         if (-Not $status) {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it."
                             Exit
                         }
                     }
                 }
                 catch {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it." -Colour Red
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it."
                 }
 
                 # Take hosts out of maintenance mode
@@ -895,7 +895,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                     Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Value of IgnoreClusterMemberListUpdates is 0" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
                 }
 
-                Write-PowerManagementLogMessage -Type INFO -Message "Checking vSAN status of the ESXi hosts." -Colour Green
+                Write-PowerManagementLogMessage -Type INFO -Message "Checking vSAN status of the ESXi hosts."
                 foreach ($esxiNode in $esxiWorkloadDomain) {
                     Invoke-EsxCommand -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password -expected "Local Node Health State: HEALTHY" -cmd "esxcli vsan cluster get"
                 }
@@ -905,15 +905,15 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                 Start-Sleep -s 5
                 if (-Not (Get-VMRunningStatus -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -Status "Running")) {
 
-                    Write-PowerManagementLogMessage -Type Warning -Message "Cannot start vCenter Server on the host. Check if vCenter Server is located on host $vcHost. " -Colour Red
-                    Write-PowerManagementLogMessage -Type Warning -Message "Start vCenter Server manually and run the script again." -Colour Red
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Could not start vCenter Server on host $vcHost. Check the console log for more details." -Colour Red
+                    Write-PowerManagementLogMessage -Type Warning -Message "Cannot start vCenter Server on the host. Check if vCenter Server is located on host $vcHost. "
+                    Write-PowerManagementLogMessage -Type Warning -Message "Start vCenter Server manually and run the script again."
+                    Write-PowerManagementLogMessage -Type ERROR -Message "Could not start vCenter Server on host $vcHost. Check the console log for more details."
                     Exit
                 }
             }
         }
         else {
-            Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server '$($vcServer.fqdn)' is running. Skipping vSAN startup!" -Colour Cyan
+            Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server '$($vcServer.fqdn)' is running. Skipping vSAN startup!"
         }
 
         # Wait till VC is started, continue if it is already up and running
@@ -945,7 +945,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         }
         # Check if VC have been started in the above time period
         if (!$retries) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Timeout while waiting vCenter Server to start. Exiting!" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "Timeout while waiting vCenter Server to start. Exiting!"
         }
 
         #Restart Cluster Via Wizard
@@ -957,12 +957,12 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         }
         # Check vSAN Status
         if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -ne 0) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN cluster health is bad. Check your environment and run the script again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN cluster health is bad. Check your environment and run the script again."
             Exit
         }
         # Check vSAN Status
         if ( (Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -ne 0) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization is in progress. Check your environment and run the script again." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization is in progress. Check your environment and run the script again."
             Exit
         }
 
@@ -970,12 +970,12 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         if ([float]$vcfVersion -lt [float]4.5) {
             # Start vSphere HA
             if (!$(Set-VsphereHA -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -enableHA)) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'." -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "Could not enable vSphere High Availability for cluster '$cluster'."
             }
 
             # Restore the DRS Automation Level to the mode backed up for Management Domain Cluster during shutdown
             if ([string]::IsNullOrEmpty($DrsAutomationLevel)) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "The DrsAutomationLevel value in the JSON file is empty. Exiting!" -Colour Red
+                Write-PowerManagementLogMessage -Type ERROR -Message "The DrsAutomationLevel value in the JSON file is empty. Exiting!"
                 Exit
             }
             else {
@@ -1001,7 +1001,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
             }
         }
         if ($counter -eq $retries) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS virtual machines did not start within the expected time. Stopping script execution..." -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "The vCLS virtual machines did not start within the expected time. Stopping script execution..."
             Exit
         }
 
@@ -1011,7 +1011,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         # Startup the NSX Manager Nodes in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
         if (!(Wait-ForStableNsxtClusterStatus -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword)) {
-            Write-PowerManagementLogMessage -Type ERROR -Message "The NSX Manager cluster is not in 'STABLE' state. Exiting!" -Colour Red
+            Write-PowerManagementLogMessage -Type ERROR -Message "The NSX Manager cluster is not in 'STABLE' state. Exiting!"
             Exit
         }
 
@@ -1020,26 +1020,26 @@ if ($PsBoundParameters.ContainsKey("startup")) {
             Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
         }
         else {
-            Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes present. Skipping startup..." -Colour Cyan
+            Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes present. Skipping startup..."
         }
 
         # End of startup
-        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################"
         if ([float]$vcfVersion -lt [float]4.5) {
-            Write-PowerManagementLogMessage -Type INFO -Message "vSphere vSphere High Availability has been enabled by the script. Please disable it according to your environment's design." -Colour Cyan
+            Write-PowerManagementLogMessage -Type INFO -Message "vSphere vSphere High Availability has been enabled by the script. Please disable it according to your environment's design."
         }
-        Write-PowerManagementLogMessage -Type INFO -Message "Check your environment and start any additional virtual machines that you host in the management domain." -Colour Green
-        Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs" -Colour Yellow
-        Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600" -Colour Yellow
+        Write-PowerManagementLogMessage -Type INFO -Message "Check your environment and start any additional virtual machines that you host in the management domain."
+        Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs"
+        Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600"
         if ([float]$vcfVersion -lt [float]4.5) {
-            Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts in management domain, disable it at this point." -Colour Cyan
+            Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts in management domain, disable it at this point."
         }
         if ([float]$vcfVersion -gt [float]4.4) {
-            Write-PowerManagementLogMessage -Type INFO -Message "If you have disabled lockdown mode for the ESXi hosts in management domain, enable it back at this point." -Colour Cyan
+            Write-PowerManagementLogMessage -Type INFO -Message "If you have disabled lockdown mode for the ESXi hosts in management domain, enable it back at this point."
         }
-        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
-        Write-PowerManagementLogMessage -Type INFO -Message "End of the startup sequence!" -Colour Green
-        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################" -Colour Green
+        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################"
+        Write-PowerManagementLogMessage -Type INFO -Message "End of the startup sequence!"
+        Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################"
     }
     Catch {
         Debug-CatchWriterForPowerManagement -object $_
