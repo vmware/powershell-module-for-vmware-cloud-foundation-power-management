@@ -420,6 +420,34 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 }
             }
         }
+        if (Test-VCFConnection -server $server) {
+            if (Test-VCFAuthentication -server $server -user $user -pass $pass) {
+                $allWorkloadvCenters = @()
+                $allWorkloadvCenters = (Get-VCFWorkloadDomain | Select-object type -ExpandProperty vcenters | Where-Object { $_.type -eq "VI" }).fqdn
+                if ($allWorkloadvCenters) {
+                    $domain = Get-VCFWorkloadDomain | Select-Object name, type | Where-Object { $_.type -eq "MANAGEMENT" }
+                    if (($vcfVcenterDetails = Get-vCenterServerDetail -server $server -user $user -pass $pass -domain $domain.name)) {
+                        if (Test-vSphereConnection -server $($vcfVcenterDetails.fqdn)) {
+                            if (Test-vSphereAuthentication -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass) {
+                                $allWorkloadvCenters | ForEach-Object {
+                                    $vm = $_.Split('.')[0]
+                                    $isPoweredOn = (Get-VM | Select-Object Name, PowerState | Where-Object { $_.name -eq $vm }).PowerState
+                                    if ($isPoweredOn -eq "PoweredOn") {
+                                        $answer = Read-Host -Prompt "Workload domain vCenter Server instance $vm is powered on. Do you want to continue shutdown of the management domain? Y/N"
+                                        if ( $answer -eq 'N') { 
+                                            Write-PowerManagementLogMessage -Type WARNING "Please shutdown the workload domain vCenter Server instance $vm and retry." 
+                                            Exit
+                                        } else {
+                                            Write-PowerManagementLogMessage -Type INFO "Continuing with the shutdown of the management domain."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } 
 
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines from server $($vcServer.fqdn)..."
         [Array]$allvms = Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -silence
