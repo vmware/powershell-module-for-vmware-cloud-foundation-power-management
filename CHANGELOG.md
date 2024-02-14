@@ -7,13 +7,14 @@
 Enhancement:
 
 - Added check for VMware Aria Operations for Logs deployment and shutdown if it exists. [GH-87](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/87)
-- Added a workload domain vCenter Server check to `PowerManagement-ManagmentDomain.ps1` to check if workload domain vCenter Server instances are still powered on before starting the shutdown of the management domain. [GH-90](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/90)
-- Updated `PowerManagement-ManagmentDomain.ps1` to check for virtual machines running on an NSX overlay segment. [GH-86](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/86)
+- Added check to verify if workload domain vCenter Server instances are still powered on before starting the shutdown of the management domain to `PowerManagement-ManagmentDomain.ps1`. [GH-90](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/90)
+- Added check for virtual machines running on an NSX overlay segment to `PowerManagement-ManagmentDomain.ps1`. [GH-86](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/86)
+- Added support for more than one cluster in management domain for shut down and start up to `PowerManagement-ManagmentDomain.ps1`. [GH-93](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/93)
 
 Refactor:
 
 - Replaced the use of `Test-NetConnection` with `Test-EndpointConnection` from the PowerShell module dependency `PowerValidatedSolutions`. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
-- Updated `PowerManagement-ManagmentDomain.ps1` to allow for FQDN or IP address of SDDC Manager. [GH-92] (https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/92)
+- Updated `PowerManagement-ManagmentDomain.ps1` to allow for FQDN or IP address of SDDC Manager. [GH-92](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/92)
 
 Chore:
 
