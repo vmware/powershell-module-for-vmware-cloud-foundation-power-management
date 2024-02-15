@@ -373,6 +373,12 @@ Try {
             [Array]$vcfvms += $vm
         }
 
+        Write-PowerManagementLogMessage -Type INFO -Message "Fetching all powered on vSAN File Services virtual machines from vCenter Server instance $($vcenter)..."
+        [Array]$vsanfsvms += Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer -user $vcUser -pass $vcPass -pattern "(vSAN File)" -silence
+        foreach ($vm in $vsanfsvms) {
+            [Array]$vcfvms += $vm
+        } 
+        
         #Check if NSX-T manager VMs are running. If they are stopped skip NSX-T edge shutdown
         $nsxManagerPowerOnVMs = 0
         foreach ($nsxtManager in $nsxtNodes) {
