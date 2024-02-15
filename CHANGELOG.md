@@ -8,16 +8,17 @@ Enhancement:
 
 - Added check for VMware Aria Operations for Logs deployment and shutdown if it exists. [GH-87](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/87)
 - Added a workload domain vCenter Server check to `PowerManagement-ManagmentDomain.ps1` to check if workload domain vCenter Server instances are still powered on before starting the shutdown of the management domain. [GH-90](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/90)
+- Updated `PowerManagement-ManagmentDomain.ps1` to check for virtual machines running on an NSX overlay segment. [GH-86](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/86)
 
 Refactor:
 
-- Replaced the use of `Test-NetConnection` to with `Test-EndpointConnection` from the PowerShell module `PowerValidatedSolutions`. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
-- Replaced current if statement `nsxtEdgeNodes` to check for virtual machines running on an NSX overlay network. [GH-86] (https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/86)
+- Replaced the use of `Test-NetConnection` with `Test-EndpointConnection` from the PowerShell module dependency `PowerValidatedSolutions`. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
+- Updated `PowerManagement-ManagmentDomain.ps1` to allow for FQDN or IP address of SDDC Manager. [GH-92] (https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/92)
 
 Chore:
 
 - Updated `PowerVCF` from v2.3.0 to v2.4.0. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
-- Added `PowerValidatedSolutions` v2.8.0 as a module dependency. [GH-38](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/38)
+- Added `PowerValidatedSolutions` v2.8.0 as a PowerShell module dependency. [GH-38](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/38)
 - Updated `Write-PowerManagementLogMessage` to set color for message types. This will allow for all references to use color based on function. [GH-89](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/89)
 
 ## v1.4.0
