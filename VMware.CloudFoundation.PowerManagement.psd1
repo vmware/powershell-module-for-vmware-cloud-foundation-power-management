@@ -11,7 +11,7 @@
     RootModule = 'VMware.CloudFoundation.PowerManagement.psm1'
 
     # Version number of this module.
-    ModuleVersion = '1.4.1.1007'
+    ModuleVersion = '1.4.1.1008'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
