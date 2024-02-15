@@ -16,7 +16,7 @@ Enhancement:
 Refactor:
 
 - Replaced the use of `Test-NetConnection` with `Test-EndpointConnection` from the PowerShell module dependency `PowerValidatedSolutions`. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
-- Updated `PowerManagement-ManagmentDomain.ps1` to allow for FQDN or IP address of SDDC Manager. [GH-92] (https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/92)
+- Updated `PowerManagement-ManagmentDomain.ps1` to allow for FQDN or IP address of SDDC Manager. [GH-92](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/92)
 
 Chore:
 
