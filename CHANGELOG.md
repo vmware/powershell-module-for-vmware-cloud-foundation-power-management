@@ -4,6 +4,10 @@
 
 > Release Date: Not Released
 
+Bugfix:
+
+- Added support to `PowerManagement-ManagmentDomain.ps1` and `PowerManagement-WorkloadDomain.ps1` for vSAN File Services to be excluded from customer virtual machines. [GH-95](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/95)
+
 Enhancement:
 
 - Added check for VMware Aria Operations for Logs deployment and shutdown if it exists. [GH-87](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/87)
