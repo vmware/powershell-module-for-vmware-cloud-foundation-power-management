@@ -134,24 +134,20 @@ Try {
         if (-Not $proceed) {
             Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence stopping script execution."
             Exit
-        }
-        else {
+        } else {
             if (($proceed -match "no") -or ($proceed -match "yes")) {
                 if ($proceed -match "no") {
                     Write-PowerManagementLogMessage -Type WARNING -Message "Stopping script execution because the input is 'No'."
                     Exit
                 }
-            }
-            else {
+            } else {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Pass the right string, either 'Yes' or 'No'."
                 Exit
             }
         }
-
         Write-PowerManagementLogMessage -Type INFO -Message "'$inputFile' is checked for correctness, proceeding with the execution."
     }
-}
-Catch {
+} Catch {
     Debug-CatchWriterForPowerManagement -object $_
 }
 
@@ -167,8 +163,7 @@ Try {
     Write-PowerManagementLogMessage -Type INFO -Message "Script used: $str1"
     Write-PowerManagementLogMessage -Type INFO -Message "Script syntax: $str2"
     if (-Not $null -eq $customerVmMessage) { Write-PowerManagementLogMessage -Type INFO -Message $customerVmMessage}
-}
-Catch {
+} Catch {
     Debug-CatchWriterForPowerManagement -object $_
     Exit
 }
@@ -218,27 +213,36 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 $vcUser = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).username
                 $vcPass = (Get-VCFCredential | Where-Object { $_.accountType -eq "SYSTEM" -and $_.credentialType -eq "SSO" -and $_.resource.resourceId -eq $($workloadDomain.ssoId) }).password
             }
-                # Test if VC is reachable, if it is already stopped, we could not continue with the shutdown sequence in automatic way.
+
+            # Test if the vCenter Server instance is reachable, if it is already stopped, do not continue with the shutdown sequence in automatic way.
             if (-Not (Test-EndpointConnection -server $vcServer.fqdn -Port 443) ) {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Could not connect to $($vcServer.fqdn)! The script could not continue without a connection to the management vCenter Server. "
                 Write-PowerManagementLogMessage -Type ERROR -Message "Please check the current state and resolve the issue or continue with the shutdown operation by following the documentation of VMware Cloud Foundation. Exiting!"
                 Exit
             }
+
             $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
+            
             if ($status -eq $True) {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Currently we are not supporting VMware Tanzu enabled domains. Please try on other workload domains."
                 Exit
             }
+
             if ($vcPass) {
                 $vcPass_encrypted = $vcPass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
-            }
-            else {
+            } else {
                 $vcPass_encrypted = $null
             }
 
             [Array]$allvms = @()
             [Array]$vcfvms = @()
-            [Array]$vcfvms += $server.Split(".")[0]
+            # Checks to see if the server parameter is provided as an IP address or FQDN.
+            if ($server -match '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') {
+                $fqdn = (Get-VCFManager | Select-Object fqdn, ipAddress | Where-Object { $_.ipAddress -eq $server }).fqdn
+                [Array]$vcfvms += $fqdn.Split(".")[0]
+            } else {
+                [Array]$vcfvms += $server.Split(".")[0]
+            }  
 
             [Array]$vcfvms += ($vcServer.fqdn).Split(".")[0]
 
@@ -265,8 +269,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 $Pass = $esxDetails.password
                 if ($Pass) {
                     $Pass_encrypted = $Pass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
-                }
-                else {
+                } else {
                     $Pass_encrypted = $null
                 }
                 $esxi_block["password"] = $Pass_encrypted
@@ -281,8 +284,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             $Pass = (Get-VCFCredential | Where-Object ({ $_.resource.resourceName -eq $nsxtMgrfqdn -and $_.credentialType -eq "API" })).password
             if ($Pass) {
                 $Pass_encrypted = $Pass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
-            }
-            else {
+            } else {
                 $Pass_encrypted = $null
             }
             $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value $Pass
@@ -310,15 +312,13 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             }
             if ($statusOfNsxtClusterVMs -ne 'running') {
                 Write-PowerManagementLogMessage -Type WARNING -Message "NSX Manager VMs have been stopped. NSX Edge VMs will not be handled automatically."
-            }
-            else {
+            } else {
                 Try {
                     Write-PowerManagementLogMessage -Type INFO -Message "NSX Manager VMs are in running state. Trying to fetch information about the NSX Edge VMs..."
                     [Array]$edgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtMgrfqdn -user $nsxMgrVIP.adminUser -pass $nsxMgrVIP.adminPassword -VCfqdn $VcServer.fqdn)
                     $edgenodesstring = $edgeNodes -join ","
                     Write-PowerManagementLogMessage -Type INFO -Message "The NSX Edge VMs are $edgenodesstring."
-                }
-                catch {
+                } catch {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Something went wrong! Cannot fetch NSX Edge nodes information from NSX Manager '$nsxtMgrfqdn'. Exiting!"
                 }
             }
@@ -352,7 +352,6 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 $vcHostPass = (Get-VCFCredential -resourceType ESXI -resourceName $vcHost | Where-Object { $_.accountType -eq "USER" }).password
                 $vcHostPass_encrypted = $vcHostPass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
                 Disconnect-VIServer * -Force -Confirm:$false -WarningAction SilentlyContinue | Out-Null
-
             }
 
             #Backup DRS Automation level settings into JSON file
@@ -381,14 +380,12 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                     Write-PowerManagementLogMessage -Type INFO -Message "ManagementStartupInput.json is created in the $location path."
                     Write-PowerManagementLogMessage -Type INFO -Message "#############################################################"
                     Exit
-                }
-                else {
+                } else {
                     Write-PowerManagementLogMessage -Type ERROR -Message "JSON file is not created. Check for permissions in the $location path"
                     Exit
                 }
             }
-        }
-        else {
+        } else {
             Write-PowerManagementLogMessage -Type ERROR -Message "Cannot obtain an access token from SDDC Manager ($server). Check your credentials."
             Exit
         }
@@ -488,8 +485,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                             [Array]$VMwareToolsNotRunningVMs += $vm
                         }
                     }
-                }
-                else {
+                } else {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to vCenter Server '$($vcServer.fqdn)'. Command returned the following error: '$vcConnectError'."
                 }
             }
@@ -513,8 +509,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Write-PowerManagementLogMessage -Type WARNING -Message "The list of Non VCF management VMs: '$customervms_string'."
                 # Stop Customer VMs with one call to VC:
                 Stop-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $customervms -timeout 300
-            }
-            else {
+            } else {
                 Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state. -shutdownCustomerVm is not passed to the script."
                 Write-PowerManagementLogMessage -Type WARNING -Message "Hence not shutting down management VMs not managed by SDDC Manager: $($customervms_string) ." 
                 Write-PowerManagementLogMessage -Type ERROR -Message "The script cannot proceed unless these VMs are shut down manually or the -shutdownCustomerVm option is present.  Take the necessary action and run the script again."
@@ -595,8 +590,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         #Check the vSAN health before SDDC manager is stopped
         if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
             #Write-PowerManagementLogMessage -Type INFO -Message "vSAN cluster health is good."
-        }
-        else {
+        } else {
             Write-PowerManagementLogMessage -Type WARNING -Message "The vSAN cluster isn't in a healthy state. Check the vSAN cluster status in vCenter Server '$($vcServer.fqdn)'. After you resolve the vSAN health issues, run the script again."
             Write-PowerManagementLogMessage -Type WARNING -Message "If the script has reached ESXi vSAN shutdown previously, this error is expected. Continue the shutdown workflow by following the documentation of VMware Cloud Foundation. "
             Write-PowerManagementLogMessage -Type ERROR -Message "The vSAN cluster isn't in a healthy state. Check the messages above for a solution."
@@ -604,8 +598,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
         if ((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
             #Write-PowerManagementLogMessage -Type INFO -Message "vSAN object resynchronization is successful."
-        }
-        else {
+        } else {
             Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization is running. Stopping the script... Wait until the vSAN object resynchronization is completed and run the script again."
             Exit
         }
@@ -660,8 +653,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         #Testing VSAN health after SDDC manager is stopped
         if ( (Test-VsanHealth -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
             Write-PowerManagementLogMessage -Type INFO -Message "vSAN cluster health is good."
-        }
-        else {
+        } else {
             Write-PowerManagementLogMessage -Type WARNING -Message "The vSAN cluster isn't in a healthy state. Check the vSAN status in vCenter Server '$($vcServer.fqdn)'. After you resolve the vSAN issues, run the script again."
             Write-PowerManagementLogMessage -Type WARNING -Message "If the script has reached ESXi vSAN shutdown previously, this error is expected. Continue by following the documentation of VMware Cloud Foundation. "
             Write-PowerManagementLogMessage -Type ERROR -Message "The vSAN cluster isn't in a healthy state. Check the messages above for a solution."
@@ -669,8 +661,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
         if ((Test-VsanObjectResync -cluster $cluster.name -server $vcServer.fqdn -user $vcUser -pass $vcPass) -eq 0) {
             Write-PowerManagementLogMessage -Type INFO -Message "VSAN object resynchronization is successful."
-        }
-        else {
+        } else {
             Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization is running. Stopping the script. Wait until the vSAN object resynchronization is completed and run the script again."
             Exit
         }
@@ -682,8 +673,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Write-PowerManagementLogMessage -Type WARNING -Message "Some VMs are still in powered-on state."
                 Write-PowerManagementLogMessage -Type WARNING -Message "Cannot proceed until the powered-on VMs are shut down. Shut them down them manually and continue with the shutdown operation by following documentation of VMware Cloud Foundation."
                 Write-PowerManagementLogMessage -Type ERROR -Message "There are running VMs in environment: $($runningVMs). Exiting! "
-            }
-            else {
+            } else {
                 Write-PowerManagementLogMessage -Type INFO -Message "There are no VMs in powered-on state. Hence, shutting down vCenter Server..."
                 # Shutdown vCenter Server
                 Stop-CloudComponent -server $vcHost -user $vcHostUser -pass $vcHostPass -pattern $vcServer.fqdn.Split(".")[0] -timeout 600
@@ -810,8 +800,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         if ($MgmtInput.Server.vchostpassword) {
             $vchostpassword = convertto-securestring -string $MgmtInput.Server.vchostpassword
             $vchostpassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($vchostpassword))))
-        }
-        else {
+        } else {
             $vchostpassword = $null
         }
         $vcHostPass = $vchostpassword
@@ -826,8 +815,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
             if ($esxiHost.password) {
                 $esxpassword = convertto-securestring -string $esxiHost.password
                 $esxpassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($esxpassword))))
-            }
-            else {
+            } else {
                 $esxpassword = $null
             }
             $esxDetails | Add-Member -Type NoteProperty -Name password -Value $esxpassword
@@ -842,8 +830,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         if ($MgmtInput.NsxtManager.password) {
             $nsxpassword = convertto-securestring -string $MgmtInput.NsxtManager.password
             $nsxpassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((($nsxpassword))))
-        }
-        else {
+        } else {
             $nsxpassword = $null
         }
         $nsxMgrVIP | Add-Member -Type NoteProperty -Name adminPassword -Value $nsxpassword
@@ -869,8 +856,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                 if (-Not $proceed) {
                     Write-PowerManagementLogMessage -Type WARNING -Message "None of the options is selected. Default is 'No', hence, stopping script execution..."
                     Exit
-                }
-                else {
+                } else {
                     if (($proceed -match "no") -or ($proceed -match "yes")) {
                         if ($proceed -match "no") {
                             Write-PowerManagementLogMessage -Type WARNING -Message "Stopping script execution because the input is 'No'..."
@@ -899,8 +885,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                             Exit
                         }
                     }
-                }
-                catch {
+                } catch {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it."
                 }
 
@@ -939,8 +924,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                     Exit
                 }
             }
-        }
-        else {
+        } else {
             Write-PowerManagementLogMessage -Type INFO -Message "vCenter Server '$($vcServer.fqdn)' is running. Skipping vSAN startup!"
         }
 
@@ -1005,8 +989,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
             if ([string]::IsNullOrEmpty($DrsAutomationLevel)) {
                 Write-PowerManagementLogMessage -Type ERROR -Message "The DrsAutomationLevel value in the JSON file is empty. Exiting!"
                 Exit
-            }
-            else {
+            } else {
                 Set-DrsAutomationLevel -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name -level $DrsAutomationLevel
             }
         }
@@ -1046,8 +1029,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         # Startup the NSX Edge Nodes in the Management Workload Domain
         if ($nsxtEdgeNodes) {
             Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtEdgeNodes -timeout 600
-        }
-        else {
+        } else {
             Write-PowerManagementLogMessage -Type WARNING -Message "No NSX Edge nodes present. Skipping startup..."
         }
 
