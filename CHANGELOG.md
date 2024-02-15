@@ -8,6 +8,7 @@ Bugfix:
 
 - Added support to `PowerManagement-ManagmentDomain.ps1` and `PowerManagement-WorkloadDomain.ps1` for vSAN File Services to be excluded from customer virtual machines. [GH-95](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/95)
 - Added exit to Tanzu Code in `PowerManagement-WorkloadDomain.ps1`[GH-97](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/97)
+- Added support to `PowerManagement-ManagmentDomain.ps1` and `PowerManagement-WorkloadDomain.ps1` for testing ESXi host connection before SSH connection. [GH-98](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/98)
 
 Enhancement:
 

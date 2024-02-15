@@ -274,23 +274,36 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                                             }
                                             # Checks SSH Status, if SSH service is not started, SSH will be started
                                         if (Test-vSphereAuthentication -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass) {
-                                                if ([float]$vcfVersion -lt [float]4.5) {
-                                                # Disable cluster member updates from vCenter Server
-                                                $esxihosts = (Get-VCFHost | Select-Object fqdn -ExpandProperty cluster | Where-Object { $_.id -eq $clusterid.id }).fqdn
+                                            if ([float]$vcfVersion -lt [float]4.5) {
+                                            # Disable cluster member updates from vCenter Server
+                                            $esxihosts = (Get-VCFHost | Select-Object fqdn -ExpandProperty cluster | Where-Object { $_.id -eq $clusterid.id }).fqdn
                                                 foreach ($esxi in $esxihosts) {
-                                                    $password = (Get-VCFCredential -resourceName $esxi | Select-Object password)
-                                                    $esxihostpassword = $password.password[1]
-                                                    $status = Get-SSHEnabledStatus -server $esxi -user root -pass $esxihostpassword
-                                                    if (!$status) {
-                                                        if (Test-vSphereAuthentication -server $esxi -user root -pass $esxihostpassword) {
-                                                            Get-VmHostService -VMHost $esxi | Where-Object { $_.key -eq "TSM-SSH" } | Start-VMHostService
-                                                            Write-Output "Setting ESXi host $esxi to ignoreClusterMemberListUpdates..."
-                                                            Invoke-EsxCommand -server $esxi -user root -pass $esxihostpassword -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
-                                                        }
+                                                    if (-Not (Test-VsphereConnection -server $esxiNode)) {
+                                                        Write-PowerManagementLogMessage -Type ERROR "ESXi host $esxi is not accessible. Exiting..."
+                                                        Exit
                                                     } else {
-                                                        if (Test-vSphereAuthentication -server $esxi -user root -pass $esxihostpassword) {
-                                                            Write-Output "Setting ESXi host $esxi to ignoreClusterMemberListUpdates..."
-                                                            Invoke-EsxCommand -server $esxi -user root -pass $esxihostpassword -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
+                                                        $password = (Get-VCFCredential -resourceName $esxi | Select-Object password)
+                                                        $esxihostpassword = $password.password[1]
+                                                        $status = Get-SSHEnabledStatus -server $esxi -user root -pass $esxihostpassword
+                                                        if (-Not $status) {
+                                                            if (Test-vSphereAuthentication -server $esxi -user root -pass $esxihostpassword) {
+                                                                Write-PowerManagementLogMessage -Type WARNING "SSH is not enabled on ESXi host $esx. Enabling SSH..."
+                                                                Get-VmHostService -VMHost $esxi | Where-Object { $_.key -eq "TSM-SSH" } | Start-VMHostService
+                                                                Start-Sleep -s 10
+                                                                Write-PowerManagementLogMessage -Type INFO "Setting ESXi host $esxi to ignoreClusterMemberListUpdates..."
+                                                                Invoke-EsxCommand -server $esxi -user root -pass $esxihostpassword -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
+                                                            } else {
+                                                                Write-PowerManagementLogMessage -Type ERROR "Unable to authenticate to ESXi host $esxi. Exiting..."
+                                                                Exit
+                                                            }
+                                                        } else {
+                                                            if (Test-vSphereAuthentication -server $esxi -user root -pass $esxihostpassword) {
+                                                               Write-PowerManagementLogMessage -Type INFO "Setting ESXi host $esxi to ignoreClusterMemberListUpdates..."
+                                                                Invoke-EsxCommand -server $esxi -user root -pass $esxihostpassword -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
+                                                            } else {
+                                                                Write-PowerManagementLogMessage -Type ERROR "Unable to authenticate to ESXi host $esxi. Exiting..."
+                                                                Exit
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -552,15 +565,20 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             # Check if SSH is enabled on the ESXI hosts before proceeding with the shutdown procedure.
             Try {
                 foreach ($esxiNode in $esxiWorkloadDomain) {
-                    $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-                    if (-Not $status) {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it."
+                    if (Test-VsphereConnection -server $esxiNode) {
+                        $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                        if (-Not $status) {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Unable to establish an SSH connection to ESXi host $($esxiNode.fqdn). SSH is not enabled. Exiting..."
+                            Exit
+                        }
+                    } else {
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to ESXi host $($esxiNode.fqdn). Exiting..."
                         Exit
                     }
                 }
-            }
-            catch {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it."
+            } catch {
+                Write-PowerManagementLogMessage -Type ERROR -Message $_.Exception.Message
+                Exit
             }
         } else {
             #Lockdown mode - if enabled on any host, stop the script
@@ -1043,14 +1061,20 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                 #Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
                 Try {
                     foreach ($esxiNode in $esxiWorkloadDomain) {
-                        $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-                        if (-Not $status) {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it."
+                        if (Test-VsphereConnection -server $esxiNode) {
+                            $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                            if (-Not $status) {
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Unable to establish an SSH connection to ESXi host $($esxiNode.fqdn). SSH is not enabled. Exiting..."
+                                Exit
+                            }
+                        } else {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to ESXi host $($esxiNode.fqdn). Exiting..."
                             Exit
                         }
                     }
                 } catch {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it."
+                    Write-PowerManagementLogMessage -Type ERROR -Message $_.Exception.Message
+                    Exit
                 }
 
                 # Take hosts out of maintenance mode
@@ -1221,19 +1245,31 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                                 if (-Not (Test-VsphereConnection -server $esxiNode)) {
                                     Write-PowerManagementLogMessage -Type WARNING "ESXi host $esxiNode is not powered on...."
                                 } else {
-                                    $password = (Get-VCFCredential -resourceName $esxiNode| Select-Object password)
+                                    $password = (Get-VCFCredential -resourceName $esxiNode | Select-Object password)
                                     $esxihostpassword = $password.password[1]
-                                    $status = Get-SSHEnabledStatus -server $esxiNode-user root -pass $esxihostpassword
-                                    if (!$status) {
-                                        if (Test-vSphereAuthentication -server $esxiNode-user root -pass $esxihostpassword) {
-                                            Get-VmHostService -VMHost $esxiNode | Where-Object { $_.key -eq "TSM-SSH" } | Start-VMHostService
-                                            Set-MaintenanceMode -server $esxiNode -user root -pass $esxihostpassword -state DISABLE
+                                    $status = Get-SSHEnabledStatus -server $esxiNode -user root -pass $esxihostpassword
+                                        if (-Not $status) {
+                                            if (Test-vSphereAuthentication -server $esxi -user root -pass $esxihostpassword) {
+                                                Write-PowerManagementLogMessage -Type WARNING "SSH is not enabled on $esxiNode, enabling it now..."
+                                                Get-VmHostService -VMHost $esxiNode | Where-Object { $_.key -eq "TSM-SSH" } | Start-VMHostService
+                                                Start-Sleep -s 10
+                                                Write-PowerManagementLogMessage -Type INFO "Attempting to Set Maintenance Mode on $esxiNode to DISABLE"
+                                                Set-MaintenanceMode -server $esxiNode -user root -pass $esxihostpassword -state DISABLE
+                                                Start-Sleep -s 120
+                                            } else {
+                                                Write-PowerManagementLogMessage -Type ERROR "Unable to authenticate to $esxiNode. Exiting..."
+                                                Exit
+                                            }
+                                        } else {
+                                            if (Test-vSphereAuthentication -server $esxi -user root -pass $esxihostpassword) {
+                                                Write-PowerManagementLogMessage -Type INFO "Attempting to Set Maintenance Mode on $esxiNode to DISABLE"
+                                                Set-MaintenanceMode -server $esxiNode -user root -pass $esxihostpassword -state DISABLE
+                                                Start-Sleep -s 120
+                                            } else {
+                                                Write-PowerManagementLogMessage -Type ERROR "Unable to authenticate to $esxiNode. Exiting..."
+                                                Exit
+                                            }
                                         }
-                                    } else {
-                                        if (Test-vSphereAuthentication -server $esxiNode -user root -pass $esxihostpassword) {
-                                            Set-MaintenanceMode -server $esxiNode -user root -pass $esxihostpassword -state DISABLE
-                                        }
-                                    }
                                 }
                             }
                             Write-PowerManagementLogMessage -Type INFO -Message "Pausing for 30 seconds while hosts come out of maintenance mode..."
