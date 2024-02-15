@@ -466,7 +466,8 @@ Try {
             # Check if Tanzu is enabled in WLD
             $status = Get-TanzuEnabledClusterStatus -server $vcServer.fqdn -user $vcUser -pass $vcPass -cluster $cluster.name
             if ($status -eq $True) {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Currently workload domains with vSphere with Tanzu are not supported. Exiting."
+                Write-PowerManagementLogMessage -Type ERROR -Message "Currently workload domains with vSphere with Tanzu are not supported. Exiting..."
+                Exit
             }
 
             $clustervcfvms = @()
