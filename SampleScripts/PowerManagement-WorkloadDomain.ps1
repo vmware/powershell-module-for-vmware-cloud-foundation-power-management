@@ -443,20 +443,26 @@ Try {
                 # For versions prior VCF 4.5
                 # Check if SSH is enabled on the esxi hosts before proceeding with startup procedure
                 Try {
-                    foreach ($esxiNode in $esxiDetails) {
-                        $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
-                        if (-Not $status) {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn). If SSH is not enabled, follow the steps in the documentation to enable it."
+                    foreach ($esxiNode in $esxiWorkloadDomain) {
+                        if (Test-VsphereConnection -server $esxiNode) {
+                            $status = Get-SSHEnabledStatus -server $esxiNode.fqdn -user $esxiNode.username -pass $esxiNode.password
+                            if (-Not $status) {
+                                Write-PowerManagementLogMessage -Type ERROR -Message "Unable to establish an SSH connection to ESXi host $($esxiNode.fqdn). SSH is not enabled. Exiting..."
+                                Exit
+                            }
+                        } else {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "Unable to connect to ESXi host $($esxiNode.fqdn). Exiting..."
+                            Exit
                         }
                     }
-                }
-                catch {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot open an SSH connection to host $($esxiNode.fqdn), If SSH is not enabled, follow the steps in the documentation to enable it."
+                } catch {
+                    Write-PowerManagementLogMessage -Type ERROR -Message $_.Exception.Message
+                    Exit
                 }
             } else {
                 foreach ($esxiNode in $esxiDetails) {
                     if (!(Test-EndpointConnection -server $esxiNode.fqdn -Port 443)) {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "Cannot communicate with the host $($esxiNode.fqdn). Check the FQDN or IP address, or the power state of '$($esxiNode.fqdn)'."
+                        Write-PowerManagementLogMessage -Type ERROR -Message "Unable to communicate with ESXi host $($esxiNode.fqdn). Check the FQDN or IP address, or the power state. Exiting..."
                         Exit
                     }
                 }
