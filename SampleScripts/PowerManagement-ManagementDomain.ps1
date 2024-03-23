@@ -360,7 +360,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                     }
                 }
             } else {
-                    Write-PowerManagementLogMessage -Type INFO -Message "A single cluister exists in the management domain."
+                    Write-PowerManagementLogMessage -Type INFO -Message "A single cluster exists in the management domain."
             }
     
 
