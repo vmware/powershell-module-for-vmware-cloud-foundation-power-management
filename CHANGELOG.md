@@ -2,7 +2,7 @@
 
 ## v1.4.1
 
-> Release Date: Not Released
+> Release Date: 2024-03-26
 
 Bugfix:
 

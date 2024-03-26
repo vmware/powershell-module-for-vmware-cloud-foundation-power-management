@@ -49,8 +49,8 @@ The following table lists the required PowerShell module dependencies for this m
 
 PowerShell Module                                    | Version   | Publisher    | Reference
 -----------------------------------------------------|-----------|--------------|---------------------------------------------------------------------------
-[VMware.PowerCLI][psgallery-module-powercli]         | >= 13.0.0 | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][developer-module-powercli]
-[PowerVCF][psgallery-module-powervcf]                | >= 2.3.0  | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][docs-module-powervcf]
+[VMware.PowerCLI][psgallery-module-powercli]         | >= 13.1.0 | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][developer-module-powercli]
+[PowerVCF][psgallery-module-powervcf]                | >= 2.4.0  | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][docs-module-powervcf]
 [PoshSSH][psgallery-module-poshssh]                  | >= 3.0.4  | Carlos Perez | :fontawesome-brands-github: &nbsp; [GitHub][github-module-poshssh]
 
 [docs-module-powervcf]: https://vmware.github.io/powershell-module-for-vmware-cloud-foundation
