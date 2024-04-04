@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../favicon.ico">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.15">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
     
     
       
@@ -30,7 +30,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.7e359304.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.bcfcd587.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -615,15 +615,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v141" class="md-nav__link">
-    <span class="md-ellipsis">
-      v1.4.1
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#v140" class="md-nav__link">
     <span class="md-ellipsis">
       v1.4.0
@@ -832,8 +823,6 @@
       
         
       
-        
-      
     
     
       
@@ -853,7 +842,7 @@
             
   
   <span class="md-ellipsis">
-    Functions
+    Cmdlets
   </span>
   
 
@@ -863,7 +852,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_2">
             <span class="md-nav__icon md-icon"></span>
-            Functions
+            Cmdlets
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -1110,27 +1099,6 @@
   
   <span class="md-ellipsis">
     Invoke-EsxCommand
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../documentation/functions/Invoke-VxrailClusterShutdown/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Invoke-VxrailClusterShutdown
   </span>
   
 
@@ -1635,15 +1603,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v141" class="md-nav__link">
-    <span class="md-ellipsis">
-      v1.4.1
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#v140" class="md-nav__link">
     <span class="md-ellipsis">
       v1.4.0
@@ -1711,41 +1670,13 @@
 
 
 <h1 id="release-history">Release History<a class="headerlink" href="#release-history" title="Permanent link">&para;</a></h1>
-<h2 id="v141">v1.4.1<a class="headerlink" href="#v141" title="Permanent link">&para;</a></h2>
-<blockquote>
-<p>Release Date: 2024-03-26</p>
-</blockquote>
-<p>Bugfix:</p>
-<ul>
-<li>Added support to <code>PowerManagement-ManagmentDomain.ps1</code> and <code>PowerManagement-WorkloadDomain.ps1</code> for vSAN File Services to be excluded from customer virtual machines. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/95">GH-95</a></li>
-<li>Added exit to Tanzu Code in <code>PowerManagement-WorkloadDomain.ps1</code><a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/97">GH-97</a></li>
-<li>Added support to <code>PowerManagement-ManagmentDomain.ps1</code> and <code>PowerManagement-WorkloadDomain.ps1</code> for testing ESXi host connection before SSH connection. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/98">GH-98</a></li>
-</ul>
-<p>Enhancement:</p>
-<ul>
-<li>Added check for VMware Aria Operations for Logs deployment and shutdown if it exists. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/87">GH-87</a></li>
-<li>Added check to verify if workload domain vCenter Server instances are still powered on before starting the shutdown of the management domain to <code>PowerManagement-ManagmentDomain.ps1</code>. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/90">GH-90</a></li>
-<li>Added check for virtual machines running on an NSX overlay segment to <code>PowerManagement-ManagmentDomain.ps1</code>. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/86">GH-86</a></li>
-<li>Added support for more than one cluster in management domain for shut down and start up to <code>PowerManagement-ManagmentDomain.ps1</code>. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/93">GH-93</a></li>
-</ul>
-<p>Refactor:</p>
-<ul>
-<li>Replaced the use of <code>Test-NetConnection</code> with <code>Test-EndpointConnection</code> from the PowerShell module dependency <code>PowerValidatedSolutions</code>. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85">GH-85</a></li>
-<li>Updated <code>PowerManagement-ManagmentDomain.ps1</code> to allow for FQDN or IP address of SDDC Manager. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/92">GH-92</a></li>
-</ul>
-<p>Chore:</p>
-<ul>
-<li>Updated <code>PowerVCF</code> from v2.3.0 to v2.4.0. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85">GH-85</a></li>
-<li>Added <code>PowerValidatedSolutions</code> v2.8.0 as a PowerShell module dependency. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/38">GH-38</a></li>
-<li>Updated <code>Write-PowerManagementLogMessage</code> to set color for message types. This will allow for all references to use color based on function. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/89">GH-89</a></li>
-</ul>
 <h2 id="v140">v1.4.0<a class="headerlink" href="#v140" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p>Release Date: 2023-12-05</p>
 </blockquote>
 <p>Enhancement:</p>
 <ul>
-<li>Added support for VMware Cloud Foundation 5.0 on Dell VxRail. <a href="https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/75">GH-75</a></li>
+<li>Added support for VMware Cloud Foundation 5.0 on Dell VxRail.</li>
 </ul>
 <h2 id="v130">v1.3.0<a class="headerlink" href="#v130" title="Permanent link">&para;</a></h2>
 <blockquote>
@@ -1806,6 +1737,21 @@
 
     
     
+    
+      
+  
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Contributors">
+      
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4Z"/></svg>
+      
+    </span>
+    <nav>
+      
+        <a href="mailto:vsowjanya@vmware.com">Sowjanya.V</a>
+    </nav>
+  </span>
+
     
     
   </aside>
@@ -1879,7 +1825,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2005-2024 Broadcom. All Rights Reserved.<br/>
+      Copyright &copy; 2023 Broadcom. All Rights Reserved.<br/>
 The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.<br/><br/>
 
     </div>
@@ -1905,7 +1851,7 @@ The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.<br/><br
     <script id="__config" type="application/json">{"base": "..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.tabs.link", "navigation.expand", "navigation.footer", "navigation.header", "navigation.indexes", "navigation.instant", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.bd41221c.min.js"></script>
+      <script src="../assets/javascripts/bundle.1e8ae164.min.js"></script>
       
         <script src="../js/timeago.min.js"></script>
       
