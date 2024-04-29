@@ -199,7 +199,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                         if (!$isDefault) {
                             $answer = Read-Host -Prompt "Shutdown cluster $clustername_extra. Do you want to continue? Y/N"
                             if ($answer -Match "N") {
-                                Write-PowerManagementLogMessage -Type WARNING "Cancelling shutdown of $clustername. Exiting..."
+                                Write-PowerManagementLogMessage -Type WARNING "Cancelling shutdown of $clustername_extra. Exiting..."
                                 Exit
                             } else {
                                 Write-PowerManagementLogMessage -Type INFO "Shutting down $clustername..."
