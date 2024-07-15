@@ -168,6 +168,10 @@ Try {
     Exit
 }
 
+# Temp workaround for a "$pass" variable reuse in the script
+# TODO - fix usage of "pass" variable in the script
+$sddcManagerPassword = $pass
+
 # Shutdown procedure and json generation
 if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKey("genjson")) {
     Try {
@@ -243,7 +247,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                                                 Write-PowerManagementLogMessage -Type ERROR -Message "vCLS virtual machines were not shut down within the expected time. Exiting... "
                                                 Exit
                                             }
-                                            
+
                                             # Stop vSphere HA to avoid "orphaned" VMs during vSAN shutdown
                                             if (Test-vSphereAuthentication -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass) {
                                                 if (!$(Set-VsphereHA -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass -cluster $clustername -disableHA)) {
@@ -298,7 +302,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                                                             }
                                                         } else {
                                                             if (Test-vSphereAuthentication -server $esxi -user root -pass $esxihostpassword) {
-                                                               Write-PowerManagementLogMessage -Type INFO "Setting ESXi host $esxi to ignoreClusterMemberListUpdates..."
+                                                                Write-PowerManagementLogMessage -Type INFO "Setting ESXi host $esxi to ignoreClusterMemberListUpdates..."
                                                                 Invoke-EsxCommand -server $esxi -user root -pass $esxihostpassword -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 1 /VSAN/IgnoreClusterMemberListUpdates"
                                                             } else {
                                                                 Write-PowerManagementLogMessage -Type ERROR "Unable to authenticate to ESXi host $esxi. Exiting..."
@@ -361,8 +365,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 }
             } else {
                     Write-PowerManagementLogMessage -Type INFO -Message "A single cluster exists in the management domain."
+                    $cluster = Get-VCFCluster | Where-Object { $_.domain.id -eq $workloadDomain.id }
             }
-    
 
             $var = @{}
             $var["Domain"] = @{}
@@ -593,6 +597,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             }
         }
         if (Test-VCFConnection -server $server) {
+            # TODO - remove this temp fix for multiple useage of "$pass"
+            $pass = $sddcManagerPassword
             if (Test-VCFAuthentication -server $server -user $user -pass $pass) {
                 $allWorkloadvCenters = @()
                 $allWorkloadvCenters = (Get-VCFWorkloadDomain | Select-object type -ExpandProperty vcenters | Where-Object { $_.type -eq "VI" }).fqdn
@@ -624,7 +630,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on virtual machines from server $($vcServer.fqdn)..."
         [Array]$allvms = Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -silence
         $customervms = @()
-        
+
         Write-PowerManagementLogMessage -Type INFO -Message "Trying to fetch all powered-on vCLS virtual machines from server $($vcServer.fqdn)..."
         [Array]$vclsvms += Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(^vCLS-\w{8}-\w{4}-\w{4}-\w{4}-\w{12})|(^vCLS\s*\(\d+\))|(^vCLS\s*$)" -silence
         foreach ($vm in $vclsvms) {
@@ -632,10 +638,10 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
 
         Write-PowerManagementLogMessage -Type INFO -Message "Fetching all powered on vSAN File Services virtual machines from vCenter Server instance $($vcenter)..."
-        [Array]$vsanfsvms += Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer -user $vcUser -pass $vcPass -pattern "(vSAN File)" -silence
+        [Array]$vsanfsvms += Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(vSAN File)" -silence
         foreach ($vm in $vsanfsvms) {
             [Array]$vcfvms += $vm
-        } 
+        }
 
         $customervms = $allvms | ? { $vcfvms -notcontains $_ }
         $vcfvms_string = $vcfvms -join "; "
@@ -698,8 +704,10 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Exit
             }
         }
+        # TODO - Make sure that this code could be reached. Add a switch to enable vRLI shutdown
         # Check if VMware Aria Operations for Logs exists in environment, if so it will shutdown the nodes.
         if (Test-VCFConnection -server $server) {
+            # TODO - Fix exception if there is no vRSLCM installed in the environment
             if (Test-VCFAuthentication -server $server -user $user -pass $pass) {
                 if (($vcfVrslcmDetails = Get-vRSLCMServerDetail -fqdn $server -username $user -password $pass)) {
                     if (Test-vRSLCMAuthentication -server $vcfVrslcmDetails.fqdn -user $vcfVrslcmDetails.adminUser -pass $vcfVrslcmDetails.adminPass) {
@@ -721,6 +729,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             }
         }
 
+        # TODO - Find the right spot for this code. Fix may required.
         # Check if there are any running Virtual Machines on the Overlay Networks before shutting down Edge Cluster.
         if ($nsxtEdgeNodes) {
             if (Test-VCFConnection -server $server) {
@@ -1304,7 +1313,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                         if (($vcfVcenterDetails = Get-vCenterServerDetail -server $server -user $user -pass $pass -domain $domain.name)) {
                             if (Test-vSphereAuthentication -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass) {
 
-                                # Start the vSAN cluster wizard. 
+                                # Start the vSAN cluster wizard.
                                 if ([float]$vcfVersion -gt [float]4.5) {
                                     # Lockdown mode check
                                     Test-LockdownMode -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass -cluster $clustername
@@ -1320,11 +1329,11 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                                     Write-PowerManagementLogMessage -Type ERROR -Message "vSAN object resynchronization failed. Check your environment and run the script again."
                                     Exit
                                 }
-                            
+
                                 # Start workflow for VCF prior version 4.5
                                     # Start vSphere HA
                                     if (!$(Set-VsphereHA -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass -cluster $clustername -enableHA)) {
-                                        Write-PowerManagementLogMessage -Type ERROR -Message "Unable to enable vSphere High Availability for cluster '$cluster'. Exiting..."  
+                                        Write-PowerManagementLogMessage -Type ERROR -Message "Unable to enable vSphere High Availability for cluster '$cluster'. Exiting..."
                                         Exit
                                     }
 
@@ -1334,7 +1343,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                                         Exit
                                     } else {
                                         Set-DrsAutomationLevel -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass -cluster $clustername -level $DrsAutomationLevel
-                                    } 
+                                    }
 
                                 # Startup the vSphere Cluster Services Virtual Machines in the Management Workload Domain
                                 Set-Retreatmode -server $vcfVcenterDetails.fqdn -user $vcfVcenterDetails.ssoAdmin -pass $vcfVcenterDetails.ssoAdminPass -cluster $clustername -mode disable
@@ -1362,7 +1371,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
                 }
             }
         }
-                                    
+
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################"
         if ([float]$vcfVersion -lt [float]4.5) {
             Write-PowerManagementLogMessage -Type INFO -Message "vSphere vSphere High Availability has been enabled by the script. Please disable it according to your environment's design."
