@@ -52,15 +52,19 @@
     # Modules that must be imported into the global environment prior to importing this module
     RequiredModules   = @(
         @{
-            ModuleName    = 'Posh-SSH';
+            ModuleName    = 'VMware.PowerCLI'
+            ModuleVersion = '12.5.0'
+        }
+        @{
+            ModuleName    = 'Posh-SSH'
             ModuleVersion = '3.0.8'
         }
         @{
-            ModuleName    = 'PowerVCF';
+            ModuleName    = 'PowerVCF'
             ModuleVersion = '2.4.0'
         }
         @{
-            ModuleName    = 'PowerValidatedSolutions';
+            ModuleName    = 'PowerValidatedSolutions'
             ModuleVersion = '2.8.0'
         }
     )
@@ -84,13 +88,13 @@
     FunctionsToExport = '*'
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-    CmdletsToExport = '*'
+    CmdletsToExport   = '*'
 
     # Variables to export from this module
     VariablesToExport = '*'
 
     # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-    AliasesToExport = @()
+    AliasesToExport   = @()
 
     # DSC resources to export from this module
     # DscResourcesToExport = @()
@@ -102,21 +106,21 @@
     # FileList = @()
 
     # Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.
-    PrivateData = @{
+    PrivateData       = @{
 
         PSData = @{
 
             # Tags applied to this module. These help with module discovery in online galleries.
-            Tags = @('VMware', 'CloudFoundation', 'VMwareCloudFoundation')
+            Tags         = @('VMware', 'CloudFoundation', 'VMwareCloudFoundation')
 
             # A URL to the license for this module.
-            LicenseUri = 'https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/blob/main/LICENSE'
+            LicenseUri   = 'https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/blob/main/LICENSE'
 
             # A URL to the main website for this project.
-            ProjectUri = 'https://vmware.github.io/powershell-module-for-vmware-cloud-foundation-power-management/'
+            ProjectUri   = 'https://vmware.github.io/powershell-module-for-vmware-cloud-foundation-power-management/'
 
             # A URL to an icon representing this module.
-            IconUri = 'https://raw.githubusercontent.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/main/.github/icon-85px.svg'
+            IconUri      = 'https://raw.githubusercontent.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/main/.github/icon-85px.svg'
 
             # ReleaseNotes of this module
             ReleaseNotes = 'https://vmware.github.io/powershell-module-for-vmware-cloud-foundation-power-management/release-notes/'
@@ -140,4 +144,4 @@
     # Default prefix for commands exported from this module. Override the default prefix using Import-Module -Prefix.
     # DefaultCommandPrefix = ''
 
-    }
+}
