@@ -76,8 +76,9 @@ Function Get-Password {
 
 #EndRegion  Non Exported Functions                                  ######
 ##########################################################################
-
-$pass = Get-Password -User $user -Password $pass
+if(($PSBoundParameters.ContainsKey("shutdown") -or $PSBoundParameters.ContainsKey("genJson"))) {
+    $pass = Get-Password -User $user -Password $pass
+}
 
 # Error Handling (script scope function)
 Function Debug-CatchWriterForPowerManagement {
@@ -156,10 +157,6 @@ Try {
     Debug-CatchWriterForPowerManagement -object $_
     Exit
 }
-
-# Temp workaround for a "$pass" variable reuse in the script
-# TODO - fix usage of "pass" variable in the script
-$sddcManagerPassword = $pass
 
 # Shutdown procedure and json generation
 if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKey("genjson")) {
@@ -361,7 +358,6 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
 
             $cluster = Get-VCFCluster | Where-Object { $_.id -eq ($workloadDomain.clusters.id) }
 
-            >>>(bug:Missing command)
             $var = @{}
             $var["Domain"] = @{}
             $var["Domain"]["name"] = $workloadDomain.name
@@ -435,13 +431,13 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 $esxi_block["name"] = $esxDetails.name
                 $esxi_block["fqdn"] = $esxDetails.fqdn
                 $esxi_block["user"] = $esxDetails.username
-                $Pass = $esxDetails.password
-                if ($Pass) {
-                    $PassEncrypted = $Pass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
+                $esxiPass = $esxDetails.password
+                if ($esxiPass) {
+                    $esxiPassEncrypted = $esxiPass | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString
                 } else {
-                    $PassEncrypted = $null
+                    $esxiPassEncrypted = $null
                 }
-                $esxi_block["password"] = $Pass_encrypted
+                $esxi_block["password"] = $esxiPassEncrypted
                 $var["Hosts"] += $esxi_block
             }
 
@@ -458,9 +454,13 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             }
             $nsxtManagerVIP | Add-Member -Type NoteProperty -Name adminPassword -Value $nsxmgrPass
             $nsxtNodesFQDN = $nsxtCluster.nodes.fqdn
+            $nsxtManagerVIP | Add-Member -Type NoteProperty -Name adminPassword -Value $nsxmgrPass
+            $nsxtNodesFQDN = $nsxtCluster.nodes.fqdn
             $nsxtNodes = @()
             foreach ($node in $nsxtNodesFQDN) {
+            foreach ($node in $nsxtNodesFQDN) {
                 [Array]$nsxtNodes += $node.Split(".")[0]
+                [Array]$vcfVMs += $node.Split(".")[0]
                 [Array]$vcfVMs += $node.Split(".")[0]
             }
             $var["NsxtManager"] = @{}
@@ -470,6 +470,7 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             $var["NsxtManager"]["password"] = $nsxtManagerPassEncrypted
 
             # Gather NSX-T Edge Node Details
+            $nsxtManagerPowerOnVMs = 0
             $nsxtManagerPowerOnVMs = 0
             foreach ($nsxtManager in $nsxtNodes) {
                 $state = Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch -silence
@@ -483,12 +484,11 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                 Write-PowerManagementLogMessage -Type WARNING -Message "NSX Manager VMs have been stopped. NSX Edge VMs will not be handled automatically."
             } else {
                 Try {
-                    Write-Output "adminpssword: $nsxtManagerVIP.adminPassword"
                     Write-PowerManagementLogMessage -Type INFO -Message "NSX Manager VMs are in running state. Trying to fetch information about the NSX Edge VMs..."
                     [Array]$edgeNodes = (Get-EdgeNodeFromNSXManager -server $nsxtManagerFQDN -user $nsxtManagerVIP.adminUser -pass $nsxtManagerVIP.adminPassword -VCfqdn $VcServer.fqdn)
                     $edgeNodesToString = $edgeNodes -join ","
                     Write-PowerManagementLogMessage -Type INFO -Message "The NSX Edge VMs are $edgeNodesToString."
-                } Catch {
+                } catch {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Something went wrong! Cannot fetch NSX Edge nodes information from NSX Manager '$nsxtManagerFQDN'. Exiting!"
                 }
             }
@@ -593,8 +593,6 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
 
         if (Test-VCFConnection -server $server) {
-            # TODO - remove this temp fix for multiple useage of "$pass"
-            $pass = $sddcManagerPassword
             if (Test-VCFAuthentication -server $server -user $user -pass $pass) {
                 $allWorkloadvCenters = @()
                 $allWorkloadvCenters = (Get-VCFWorkloadDomain | Select-Object type -ExpandProperty vcenters | Where-Object { $_.type -eq "VI" }).fqdn
@@ -634,8 +632,8 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
         }
 
         Write-PowerManagementLogMessage -Type INFO -Message "Fetching all powered on vSAN File Services virtual machines from vCenter Server instance $($vcenter)..."
-        [Array]$vsanfsvms += Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(vSAN File)" -silence
-        foreach ($vm in $vsanfsvms) {
+        [Array]$vsanFsVMs += Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern "(vSAN File)" -silence
+        foreach ($vm in $vsanFsVMs) {
             [Array]$vcfVMs += $vm
         }
 
@@ -740,9 +738,12 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                                             foreach ($segment in $nsx_segments) {
                                                 $segmentName = $segment.display_name
                                                 $cloudVMs = Get-VM | Get-NetworkAdapter | Where-Object { $_.NetworkName -eq $segmentName } | Select-Object Parent
+                                                $cloudVMs = Get-VM | Get-NetworkAdapter | Where-Object { $_.NetworkName -eq $segmentName } | Select-Object Parent
                                             }
                                             $vmList = $cloudVMs.Parent
+                                            $vmList = $cloudVMs.Parent
                                             $stopExecuted = $false
+                                            foreach ($vm in $vmList) {
                                             foreach ($vm in $vmList) {
                                                 $vmName = $vm.Name
                                                 $powerState = $vm.PowerState
@@ -924,13 +925,14 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
 
                 $counter = 0
                 $sleepTime = 60 # in seconds
-
-                while ($counter -lt 1800) {
+                $maxSecondsToWait = 1800 # 30 minutes
+                #TODO - Add better reporting which hosts are still up
+                while ($counter -lt $maxSecondsToWait) {
                     $successCount = 0
                     #Verify if all ESXi hosts are down in here to conclude End of Shutdown sequence
                     foreach ($esxiNode in $esxiWorkloadDomain) {
                         if (Test-EndpointConnection -server $esxiNode.fqdn -Port 443) {
-                            Write-PowerManagementLogMessage -Type WARNING -Message "Some hosts are still up. Sleeping for 60 seconds before next check..."
+                            Write-PowerManagementLogMessage -Type WARNING -Message "Some hosts are still up. '$($esxiNode.fqdn)' responded. Sleeping for 60 seconds before next check..."
                             break
                         } else {
                             $successCount++
@@ -1206,6 +1208,7 @@ if ($PsBoundParameters.ContainsKey("startup")) {
 
         #Startup the SDDC Manager Virtual Machine in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $sddcmVMName -timeout 600
+        # TODO - Add check for SDDC Manager status
 
         # Startup the NSX Manager Nodes in the Management Workload Domain
         Start-CloudComponent -server $vcServer.fqdn -user $vcUser -pass $vcPass -nodes $nsxtNodes -timeout 600
@@ -1371,10 +1374,10 @@ if ($PsBoundParameters.ContainsKey("startup")) {
         Write-PowerManagementLogMessage -Type INFO -Message "Use the following command to automatically start VMs"
         Write-PowerManagementLogMessage -Type INFO -Message "Start-CloudComponent -server $($vcServer.fqdn) -user $vcUser -pass $vcPass -nodes <comma separated customer vms list> -timeout 600"
         if ([float]$vcfVersion -lt [float]4.5) {
-            Write-PowerManagementLogMessage -Type INFO -Message "If you have enabled SSH for the ESXi hosts in management domain, disable it at this point."
+            Write-PowerManagementLogMessage -Type WARNING -Message "If you have enabled SSH for the ESXi hosts in management domain, disable it at this point."
         }
         if ([float]$vcfVersion -gt [float]4.4) {
-            Write-PowerManagementLogMessage -Type INFO -Message "If you have disabled lockdown mode for the ESXi hosts in management domain, enable it back at this point."
+            Write-PowerManagementLogMessage -Type WARNING -Message "If you have disabled lockdown mode for the ESXi hosts in management domain, enable it back at this point."
         }
         Write-PowerManagementLogMessage -Type INFO -Message "##################################################################################"
         Write-PowerManagementLogMessage -Type INFO -Message "End of the startup sequence!"
