@@ -609,7 +609,7 @@ Function Set-VsanClusterPowerStatus {
         .PARAMETER pass
         The password to authenticate to vCenter Server.
 
-        .PARAMETER clustername
+        .PARAMETER clusterName
         The name of the vSAN cluster on which the power settings are to be applied.
 
         .PARAMETER mgmt
@@ -623,9 +623,9 @@ Function Set-VsanClusterPowerStatus {
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$clustername,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$clusterName,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$mgmt,
-        [Parameter (Mandatory = $true)] [ValidateSet("clusterPoweredOff", "clusterPoweredOn")] [String]$PowerStatus
+        [Parameter (Mandatory = $true)] [ValidateSet("clusterPoweredOff", "clusterPoweredOn")] [String]$powerStatus
     )
 
     $pass = Get-Password -User $user -Password $pass
@@ -650,20 +650,20 @@ Function Set-VsanClusterPowerStatus {
                 $spec = [VMware.Vsan.Views.PerformClusterPowerActionSpec]::new()
 
                 $spec.powerOffReason = "Shutdown through VMware Cloud Foundation script"
-                $spec.targetPowerStatus = $PowerStatus
+                $spec.targetPowerStatus = $powerStatus
 
-                $cluster = Get-Cluster $clustername
+                $cluster = Get-Cluster $clusterName
 
-
+                # TODO - Add check if there is task ID returned
                 $powerActionTask = $vsanClusterPowerSystem.PerformClusterPowerAction($cluster.ExtensionData.MoRef, $spec)
                 $task = Get-Task -Id $powerActionTask
                 $counter = 0
-                $sleepTime = 10 # in seconds
+                $sleepTime = 30 # in seconds
                 if (-Not $mgmt) {
                     do {
                         $task = Get-Task -Id $powerActionTask
                         if (-Not ($task.State -EQ "Error")) {
-                            Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is $($task.PercentComplete)% completed."
+                            Write-PowerManagementLogMessage -Type INFO -Message "$powerStatus task is $($task.PercentComplete)% completed."
                         }
                         Start-Sleep -s $sleepTime
                         $counter += $sleepTime
@@ -671,17 +671,17 @@ Function Set-VsanClusterPowerStatus {
 
                     if ($task.State -EQ "Error") {
                         if ($task.ExtensionData.Info.Error.Fault.FaultMessage -like "VMware.Vim.LocalizableMessage") {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "'$($PowerStatus)' task exited with a localized error message. Go to the vSphere Client for details and to take the necessary actions."
+                            Write-PowerManagementLogMessage -Type ERROR -Message "'$($powerStatus)' task exited with a localized error message. Go to the vSphere Client for details and to take the necessary actions."
                         } else {
-                            Write-PowerManagementLogMessage -Type WARN -Message "'$($PowerStatus)' task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)."
+                            Write-PowerManagementLogMessage -Type WARN -Message "'$($powerStatus)' task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)."
                             Write-PowerManagementLogMessage -Type ERROR -Message "Go to the vSphere Client for details and to take the necessary actions."
                         }
                     }
 
                     if ($task.State -EQ "Success") {
-                        Write-PowerManagementLogMessage -Type INFO -Message "$PowerStatus task is completed successfully."
+                        Write-PowerManagementLogMessage -Type INFO -Message "$powerStatus task is completed successfully."
                     } else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "$PowerStatus task is blocked in $($task.State) state."
+                        Write-PowerManagementLogMessage -Type ERROR -Message "$powerStatus task is blocked in $($task.State) state."
                     }
                 }
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
@@ -1738,7 +1738,7 @@ Function Set-VsphereHA {
                             $retryCount++
                             # Get running tasks
                             Start-Sleep -s 5
-                            $runningTasks = get-task -Status Running
+                            $runningTasks = Get-Task -Status Running
                             if (($runningTasks -match "Update vSAN configuration") -or ($runningTasks -match "Configuring vSphere HA")) {
                                 Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability configuration changes are not applied. Sleeping for $SecondsDelay seconds..."
                                 Start-Sleep -s $SecondsDelay
@@ -1772,7 +1772,7 @@ Function Set-VsphereHA {
                             $retryCount++
                             # Get running tasks
                             Start-Sleep -s 5
-                            $runningTasks = get-task -Status Running
+                            $runningTasks = Get-Task -Status Running
                             if (($runningTasks -match "Update vSAN configuration") -or ($runningTasks -match "Configuring vSphere HA")) {
                                 Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability configuration changes are not applied. Sleeping for $SecondsDelay seconds..."
                                 Start-Sleep -s $SecondsDelay
@@ -2423,10 +2423,13 @@ Function Write-PowerManagementLogMessage {
     } else {
         Write-Host -ForegroundColor $colour " $type $message"
     }
-    $logContent = '[' + $timeStamp + '] ' + $type + ' ' + $message
+
     if ($type -match "ERROR") {
         Write-Error -Message $Message
     }
+
+    $logContent = '[' + $timeStamp + '] ' + $type + ' ' + $message
+    Add-Content -Path $logFile $logContent
 }
 Export-ModuleMember -Function Write-PowerManagementLogMessage
 

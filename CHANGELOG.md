@@ -9,23 +9,26 @@ Bugfix:
 - Added support to `PowerManagement-ManagmentDomain.ps1` and `PowerManagement-WorkloadDomain.ps1` for vSAN File Services to be excluded from customer virtual machines. [GH-95](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/95)
 - Added exit to Tanzu Code in `PowerManagement-WorkloadDomain.ps1`[GH-97](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/97)
 - Added support to `PowerManagement-ManagmentDomain.ps1` and `PowerManagement-WorkloadDomain.ps1` for testing ESXi host connection before SSH connection. [GH-98](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/98)
+- Fix for issue [#101](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/issues/101)[GH-106](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/106)
+- Fix for issue [#104](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/issues/104)[GH-106](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/106)
 
 Enhancement:
 
-- Added check for VMware Aria Operations for Logs deployment and shutdown if it exists. [GH-87](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/87)
 - Added check to verify if workload domain vCenter Server instances are still powered on before starting the shutdown of the management domain to `PowerManagement-ManagmentDomain.ps1`. [GH-90](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/90)
-- Added check for virtual machines running on an NSX overlay segment to `PowerManagement-ManagmentDomain.ps1`. [GH-86](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/86)
-- Added support for more than one cluster in management domain for shut down and start up to `PowerManagement-ManagmentDomain.ps1`. [GH-93](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/93)
+- Various improvements in workflows, log messages, file syntax. [GH-106](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/106) and [GH-107](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/107)
 
 Refactor:
 
 - Replaced the use of `Test-NetConnection` with `Test-EndpointConnection` from the PowerShell module dependency `PowerValidatedSolutions`. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
 - Updated `PowerManagement-ManagmentDomain.ps1` to allow for FQDN or IP address of SDDC Manager. [GH-92](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/92)
+- Removed obsolete and not used code in the sample scripts.
+- Apply common formatting for the files. [GH-107](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/107)
 
 Chore:
 
-- Updated `PowerVCF` from v2.3.0 to v2.4.0. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
+- Updated `PowerVCF` from v2.3.0 to v2.4.1. [GH-108](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/108)
 - Added `PowerValidatedSolutions` v2.8.0 as a PowerShell module dependency. [GH-38](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/38)
+- Updated `PowerValidatedSolutions` from v2.8.0 to 2.11.0. [GH-108](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/108)
 - Updated `Write-PowerManagementLogMessage` to set color for message types. This will allow for all references to use color based on function. [GH-89](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/89)
 
 ## v1.4.0
