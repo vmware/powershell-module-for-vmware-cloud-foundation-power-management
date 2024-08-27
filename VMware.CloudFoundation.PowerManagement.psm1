@@ -654,7 +654,7 @@ Function Set-VsanClusterPowerStatus {
 
                 $cluster = Get-Cluster $clustername
 
-
+                # TODO - Add check if there is task ID returned
                 $powerActionTask = $vsanClusterPowerSystem.PerformClusterPowerAction($cluster.ExtensionData.MoRef, $spec)
                 $task = Get-Task -Id $powerActionTask
                 $counter = 0
@@ -2211,7 +2211,6 @@ Function Get-EdgeNodeFromNSXManager {
             } else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details."
             }
-
         } else {
             Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
         }
@@ -2423,10 +2422,13 @@ Function Write-PowerManagementLogMessage {
     } else {
         Write-Host -ForegroundColor $colour " $type $message"
     }
-    $logContent = '[' + $timeStamp + '] ' + $type + ' ' + $message
+
     if ($type -match "ERROR") {
         Write-Error -Message $Message
     }
+
+    $logContent = '[' + $timeStamp + '] ' + $type + ' ' + $message
+    Add-Content -Path $logFile $logContent
 }
 Export-ModuleMember -Function Write-PowerManagementLogMessage
 
