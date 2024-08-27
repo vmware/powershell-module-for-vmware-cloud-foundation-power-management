@@ -585,6 +585,7 @@ Function Set-DrsAutomationLevel {
 }
 Export-ModuleMember -Function Set-DrsAutomationLevel
 
+
 Function Set-VsanClusterPowerStatus {
     <#
         .SYNOPSIS
@@ -633,58 +634,68 @@ Function Set-VsanClusterPowerStatus {
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsanClusterPowerStatus cmdlet."
         # TODO - Add check for current state of the cluster. Do not run the set command if cluster is already in the desired state.
-        $checkServer = (Test-EndpointConnection -server $server -Port 443)
+        $checkServer = (Test-EndpointConnection -server $server -port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                if ($DefaultVIServer.Name -NE $server) {
+                    Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+                    Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to get the list of virtual machines..."
+                } else {
+                    Write-PowerManagementLogMessage -Type INFO -Message "Already connected to server '$server'."
+                }
+            } else {
+                Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+                Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to get the list of virtual machines..."
             }
-            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -EQ $server) {
+                $clusterStatus = Get-VsanClusterPowerState -Cluster $clusterName
 
-                Import-Module VMware.VimAutomation.Storage
-                $vsanClient = [VMware.VimAutomation.Storage.Interop.V1.Service.StorageServiceFactory]::StorageCoreService.ClientManager.GetClientByConnectionId($DefaultVIServer.Id)
-                $vsanClusterPowerSystem = $vsanClient.VsanViewService.GetVsanViewById("VsanClusterPowerSystem-vsan-cluster-power-system")
-
-                # Populate the needed spec:
-                $spec = [VMware.Vsan.Views.PerformClusterPowerActionSpec]::new()
-
-                $spec.powerOffReason = "Shutdown through VMware Cloud Foundation script"
-                $spec.targetPowerStatus = $powerStatus
-
-                $cluster = Get-Cluster $clusterName
-
-                # TODO - Add check if there is task ID returned
-                $powerActionTask = $vsanClusterPowerSystem.PerformClusterPowerAction($cluster.ExtensionData.MoRef, $spec)
-                $task = Get-Task -Id $powerActionTask
-                $counter = 0
-                $sleepTime = 30 # in seconds
-                if (-Not $mgmt) {
-                    do {
-                        $task = Get-Task -Id $powerActionTask
-                        if (-Not ($task.State -EQ "Error")) {
-                            Write-PowerManagementLogMessage -Type INFO -Message "$powerStatus task is $($task.PercentComplete)% completed."
-                        }
-                        Start-Sleep -s $sleepTime
-                        $counter += $sleepTime
-                    } while ($task.State -EQ "Running" -and ($counter -lt 1800))
-
-                    if ($task.State -EQ "Error") {
-                        if ($task.ExtensionData.Info.Error.Fault.FaultMessage -like "VMware.Vim.LocalizableMessage") {
-                            Write-PowerManagementLogMessage -Type ERROR -Message "'$($powerStatus)' task exited with a localized error message. Go to the vSphere Client for details and to take the necessary actions."
-                        } else {
-                            Write-PowerManagementLogMessage -Type WARN -Message "'$($powerStatus)' task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)."
-                            Write-PowerManagementLogMessage -Type ERROR -Message "Go to the vSphere Client for details and to take the necessary actions."
-                        }
-                    }
-
-                    if ($task.State -EQ "Success") {
-                        Write-PowerManagementLogMessage -Type INFO -Message "$powerStatus task is completed successfully."
+                # Start cluster if it is powered off and not in the process of being powered on
+                if($powerStatus -eq "clusterPoweredOn" -and $clusterStatus -eq "clusterPoweredOff") {
+                    if ($null -ne $clusterStatus.TrackingTask) {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Cluster is already in the process of being powered on."
+                        return
                     } else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "$powerStatus task is blocked in $($task.State) state."
+                        $powerActionReason = "Startup through VMware Cloud Foundation script"
+                        Start-VsanCluster -Cluster $clusterName -PowerOnReason $powerActionReason
                     }
                 }
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+
+                # Stop cluster if it is powered on and not in the process of being powered off
+                if($powerStatus -eq "clusterPoweredOff" -and $clusterStatus -eq "clusterPoweredOn") {
+                    if ($null -ne $clusterStatus.TrackingTask) {
+                        Write-PowerManagementLogMessage -Type INFO -Message "Cluster is already in the process of being powered off."
+                        Write-PowerManagementLogMessage -Type INFO -Message "Current progress is: $($clusterStatus.TrackingTask.PercentComplete)%."
+                        return
+                    } else {
+                        $powerActionReason = "Shutdown through VMware Cloud Foundation script"
+                        Stop-VsanCluster -Cluster $clusterName -PowerOffReason $powerActionReason
+                    }
+                }
+
+                # Monitor power task progress if we are not stopping Management Domain
+                if (-Not $mgmt) {
+                    $clusterStatus = Get-VsanClusterPowerState -Cluster $clusterName
+                    $task = Get-Task -Id $clusterStatus.TrackingTask
+                    $counter = 0
+                    $sleepTime = 30 # in seconds
+                    $timeoutTime = 15 # in minutes
+                    do {
+                        $task = Get-Task -Id $clusterStatus.TrackingTask.Id
+                        if (-Not ($task.State -EQ "Error")) {
+                            Write-PowerManagementLogMessage -Type INFO -Message "The '$($(Get-Task -Id $task.TrackingTask).Name)' task is $($task.PercentComplete)% completed."
+                        }
+                        # TODO - Add Error handling for task failure
+                        Start-Sleep -s $sleepTime
+                        $counter += $sleepTime
+                    } while ($task.State -NE "Success" -and $task.State -NE "Error" -and $counter -lt $timeoutTime * 60)
+                }
+                # Show time out message if task is not completed within the time limit
+                if ($counter -ge $timeoutTime * 60) {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "The $powerStatus task did not complete within the expected timeout of $timeoutTime minutes."
+                }
 
             } else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
@@ -699,6 +710,121 @@ Function Set-VsanClusterPowerStatus {
     }
 }
 Export-ModuleMember -Function Set-VsanClusterPowerStatus
+
+# Function Set-VsanClusterPowerStatus {
+#     <#
+#         .SYNOPSIS
+#         PowerOff or PowerOn the vSAN Cluster
+
+#         .DESCRIPTION
+#         The Set-VsanClusterPowerStatus cmdlet either powers off or powers on a vSAN cluster
+
+#         .EXAMPLE
+#         Set-VsanClusterPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -PowerStatus clusterPoweredOff
+#         This example powers off cluster sfo-m01-cl01
+
+#         Set-VsanClusterPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -PowerStatus clusterPoweredOn
+#         This example powers on cluster sfo-m01-cl01
+
+#         .PARAMETER server
+#         The FQDN of the vCenter Server.
+
+#         .PARAMETER user
+#         The username to authenticate to vCenter Server.
+
+#         .PARAMETER pass
+#         The password to authenticate to vCenter Server.
+
+#         .PARAMETER clusterName
+#         The name of the vSAN cluster on which the power settings are to be applied.
+
+#         .PARAMETER mgmt
+#         The switch used to ignore power settings if management domain information is passed.
+
+#         .PARAMETER PowerStatus
+#         The power state to be set for a given vSAN cluster. The value can be one amongst ("clusterPoweredOff", "clusterPoweredOn").
+#     #>
+
+#     Param (
+#         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+#         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+#         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
+#         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$clusterName,
+#         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$mgmt,
+#         [Parameter (Mandatory = $true)] [ValidateSet("clusterPoweredOff", "clusterPoweredOn")] [String]$powerStatus
+#     )
+
+#     $pass = Get-Password -User $user -Password $pass
+
+#     Try {
+#         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsanClusterPowerStatus cmdlet."
+#         # TODO - Add check for current state of the cluster. Do not run the set command if cluster is already in the desired state.
+#         $checkServer = (Test-EndpointConnection -server $server -Port 443)
+#         if ($checkServer) {
+#             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+#             if ($DefaultVIServers) {
+#                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+#             }
+#             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+#             if ($DefaultVIServer.Name -EQ $server) {
+
+#                 Import-Module VMware.VimAutomation.Storage
+#                 $vsanClient = [VMware.VimAutomation.Storage.Interop.V1.Service.StorageServiceFactory]::StorageCoreService.ClientManager.GetClientByConnectionId($DefaultVIServer.Id)
+#                 $vsanClusterPowerSystem = $vsanClient.VsanViewService.GetVsanViewById("VsanClusterPowerSystem-vsan-cluster-power-system")
+
+#                 # Populate the needed spec:
+#                 $spec = [VMware.Vsan.Views.PerformClusterPowerActionSpec]::new()
+
+#                 $spec.powerOffReason = "Shutdown through VMware Cloud Foundation script"
+#                 $spec.targetPowerStatus = $powerStatus
+
+#                 $cluster = Get-Cluster $clusterName
+
+#                 # TODO - Add check if there is task ID returned
+#                 $powerActionTask = $vsanClusterPowerSystem.PerformClusterPowerAction($cluster.ExtensionData.MoRef, $spec)
+#                 $task = Get-Task -Id $powerActionTask
+#                 $counter = 0
+#                 $sleepTime = 30 # in seconds
+#                 if (-Not $mgmt) {
+#                     do {
+#                         $task = Get-Task -Id $powerActionTask
+#                         if (-Not ($task.State -EQ "Error")) {
+#                             Write-PowerManagementLogMessage -Type INFO -Message "$powerStatus task is $($task.PercentComplete)% completed."
+#                         }
+#                         Start-Sleep -s $sleepTime
+#                         $counter += $sleepTime
+#                     } while ($task.State -EQ "Running" -and ($counter -lt 1800))
+
+#                     if ($task.State -EQ "Error") {
+#                         if ($task.ExtensionData.Info.Error.Fault.FaultMessage -like "VMware.Vim.LocalizableMessage") {
+#                             Write-PowerManagementLogMessage -Type ERROR -Message "'$($powerStatus)' task exited with a localized error message. Go to the vSphere Client for details and to take the necessary actions."
+#                         } else {
+#                             Write-PowerManagementLogMessage -Type WARN -Message "'$($powerStatus)' task exited with the Message:$($task.ExtensionData.Info.Error.Fault.FaultMessage) and Error: $($task.ExtensionData.Info.Error)."
+#                             Write-PowerManagementLogMessage -Type ERROR -Message "Go to the vSphere Client for details and to take the necessary actions."
+#                         }
+#                     }
+
+#                     if ($task.State -EQ "Success") {
+#                         Write-PowerManagementLogMessage -Type INFO -Message "$powerStatus task is completed successfully."
+#                     } else {
+#                         Write-PowerManagementLogMessage -Type ERROR -Message "$powerStatus task is blocked in $($task.State) state."
+#                     }
+#                 }
+#                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+
+#             } else {
+#                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
+#             }
+#         } else {
+#             Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
+#         }
+#     } Catch {
+#         Debug-CatchWriterForPowerManagement -object $_
+#     } Finally {
+#         Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-VsanClusterPowerStatus cmdlet."
+#     }
+# }
+# Export-ModuleMember -Function Set-VsanClusterPowerStatus
 
 Function Invoke-VxrailClusterShutdown {
     <#
@@ -1417,11 +1543,18 @@ Function Get-VMsWithPowerStatus {
         if ($checkServer) {
             if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..." }
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
-            }
-            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-            if ($DefaultVIServer.Name -EQ $server) {
+                if ($DefaultVIServer.Name -NE $server) {
+                    Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+                    if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to get the list of virtual machines..." }
+                } else {
+                    if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Already connected to server '$server'." }
+                }
+            } else {
+                Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
                 if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to get the list of virtual machines..." }
+            }
+            if ($DefaultVIServer.Name -EQ $server) {
                 if ($pattern) {
                     if ($PSBoundParameters.ContainsKey('exactMatch') ) {
                         $noOfVMs = get-vm -Server $server | Where-Object Name -EQ $pattern | Where-Object PowerState -EQ $powerState
@@ -1437,7 +1570,7 @@ Function Get-VMsWithPowerStatus {
                     $noOfVMsString = $noOfVMs -join ","
                     if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "The virtual machines in the $powerState state are: $noOfVMsString" }
                 }
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                # Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
                 Return $noOfVMs
             } else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
