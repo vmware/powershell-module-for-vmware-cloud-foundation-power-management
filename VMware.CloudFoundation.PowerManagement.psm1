@@ -632,7 +632,7 @@ Function Set-VsanClusterPowerStatus {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsanClusterPowerStatus cmdlet."
-
+        # TODO - Add check for current state of the cluster. Do not run the set command if cluster is already in the desired state.
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
@@ -1261,6 +1261,7 @@ Function Test-VsanHealth {
                         }
                         $healthCheckResults += $healthCheckGroupResult
                     }
+                    Write-Host "Health Check Results: $healthCheckResults"
                     if ($health_status -EQ 'GREEN' -and $results.OverallHealth -ne 'red') {
                         Write-PowerManagementLogMessage -Type INFO -Message "The vSAN health status for $cluster is good."
                         return 0
