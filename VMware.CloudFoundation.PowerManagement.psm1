@@ -110,7 +110,7 @@ Function Stop-CloudComponent {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Stop-CloudComponent cmdlet."
-        $checkServer = (Test-EndpointConnection -server $server -Port 443)
+        $checkServer = (Test-EndpointConnection -server $server -port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
@@ -119,8 +119,8 @@ Function Stop-CloudComponent {
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -EQ $server) {
                 if ($PSCmdlet.ParameterSetName -EQ "Node") {
-                    $nodes_string = $nodes -join "; "
                     Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to shut down nodes '$nodes_string'..."
+                    $nodes_string = $nodes -join "; "
                     if ($nodes.Count -ne 0) {
                         foreach ($node in $nodes) {
                             $count = 0
@@ -156,7 +156,6 @@ Function Stop-CloudComponent {
                 }
 
                 if ($PSCmdlet.ParameterSetName -EQ "Pattern") {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to shut down nodes with pattern '$pattern'..."
                     if ($pattern) {
                         $patternNodes = Get-VM -Server $server | Where-Object Name -Match $pattern | Select-Object Name, PowerState, VMHost | Where-Object VMHost -Match $server
                     } else {
@@ -632,81 +631,115 @@ Function Set-VsanClusterPowerStatus {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Set-VsanClusterPowerStatus cmdlet."
-        # TODO - Add check for current state of the cluster. Do not run the set command if cluster is already in the desired state.
+        Write-PowerManagementLogMessage -Type INFO -Message "[$clusterName] Starting the call to the Set-VsanClusterPowerStatus cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -port 443)
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
-            if ($DefaultVIServers) {
-                if ($DefaultVIServer.Name -NE $server) {
-                    Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
-                    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-                    Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to get the list of virtual machines..."
-                } else {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Already connected to server '$server'."
-                }
+            Write-PowerManagementLogMessage -Type INFO -Message "[$clusterName] Connecting to '$server'..."
+            if ($DefaultVIServer.Name -notcontains $server -or $DefaultVIServer.IsConnected -eq $false) {
+                Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
+                Connect-VIServer -Server $server -Protocol https -User $user -Password $pass -ErrorVariable $vcConnectError | Out-Null
             } else {
-                Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-                Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to get the list of virtual machines..."
+                Write-PowerManagementLogMessage -Type DEBUG -Message "[$cluster] Already connected to server '$server'."
             }
             if ($DefaultVIServer.Name -EQ $server) {
-                $clusterStatus = Get-VsanClusterPowerState -Cluster $clusterName
+                Write-PowerManagementLogMessage -Type INFO -Message "[$clusterName] Connected to server '$server' and setting the power status for cluster '$clusterName' to '$powerStatus'..."
+                $clusterStatus = Get-VsanClusterPowerState -Cluster $clusterName -Server $server
 
                 # Start cluster if it is powered off and not in the process of being powered on
-                if($powerStatus -eq "clusterPoweredOn" -and $clusterStatus -eq "clusterPoweredOff") {
-                    if ($null -ne $clusterStatus.TrackingTask) {
-                        Write-PowerManagementLogMessage -Type INFO -Message "Cluster is already in the process of being powered on."
-                        return
+                if ($powerStatus -eq "clusterPoweredOn") {
+                    if ($null -eq $clusterStatus.TrackingTask) {
+                        if ($clusterStatus.CurrentClusterPowerStatus -eq "clusterPoweredOn") {
+                            Write-PowerManagementLogMessage -Type INFO -Message "[$clusterName] Cluster is already powered on. Skipping the operation."
+                            return
+                        } else {
+                            $powerActionReason = "Startup through VMware Cloud Foundation script."
+                            try {
+                                Write-PowerManagementLogMessage -Type INFO -Message "[$clusterName] Starting cluster '$clusterName'..."
+                                Start-VsanCluster -Cluster $clusterName -PowerOnReason $powerActionReason -Server $server -ErrorAction Stop | Out-Null
+                            } catch {
+                                $errorMessage = $_.Exception.Message
+                                return $errorMessage
+                            }
+                        }
                     } else {
-                        $powerActionReason = "Startup through VMware Cloud Foundation script"
-                        Start-VsanCluster -Cluster $clusterName -PowerOnReason $powerActionReason
+                        Write-PowerManagementLogMessage -Type WARNING -Message "[$clusterName] There is an active power operation in progress. Skipping cluster '$clusterName'."
+                        return "There is an active power operation in progress. Skipping cluster '$clusterName'."
                     }
                 }
 
                 # Stop cluster if it is powered on and not in the process of being powered off
-                if($powerStatus -eq "clusterPoweredOff" -and $clusterStatus -eq "clusterPoweredOn") {
-                    if ($null -ne $clusterStatus.TrackingTask) {
-                        Write-PowerManagementLogMessage -Type INFO -Message "Cluster is already in the process of being powered off."
-                        Write-PowerManagementLogMessage -Type INFO -Message "Current progress is: $($clusterStatus.TrackingTask.PercentComplete)%."
-                        return
+                if ($powerStatus -eq "clusterPoweredOff") {
+                    if ($null -eq $clusterStatus.TrackingTask) {
+                        if ($clusterStatus.CurrentClusterPowerStatus -eq "clusterPoweredOff") {
+                            Write-PowerManagementLogMessage -Type INFO -Message "[$clusterName] Cluster is already powered off. Skipping the operation."
+                            return
+                        } else {
+                            $powerActionReason = "Shutdown through VMware Cloud Foundation script."
+                            try {
+                                Write-PowerManagementLogMessage -Type DEBUG -Message "[$clusterName] Stopping cluster '$clusterName'..."
+                                Stop-VsanCluster -Cluster $clusterName -PowerOffReason $powerActionReason -Server $server -ErrorAction Stop | Out-Null
+                            } catch {
+                                $errorMessage = $_.Exception.Message
+                                return $errorMessage
+                            }
+                        }
                     } else {
-                        $powerActionReason = "Shutdown through VMware Cloud Foundation script"
-                        Stop-VsanCluster -Cluster $clusterName -PowerOffReason $powerActionReason
+                        Write-PowerManagementLogMessage -Type WARNING -Message "[$clusterName] There is an active power operation in progress. Skipping cluster '$clusterName'."
+                        return "There is an active power operation in progress. Skipping cluster '$clusterName'."
                     }
                 }
 
                 # Monitor power task progress if we are not stopping Management Domain
                 if (-Not $mgmt) {
-                    $clusterStatus = Get-VsanClusterPowerState -Cluster $clusterName
-                    $task = Get-Task -Id $clusterStatus.TrackingTask
+                    $clusterStatus = Get-VsanClusterPowerState -Cluster $clusterName -Server $server
+                    if ($null -eq $clusterStatus.TrackingTask) {
+                        Write-PowerManagementLogMessage -Type WARNING -Message "[$clusterName] No task found for the power operation."
+                        return
+                    } else {
+                        Write-PowerManagementLogMessage -Type DEBUG -Message "[$clusterName] Monitoring task '$($clusterStatus.TrackingTask)' for the power operation."
+                    }
+                    $task = Get-Task -Id $clusterStatus.TrackingTask -Server $server
+                    $oldProgress = $($task.PercentComplete)
                     $counter = 0
                     $sleepTime = 30 # in seconds
                     $timeoutTime = 15 # in minutes
                     do {
-                        $task = Get-Task -Id $clusterStatus.TrackingTask.Id
-                        if (-Not ($task.State -EQ "Error")) {
-                            Write-PowerManagementLogMessage -Type INFO -Message "The '$($(Get-Task -Id $task.TrackingTask).Name)' task is $($task.PercentComplete)% completed."
+                        # Make sure we are still connected to the server
+                        if ($DefaultVIServer.Name -notcontains $server -or $DefaultVIServer.IsConnected -eq $false) {
+                            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
+                            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass -ErrorVariable $vcConnectError | Out-Null
                         }
-                        # TODO - Add Error handling for task failure
+                        $task = Get-Task -Id $clusterStatus.TrackingTask -Server $server
+                        if (-Not ($task.State -EQ "Error")) {
+                            if ($counter -eq 0) { Write-PowerManagementLogMessage -Type INFO -Message "[$clusterName] The '$($task.Name)' task for cluster '$clusterName' is $($task.PercentComplete)% completed." }
+                            if ($oldProgress -ne $($task.PercentComplete)) {
+                                Write-PowerManagementLogMessage -Type INFO -Message "[$clusterName] The '$($task.Name)' task for cluster '$clusterName' is $($task.PercentComplete)% completed."
+                                $oldProgress = $($task.PercentComplete)
+                            } else {
+                                Write-PowerManagementLogMessage -Type DEBUG -Message "[$clusterName] The '$($task.Name)' task for cluster '$clusterName' is still $($task.PercentComplete)% completed."
+                            }
+                        } else {
+                            Write-PowerManagementLogMessage -Type ERROR -Message "[$clusterName] The task '$($task.Name)' failed with error '$((Get-VsanClusterPowerState -Cluster $clusterName).LastErrorMessage)'."
+                            break
+                        }
                         Start-Sleep -s $sleepTime
                         $counter += $sleepTime
                     } while ($task.State -NE "Success" -and $task.State -NE "Error" -and $counter -lt $timeoutTime * 60)
                 }
                 # Show time out message if task is not completed within the time limit
                 if ($counter -ge $timeoutTime * 60) {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "The $powerStatus task did not complete within the expected timeout of $timeoutTime minutes."
+                    Write-PowerManagementLogMessage -Type ERROR -Message "[$clusterName] The $powerStatus task did not complete within the expected timeout of $timeoutTime minutes."
                 }
-
             } else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
+                Write-PowerManagementLogMessage -Type ERROR -Message "[$clusterName] Cannot connect to server '$server'. Check your environment and try again."
             }
         } else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
+            Write-PowerManagementLogMessage -Type ERROR -Message "[$clusterName] Connection to '$server' has failed. Check your environment and try again"
         }
     } Catch {
         Debug-CatchWriterForPowerManagement -object $_
     } Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Set-VsanClusterPowerStatus cmdlet."
+        Write-PowerManagementLogMessage -Type INFO -Message "[$clusterName] Completed the call to the Set-VsanClusterPowerStatus cmdlet."
     }
 }
 Export-ModuleMember -Function Set-VsanClusterPowerStatus
@@ -967,17 +1000,17 @@ Function Get-poweronVMsOnRemoteDS {
                 $TotalvSANDatastores = @()
                 $RemotevSANdatastores = @()
                 $TotalvSANDatastores = (Get-Cluster -Name $clusterToCheck | Get-Datastore | Where-Object { $_.Type -EQ "vSAN" }).Name
-                $RemotevSANdatastores = ((get-vsanClusterConfiguration -Cluster $clusterToCheck).RemoteDatastore).Name
+                $RemotevSANdatastores = ((Get-VsanClusterConfiguration -Cluster $clusterToCheck).RemoteDatastore).Name
                 $LocalvSANDatastores = $TotalvSANDatastores | Where-Object { $_ -notin $RemotevSANdatastores }
                 [Array]$PoweredOnVMs = @()
                 foreach ($localds in $LocalvSANDatastores) {
                     foreach ($cluster in (Get-Cluster).Name) {
                         if ($cluster -ne $clusterToCheck ) {
-                            $MountedvSANdatastores = ((get-vsanClusterConfiguration -Cluster $cluster).RemoteDatastore).Name
+                            $MountedvSANdatastores = ((Get-VsanClusterConfiguration -Cluster $cluster).RemoteDatastore).Name
                             foreach ($datastore in $MountedvSANdatastores) {
                                 if ($datastore -EQ $localds) {
                                     $datastoreID = Get-Datastore $datastore | ForEach-Object { $_.ExtensionData.MoRef }
-                                    $vms = (Get-Cluster -name $cluster | get-vm | Where-Object { $_.PowerState -EQ "PoweredOn" }) | Where-Object { $vm = $_; $datastoreID | Where-Object { $vm.DatastoreIdList -contains $_ } }
+                                    $vms = (Get-Cluster -Name $cluster | Get-VM | Where-Object { $_.PowerState -EQ "PoweredOn" }) | Where-Object { $vm = $_; $datastoreID | Where-Object { $vm.DatastoreIdList -contains $_ } }
                                     if ($vms) {
                                         Write-PowerManagementLogMessage -Type INFO -Message "Remote VMs with names $vms are running on cluster '$cluster' and datastore '$datastore.' `n"
                                         [Array]$PoweredOnVMs += $vms
@@ -1037,60 +1070,140 @@ Function Test-LockdownMode {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-LockdownMode cmdlet."
+        Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Starting the call to the Test-LockdownMode cmdlet."
 
-        $checkServer = (Test-EndpointConnection -server $server -Port 443)
+        $checkServer = (Test-EndpointConnection -server $server -port 443)
         if ($checkServer) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                if ($DefaultVIServers.Name -notcontains $server) {
+                    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+                } else {
+                    Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Already connected to server '$server'."
+                }
+            } else {
+                Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             }
-            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-            if ($DefaultVIServer.Name -EQ $server) {
+            if ($DefaultVIServers.Name -contains $server) {
                 $hostsInCluster = @()
-                $hostsInCluster = Get-Cluster -Name $cluster | Get-VMHost
+                $hostsInCluster = Get-Cluster -Server $server -Name $cluster | Get-VMHost
                 $hostsWithLockdown = ""
                 if ($hostsInCluster.count -ne 0) {
                     foreach ($esxiHost in $hostsInCluster) {
-                        Write-PowerManagementLogMessage -Type INFO -Message "Checking lockdown mode for $esxiHost ...."
-                        $lockdownStatus = (Get-VMHost -Name $esxiHost).ExtensionData.Config.LockdownMode
+                        Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Checking lockdown mode for $esxiHost ...."
+                        $lockdownStatus = (Get-VMHost -Server $server -Name $esxiHost).ExtensionData.Config.LockdownMode
                         if ($lockdownStatus -EQ $null) {
-                            $checkServer = (Test-EndpointConnection -server $esxiHost -Port 443)
+                            $checkServer = (Test-EndpointConnection -server $esxiHost -port 443)
                             if ($checkServer) {
-                                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot fetch information about lockdown mode for ESXi host $esxiHost!"
+                                Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Cannot fetch information about lockdown mode for ESXi host $esxiHost!"
                             } else {
-                                Write-PowerManagementLogMessage -Type WARNING -Message "Cannot fetch information about lockdown mode. Host $esxiHost is not reachable."
-                                Write-PowerManagementLogMessage -Type ERROR -Message "Check the status on the ESXi host $esxiHost!"
+                                Write-PowerManagementLogMessage -Type WARNING -Message "[$cluster] Cannot fetch information about lockdown mode. Host $esxiHost is not reachable."
+                                Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Check the status on the ESXi host $esxiHost!"
                             }
                         } else {
                             if ($lockdownStatus -ne "lockdownDisabled") {
-                                Write-PowerManagementLogMessage -Type WARNING -Message "Lockdown mode is enabled for ESXi host $esxiHost"
+                                Write-PowerManagementLogMessage -Type WARNING -Message "[$cluster] Lockdown mode is enabled for ESXi host $esxiHost"
                                 $hostsWithLockdown += ", $esxiHost"
                             }
                         }
                     }
                 } else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cluster $cluster is not present on server $server. Check the input to the cmdlet."
+                    Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Cluster $cluster is not present on server $server. Check the input to the cmdlet."
                 }
                 if ([string]::IsNullOrEmpty($hostsWithLockdown)) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "Cluster $cluster does not have ESXi hosts in lockdown mode."
+                    Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] he following ESXi hosts are in lockdown mode: $hostsWithLockdown. Disable lockdown mode to continue."
+                    Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Cluster $cluster does not have ESXi hosts in lockdown mode."
                 } else {
-                    Write-PowerManagementLogMessage -Type INFO -Message "The following ESXi hosts are in lockdown mode: $hostsWithLockdown. Disable lockdown mode to continue."
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Some hosts are in lockdown mode. Disable lockdown mode to continue."
+                    Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Some hosts are in lockdown mode. Disable lockdown mode to continue."
                 }
             } else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
+                Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Cannot connect to server '$server'. Check your environment and try again."
             }
         } else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again."
+            Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Connection to '$server' has failed. Check your environment and try again."
         }
     } Catch {
         Debug-CatchWriterForPowerManagement -object $_
     } Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Test-LockdownMode cmdlet."
+        Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Completed the call to the Test-LockdownMode cmdlet."
     }
 }
 Export-ModuleMember -Function Test-LockdownMode
+
+Function Get-PoweredOnHostsInCluster {
+    <#
+        .SYNOPSIS
+        Check if some of the ESXi hosts in the specified cluster are not connected.
+
+        .DESCRIPTION
+        The Get-PoweredOnHostsInCluster cmdlet returns an error if an ESXi host in the cluster is not communicating with the vCenter.
+
+        .EXAMPLE
+        Get-PoweredOnHostsInCluster -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -Pass VMw@re1! -cluster sfo-m01-cl01
+        This example checks if some of the ESXi hosts in the cluster sfo-m01-cl01 does not communicate with vCenter.
+
+        .PARAMETER server
+        The FQDN of the vCenter Server.
+
+        .PARAMETER user
+        The username to authenticate to vCenter Server.
+
+        .PARAMETER pass
+        The password to authenticate to vCenter Server.
+
+        .PARAMETER cluster
+        The name of the cluster to be checked.
+    #>
+
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$server,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$user,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$pass,
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$cluster
+    )
+
+    $pass = Get-Password -User $user -Password $pass
+
+    Try {
+        Write-PowerManagementLogMessage -Type DEBUG -Message "[$cluster] Starting the call to the Get-PoweredOnHostsInCluster cmdlet."
+
+        $checkServer = (Test-EndpointConnection -server $server -port 443)
+        if ($checkServer) {
+            Write-PowerManagementLogMessage -Type DEBUG -Message "[$cluster] Connecting to '$server'..."
+            if ($DefaultVIServers) {
+                if ($DefaultVIServers.Name -notcontains $server) {
+                    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+                } else {
+                    Write-PowerManagementLogMessage -Type DEBUG -Message "[$cluster] Already connected to server '$server'."
+                }
+            } else {
+                Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+            }
+            if ($DefaultVIServers.Name -contains $server) {
+                Write-PowerManagementLogMessage -Type DEBUG -Message "[$cluster] Connected to server '$server' and attempting to get the list of virtual machines..."
+                # Get list of all ESXi hosts in the cluster and return the ones that are powerdOn
+                $hostsInCluster = @()
+                $hostsInCluster = Get-Cluster -Server $server -Name $cluster | Get-VMHost
+                $poweredOnHosts = @()
+                if ($hostsInCluster.count -ne 0) {
+                    $poweredOnHosts = $hostsInCluster | Where-Object { $_.PowerState -eq "PoweredOn" }
+                    return $poweredOnHosts
+                } else {
+                    Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Could not find any ESXi hosts in '$cluster' on server '$server'. Check the input to the cmdlet."
+                }
+            } else {
+                Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Cannot connect to server '$server'. Check your environment and try again."
+            }
+        } else {
+            Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Connection to '$server' has failed. Check your environment and try again."
+        }
+    } Catch {
+        Debug-CatchWriterForPowerManagement -object $_
+    } Finally {
+        Write-PowerManagementLogMessage -Type DEBUG -Message "[$cluster] Completed the call to the Get-PoweredOnHostsInCluster cmdlet."
+    }
+}
+Export-ModuleMember -Function Get-PoweredOnHostsInCluster
 
 Function Get-VMRunningStatus {
     <#
@@ -1146,7 +1259,7 @@ Function Get-VMRunningStatus {
                     Write-PowerManagementLogMessage -Type ERROR -Message "Cannot find nodes matching pattern '$pattern' in the inventory of host '$server'."
                 } else {
                     foreach ($node in $nodes) {
-                        $vmObject = Get-VMGuest -server $server -VM $node.Name -ErrorAction SilentlyContinue | Where-Object VmUid -Match $server
+                        $vmObject = Get-VMGuest -Server $server -VM $node.Name -ErrorAction SilentlyContinue | Where-Object VmUid -Match $server
                         if ($vmObject.State -EQ $status) {
                             Write-PowerManagementLogMessage -Type INFO -Message "Node $($node.Name) is in '$($status.ToUpper()) state.'"
                             return $true
@@ -1218,7 +1331,7 @@ Function Invoke-EsxCommand {
         $session = New-SSHSession -ComputerName $server -Credential $Cred -Force -WarningAction SilentlyContinue
         if ($session) {
             Write-PowerManagementLogMessage -Type INFO -Message "Attempting to run command '$cmd' on server '$server'..."
-            $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd -Timeout 900
+            $commandOutput = Invoke-SSHCommand -Index $session.SessionId -Command $cmd -TimeOut 900
             if ($expected ) {
                 if (($commandOutput.Output -match $expected)) {
                     Write-PowerManagementLogMessage -Type INFO -Message "Command '$cmd' completed with  expected output on server '$server'."
@@ -1334,38 +1447,44 @@ Function Test-VsanHealth {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-VsanHealth cmdlet."
+        Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Starting the call to the Test-VsanHealth cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Connecting to '$server'..."
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                if ($DefaultVIServers.Name -notcontains $server) {
+                    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+                } else {
+                    Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Already connected to server '$server'."
+                }
+            } else {
+                Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -EQ $server) {
-                Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the vSAN cluster health..."
+                Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Connected to server '$server' and attempting to check the vSAN cluster health..."
                 $count = 1
                 $flag = 0
                 While ($count -lt 5) {
                     Try {
                         $Error.clear()
-                        Get-vSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system" -erroraction stop | Out-Null
+                        Get-VsanView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system" -ErrorAction stop | Out-Null
                         if (-Not $Error) {
                             $flag = 1
                             Break
                         }
                     } Catch {
-                        Write-PowerManagementLogMessage -Type INFO -Message "The vSAN health service is yet to come up, please wait ..."
+                        Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] The vSAN health service is yet to come up, please wait ..."
                         Start-Sleep -s 60
                         $count += 1
                     }
                 }
 
                 if (-Not $flag) {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Cannot run the Test-VsanHealth cmdlet because the vSAN health service is not running."
+                    Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Cannot run the Test-VsanHealth cmdlet because the vSAN health service is not running."
                 } else {
                     Start-Sleep -s 60
-                    $vchs = Get-VSANView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
+                    $vchs = Get-VsanView -Server $server -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
                     $cluster_view = (Get-Cluster -Name $cluster).ExtensionData.MoRef
                     $results = $vchs.VsanQueryVcClusterHealthSummary($cluster_view, $null, $null, $true, $null, $null, 'defaultView')
                     $healthCheckGroups = $results.groups
@@ -1387,26 +1506,25 @@ Function Test-VsanHealth {
                         }
                         $healthCheckResults += $healthCheckGroupResult
                     }
-                    Write-Host "Health Check Results: $healthCheckResults"
                     if ($health_status -EQ 'GREEN' -and $results.OverallHealth -ne 'red') {
-                        Write-PowerManagementLogMessage -Type INFO -Message "The vSAN health status for $cluster is good."
+                        Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] The vSAN health status for $cluster is good."
                         return 0
                     } else {
-                        Write-PowerManagementLogMessage -Type ERROR -Message "The vSAN health status for $cluster is bad."
+                        Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] The vSAN health status for $cluster is bad."
                         return 1
                     }
-                    Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                    #Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
                 }
             } else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
+                Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Cannot connect to server '$server'. Check your environment and try again."
             }
         } else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
+            Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Connection to '$server' has failed. Check your environment and try again"
         }
     } Catch {
         Debug-CatchWriterForPowerManagement -object $_
     } Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Test-VsanHealth cmdlet."
+        Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Completed the call to the Test-VsanHealth cmdlet."
     }
 }
 Export-ModuleMember -Function Test-VsanHealth
@@ -1446,36 +1564,41 @@ Function Test-VsanObjectResync {
     $pass = Get-Password -User $user -Password $pass
 
     Try {
-        Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Test-VsanObjectResync cmdlet."
+        Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Starting the call to the Test-VsanObjectResync cmdlet."
         $checkServer = (Test-EndpointConnection -server $server -Port 443)
         if ($checkServer) {
-            Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
+            Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Connecting to '$server'..."
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                if ($DefaultVIServers.Name -notcontains $server) {
+                    Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+                } else {
+                    Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Already connected to server '$server'."
+                }
+            } else {
+                Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             }
-            Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-            if ($DefaultVIServer.Name -EQ $server) {
-                Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to check the resynchronization status... "
-                $noResyncingObjects = Get-VsanResyncingComponent -Server $server -cluster $cluster -ErrorAction Ignore
-                Write-PowerManagementLogMessage -Type INFO -Message "Number of resynchronizing objects: $noResyncingObjects."
+            if ($DefaultVIServer.Name -contains $server) {
+                Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Connected to server '$server' and attempting to check the resynchronization status... "
+                $noResyncingObjects = Get-VsanResyncingComponent -Server $server -Cluster $cluster -ErrorAction Ignore
+                Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Number of resynchronizing objects: $noResyncingObjects."
                 if ($noResyncingObjects.count -EQ 0) {
-                    Write-PowerManagementLogMessage -Type INFO -Message "No resynchronizing objects."
+                    Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] No resynchronizing objects."
                     return 0
                 } else {
-                    Write-PowerManagementLogMessage -Type ERROR -Message "Resynchronizing objects in progress..."
+                    Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Resynchronizing objects in progress..."
                     return 1
                 }
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                # Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
             } else {
-                Write-PowerManagementLogMessage -Type ERROR -Message "Cannot connect to server '$server'. Check your environment and try again."
+                Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Cannot connect to server '$server'. Check your environment and try again."
             }
         } else {
-            Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check your environment and try again"
+            Write-PowerManagementLogMessage -Type ERROR -Message "[$cluster] Connection to '$server' has failed. Check your environment and try again"
         }
     } Catch {
         Debug-CatchWriterForPowerManagement -object $_
     } Finally {
-        Write-PowerManagementLogMessage -Type INFO -Message "Completed the call to the Test-VsanObjectResync cmdlet."
+        Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Completed the call to the Test-VsanObjectResync cmdlet."
     }
 }
 Export-ModuleMember -Function Test-VsanObjectResync
@@ -1543,26 +1666,26 @@ Function Get-VMsWithPowerStatus {
         if ($checkServer) {
             if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..." }
             if ($DefaultVIServers) {
-                if ($DefaultVIServer.Name -NE $server) {
-                    Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                if ($DefaultVIServers.Name -notcontains $server) {
+                    #Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
                     Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-                    if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to get the list of virtual machines..." }
                 } else {
                     if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Already connected to server '$server'." }
                 }
             } else {
                 Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
-                if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to get the list of virtual machines..." }
             }
-            if ($DefaultVIServer.Name -EQ $server) {
+            if ($DefaultVIServers.Name -contains $server) {
+                Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
+                if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server' and attempting to get the list of virtual machines..." }
                 if ($pattern) {
                     if ($PSBoundParameters.ContainsKey('exactMatch') ) {
-                        $noOfVMs = get-vm -Server $server | Where-Object Name -EQ $pattern | Where-Object PowerState -EQ $powerState
+                        $noOfVMs = Get-VM -Server $server | Where-Object Name -EQ $pattern | Where-Object PowerState -EQ $powerState
                     } else {
-                        $noOfVMs = get-vm -Server $server | Where-Object Name -Match $pattern | Where-Object PowerState -EQ $powerState
+                        $noOfVMs = Get-VM -Server $server | Where-Object Name -Match $pattern | Where-Object PowerState -EQ $powerState
                     }
                 } else {
-                    $noOfVMs = get-vm -Server $server | Where-Object PowerState -EQ $powerState
+                    $noOfVMs = Get-VM -Server $server | Where-Object PowerState -EQ $powerState
                 }
                 if ($noOfVMs.count -EQ 0) {
                     if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "No virtual machines in the $powerState state." }
@@ -1857,7 +1980,7 @@ Function Set-VsphereHA {
                 $SecondsDelay = 10
                 $Retries = 60
                 if ($enableHA) {
-                    if ($(get-cluster -Name $cluster).HAEnabled) {
+                    if ($(Get-Cluster -Name $cluster).HAEnabled) {
                         Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability is already enabled on the vSAN cluster. "
                         return $true
                     } else {
@@ -1879,7 +2002,7 @@ Function Set-VsphereHA {
                                 continue
                             } else {
                                 $completed = $true
-                                if ($(get-cluster -Name $cluster).HAEnabled) {
+                                if ($(Get-Cluster -Name $cluster).HAEnabled) {
                                     Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability for cluster '$cluster' changed to 'Enabled'."
                                     return $true
                                 } else {
@@ -1891,7 +2014,7 @@ Function Set-VsphereHA {
                     }
                 }
                 if ($disableHA) {
-                    if (!$(get-cluster -Name $cluster).HAEnabled) {
+                    if (!$(Get-Cluster -Name $cluster).HAEnabled) {
                         Write-PowerManagementLogMessage -Type INFO -Message "vSphere High Availability is already disabled on the vSAN cluster. "
                         return $true
                     } else {
@@ -1913,7 +2036,7 @@ Function Set-VsphereHA {
                                 continue
                             } else {
                                 $completed = $true
-                                if (!$(get-cluster -Name $cluster).HAEnabled) {
+                                if (!$(Get-Cluster -Name $cluster).HAEnabled) {
                                     Write-PowerManagementLogMessage -Type INFO -Message "Disabled vSphere High Availability for cluster '$cluster'."
                                     return $true
                                 } else {
@@ -2156,21 +2279,21 @@ Function Get-VMToClusterMapping {
         if ($checkServer) {
             if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..." }
             if ($DefaultVIServers) {
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                #Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
             }
             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -EQ $server) {
                 if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..." }
                 foreach ($clus in $cluster) {
                     if ($powerState) {
-                        $VMs += get-vm -location $clus | Where-Object { (Get-VM -location $folder) -contains $_ } | Where-Object PowerState -EQ $powerState
+                        $VMs += Get-VM -Location $clus | Where-Object { (Get-VM -Location $folder) -contains $_ } | Where-Object PowerState -EQ $powerState
                     } else {
-                        $VMs += get-vm -location $clus | Where-Object { (Get-VM -location $folder) -contains $_ }
+                        $VMs += Get-VM -Location $clus | Where-Object { (Get-VM -Location $folder) -contains $_ }
                     }
                 }
                 $clustersstring = $cluster -join ","
                 if (-Not $silence) { Write-PowerManagementLogMessage -Type INFO -Message "The list of VMs on cluster $clustersstring is $VMs" }
-                Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                #Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
                 return $VMs
 
             } else {
@@ -2316,17 +2439,23 @@ Function Get-EdgeNodeFromNSXManager {
         if ( Test-EndpointConnection -server $server -Port 443 ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultNSXTServers) {
-                Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                if ($DefaultNsxTServers.Name -ne $server -or $DefaultNSXTServers.IsConnected -eq $false) {
+                    Disconnect-NsxtServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                    Connect-NsxtServer -Server $server -User $user -Password $pass | Out-Null
+                } else {
+                    Write-PowerManagementLogMessage -Type INFO -Message "Already connected to server '$server'..."
+                }
+            } else {
+                Connect-NsxtServer -Server $server -User $user -Password $pass | Out-Null
             }
-            Connect-NsxTServer -server $server -user $user -password $pass | Out-Null
             $edge_nodes_list = @()
             if ($DefaultNsxTServers.Name -EQ $server) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..."
                 #get transport nodes info
-                $transport_nodes_var = Get-NSXtService com.vmware.nsx.transport_nodes
+                $transport_nodes_var = Get-NsxtService com.vmware.nsx.transport_nodes
                 $transport_nodes_list = $transport_nodes_var.list().results
                 #get compute managers info
-                $compute_manager_var = Get-NsXtService com.vmware.nsx.fabric.compute_managers
+                $compute_manager_var = Get-NsxtService com.vmware.nsx.fabric.compute_managers
                 $compute_manager_list = $compute_manager_var.list().results
                 foreach ($compute_resource in $compute_manager_list) {
                     if ($compute_resource.display_name -match $VCfqdn) {
@@ -2340,7 +2469,7 @@ Function Get-EdgeNodeFromNSXManager {
                         }
                     }
                 }
-                Disconnect-NSXTServer * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                # Disconnect-NsxtServer * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
                 return $edge_nodes_list
             } else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details."
@@ -2389,18 +2518,24 @@ Function Get-NSXTComputeManagers {
 
     Try {
         Write-PowerManagementLogMessage -Type INFO -Message "Starting the call to the Get-NSXTComputeManagers cmdlet."
-        if ( Test-EndpointConnection -server $server -Port 443 ) {
+        if ( Test-EndpointConnection -server $server -port 443 ) {
             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server'..."
             if ($DefaultNSXTServers) {
-                Disconnect-NSXTServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                if ($DefaultNsxTServers.Name -ne $server -or $DefaultNSXTServers.IsConnected -eq $false) {
+                    Disconnect-NsxtServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                    Connect-NsxtServer -Server $server -User $user -Password $pass | Out-Null
+                } else {
+                    Write-PowerManagementLogMessage -Type INFO -Message "Already connected to server '$server'..."
+                }
+            } else {
+                Connect-NsxtServer -Server $server -User $user -Password $pass | Out-Null
             }
-            Connect-NsxTServer -server $server -user $user -password $pass | Out-Null
             if ($DefaultNsxTServers.Name -EQ $server) {
                 Write-PowerManagementLogMessage -Type INFO -Message "Connected to server '$server'..."
                 # Get compute managers info
-                $compute_manager_var = Get-NsXtService com.vmware.nsx.fabric.compute_managers
+                $compute_manager_var = Get-NsxtService com.vmware.nsx.fabric.compute_managers
                 $compute_manager_list = $compute_manager_var.list().results.server
-                Disconnect-NSXTServer * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+                # Disconnect-NsxtServer * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
                 return $compute_manager_list
             } else {
                 Write-PowerManagementLogMessage -Type ERROR -Message "Connection to '$server' has failed. Check the console output for more details."
@@ -2457,9 +2592,9 @@ Function Get-TanzuEnabledClusterStatus {
             if ($DefaultVIServers) {
                 Disconnect-VIServer -Server * -Force -Confirm:$false -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
             }
-            Connect-VIServer -server $server -user $user -password $pass | Out-Null
+            Connect-VIServer -Server $server -User $user -Password $pass | Out-Null
             if ($DefaultVIServer.Name -EQ $server) {
-                $out = get-wmcluster -cluster $cluster -server $server -ErrorVariable ErrorMsg -ErrorAction SilentlyContinue
+                $out = Get-WMCluster -Cluster $cluster -Server $server -ErrorVariable ErrorMsg -ErrorAction SilentlyContinue
                 if ($out.count -gt 0) {
                     Write-PowerManagementLogMessage -Type INFO -Message "vSphere with Tanzu is enabled."
                     return $True
@@ -2523,7 +2658,7 @@ Function Write-PowerManagementLogMessage {
     #>
     Param (
         [Parameter (Mandatory = $true)] [AllowEmptyString()] [String]$Message,
-        [Parameter (Mandatory = $false)] [ValidateSet("INFO", "ERROR", "WARNING", "EXCEPTION")] [String]$Type,
+        [Parameter (Mandatory = $false)] [ValidateSet("INFO", "ERROR", "WARNING", "EXCEPTION", "DEBUG")] [String]$Type,
         [Parameter (Mandatory = $false)] [String]$Colour,
         [Parameter (Mandatory = $false)] [String]$SkipnewLine
     )
@@ -2543,6 +2678,9 @@ Function Write-PowerManagementLogMessage {
             "EXCEPTION" {
                 $colour = "Magenta"
             }
+            "DEBUG" {
+                $colour = "Cyan"
+            }
             default {
                 $colour = "White"
             }
@@ -2551,6 +2689,21 @@ Function Write-PowerManagementLogMessage {
 
     $timeStamp = Get-Date -Format "MM-dd-yyyy_HH:mm:ss"
 
+    # Log debug messages but do not print them on the console if the debug flag is not set
+    if ($type -match "DEBUG") {
+        if ($Debug) {
+            Write-Host -NoNewline -ForegroundColor White " [$timeStamp]"
+            if ($skipNewLine) {
+                Write-Host -NoNewline -ForegroundColor $colour " $type $message"
+            } else {
+                Write-Host -ForegroundColor $colour " $type $message"
+            }
+        }
+        $logContent = '[' + $timeStamp + '] ' + $type + ' ' + $message
+        Add-Content -Path $logFile $logContent
+        return
+    }
+
     Write-Host -NoNewline -ForegroundColor White " [$timeStamp]"
     if ($skipNewLine) {
         Write-Host -NoNewline -ForegroundColor $colour " $type $message"
@@ -2558,12 +2711,14 @@ Function Write-PowerManagementLogMessage {
         Write-Host -ForegroundColor $colour " $type $message"
     }
 
-    if ($type -match "ERROR") {
-        Write-Error -Message $Message
-    }
-
     $logContent = '[' + $timeStamp + '] ' + $type + ' ' + $message
     Add-Content -Path $logFile $logContent
+
+    if ($type -match "ERROR") {
+        $erroLogFile = $logFile -replace '.log$', '_Error.log'
+        Add-Content -Path $erroLogFile $logContent
+        Write-Error -Message $Message
+    }
 }
 Export-ModuleMember -Function Write-PowerManagementLogMessage
 
