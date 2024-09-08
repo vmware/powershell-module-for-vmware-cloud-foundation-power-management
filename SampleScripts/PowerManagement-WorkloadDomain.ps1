@@ -474,7 +474,7 @@ Try {
                 # All clusters shutdown starts here
                 $($clustersToStop.Name) | ForEach-Object -ThrottleLimit $simultaneousClustersPowerOperation -Parallel {
                     # Put random sleep to avoid collisions during vCenter connection and log writing.
-                    Start-Sleep -Seconds $(Get-Random -Minimum 1 -Maximum 30)
+                    Start-Sleep -Seconds $(Get-Random -Minimum 1 -Maximum 60)
 
                     $cluster = $_
                     $esxiWorkloadCluster = $USING:esxiWorkloadCluster
@@ -924,7 +924,7 @@ Try {
             $clustersToStart = $clusterDetails | Where-Object { $ClusterStatusMapping[$_.name] -eq 'DOWN' }
             $($clustersToStart.name) | ForEach-Object -ThrottleLimit $simultaneousClustersPowerOperation -Parallel {
                 #Set-PowerCLIConfiguration -Scope Session -DefaultVIServerMode Single -Confirm:$false | Out-Null
-                Start-Sleep -Seconds $(Get-Random -Minimum 1 -Maximum 30)
+                Start-Sleep -Seconds $(Get-Random -Minimum 1 -Maximum 60)
                 $cluster = $_
                 $esxiWorkloadCluster = $USING:esxiWorkloadCluster
                 $vcServer = $USING:vcServer
@@ -932,8 +932,6 @@ Try {
                 $vcPass = $USING:vcPass
                 $timeoutForESXiConnection = $USING:timeoutForESXiConnection
                 $logFile = $USING:logFile
-
-                $logFile = $logLocation + "\PowerManagement_" + $cluster + ".log"
 
                 $esxiDetails = $($esxiWorkloadCluster[$cluster])
                 # Wait till all ESXi hosts are connected to the vCenter Server
@@ -1082,7 +1080,7 @@ Try {
         }
 
         $($clusterDetails.name) | ForEach-Object -ThrottleLimit $simultaneousClustersPowerOperation -Parallel {
-            Start-Sleep -Seconds $(Get-Random -Minimum 1 -Maximum 30)
+            Start-Sleep -Seconds $(Get-Random -Minimum 1 -Maximum 60)
             $cluster = $_
             $esxiWorkloadCluster = $USING:esxiWorkloadCluster
             $vcServer = $USING:vcServer
