@@ -698,7 +698,7 @@ Function Set-VsanClusterPowerStatus {
                     } else {
                         Write-PowerManagementLogMessage -Type DEBUG -Message "[$clusterName] Monitoring task '$($clusterStatus.TrackingTask)' for the power operation."
                     }
-                    $task = Get-Task -Id $clusterStatus.TrackingTask -Server $server
+                    $task = Get-Task -Id $clusterStatus.TrackingTask -Server $server -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
                     $oldProgress = $($task.PercentComplete)
                     $counter = 0
                     $sleepTime = 30 # in seconds
@@ -709,7 +709,7 @@ Function Set-VsanClusterPowerStatus {
                             Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$server' ..."
                             Connect-VIServer -Server $server -Protocol https -User $user -Password $pass -ErrorVariable $vcConnectError | Out-Null
                         }
-                        $task = Get-Task -Id $clusterStatus.TrackingTask -Server $server
+                        $task = Get-Task -Id $clusterStatus.TrackingTask -Server $server -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
                         if (-Not ($task.State -EQ "Error")) {
                             if ($counter -eq 0) { Write-PowerManagementLogMessage -Type INFO -Message "[$clusterName] The '$($task.Name)' task for cluster '$clusterName' is $($task.PercentComplete)% completed." }
                             if ($oldProgress -ne $($task.PercentComplete)) {

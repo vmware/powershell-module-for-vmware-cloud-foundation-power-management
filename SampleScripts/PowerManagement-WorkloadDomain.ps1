@@ -30,7 +30,11 @@
 
     .EXAMPLE
     PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -Startup
-    Initiates the startup of all clusters in the the Virtual Infrastructure Workload Domain 'sfo-w01'
+    Initiates the startup of all clusters in the the Virtual Infrastructure Workload Domain 'sfo-w01', excluding the clusters in ERROR state
+
+    .EXAMPLE
+    PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -Startup -forceRunOnClustersInErrorState
+    Initiates the startup of all clusters in the the Virtual Infrastructure Workload Domain 'sfo-w01', including the clusters in ERROR state
 
     .EXAMPLE
     PowerManagement-WorkloadDomain.ps1 -server sfo-vcf01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -sddcDomain sfo-w01 -vsanCluster cluster1, cluster2 -Startup
@@ -46,6 +50,8 @@ Param (
     [Parameter (Mandatory = $false, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [String]$pass,
     [Parameter (Mandatory = $true, ParameterSetName = "startup")]
     [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [String]$sddcDomain,
+    [Parameter (Mandatory = $false, ParameterSetName = "startup")]
+    [Parameter (Mandatory = $true, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [Switch]$forceRunOnClustersInErrorState,
     [Parameter (Mandatory = $false, ParameterSetName = "startup")]
     [Parameter (Mandatory = $false, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [Array]$vsanCluster,
     [Parameter (Mandatory = $false, ParameterSetName = "shutdown")] [ValidateNotNullOrEmpty()] [Switch]$shutdownCustomerVm,
@@ -470,6 +476,11 @@ Try {
                 if ($clustersToStop.count -eq 0) {
                     Write-PowerManagementLogMessage -Type ERROR -Message "There are no suitable clusters to stop. Check above messages for more details. Exiting..."
                 }
+                # Handle case if forceRunOnClustersInErrorState is passed
+                if ($PSBoundParameters.ContainsKey("forceRunOnClustersInErrorState")) {
+                    Write-PowerManagementLogMessage -type WARNING -Message "Attempting to stop clusters in error state as well."
+                    $clustersToStop = $clusterDetails | Where-Object { $ClusterStatusMapping[$_.name] -eq 'UP' -or $ClusterStatusMapping[$_.name] -eq 'ERROR' }
+                }
 
                 # All clusters shutdown starts here
                 $($clustersToStop.Name) | ForEach-Object -ThrottleLimit $simultaneousClustersPowerOperation -Parallel {
@@ -534,8 +545,6 @@ Try {
                     Write-PowerManagementLogMessage -Type INFO -Message "Connecting to '$($vcServer.fqdn)' ..."
                     Connect-VIServer -Server $vcServer.fqdn -Protocol https -User $vcUser -Password $vcPass -ErrorVariable $vcConnectError | Out-Null
                 }
-                Write-Host "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-                $clusterDetails
 
                 foreach ($cluster in $clusterDetails.Name) {
                     $clusterPowerStatus = Get-VsanClusterPowerState -Cluster $cluster -Server $vcServer.fqdn
@@ -549,6 +558,7 @@ Try {
         } else {
             #### Shutdown sequence for specific clusters - Under Development ###
             Write-PowerManagementLogMessage -Type ERROR -Message "This feature is under development. Do not provide individual clusters to shutdown all clusters in the VI domain."
+            EXIT
             $clustersCount = $sddcClusterDetails.count
             $DownCount = 0
             $lastElement = $false
@@ -675,7 +685,6 @@ Try {
                 } else {
                     Write-PowerManagementLogMessage -Type WARNING -Message "'$($vcServer.fqdn)' might already be shut down. Skipping shutdown of $nsxtEdgeNodes..."
                 }
-
 
                 ## Shutdown the NSX Manager Nodes
                 # Get info if NSX Manager is spanned across workloads
@@ -894,7 +903,8 @@ Try {
 
         # Start ESXi hosts here
         $timeoutForESXiConnection = 900 # 15 minutes
-        .\StartServers.ps1
+        # TODO - Add switch for this functionality
+        #.\StartServers.ps1
 
         # TODO - Get clusters status after vCenter Server and ESXi hosts are started
         # Check if there are clusters in error state
@@ -922,6 +932,12 @@ Try {
         } else {
             # Start Clusters provided to the script that are in powerOff state
             $clustersToStart = $clusterDetails | Where-Object { $ClusterStatusMapping[$_.name] -eq 'DOWN' }
+            # Handle case if forceRunOnClustersInErrorState is passed
+            if ($PSBoundParameters.ContainsKey("forceRunOnClustersInErrorState")) {
+                Write-PowerManagementLogMessage -Type WARNING -Message "Attempting to start clusters in error state as well."
+                $clustersToStart = $clusterDetails | Where-Object { $ClusterStatusMapping[$_.name] -eq 'DOWN' -or $ClusterStatusMapping[$_.name] -eq 'ERROR' }
+            }
+
             $($clustersToStart.name) | ForEach-Object -ThrottleLimit $simultaneousClustersPowerOperation -Parallel {
                 #Set-PowerCLIConfiguration -Scope Session -DefaultVIServerMode Single -Confirm:$false | Out-Null
                 Start-Sleep -Seconds $(Get-Random -Minimum 1 -Maximum 60)
@@ -947,9 +963,9 @@ Try {
                         Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Waiting for all ESXi hosts to be connected to the vCenter Server. Sleeping for $sleepTime seconds before next check..."
                         Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Connected hosts: $($connectedHosts.count) out of $($esxiDetails.count)."
                         if ($connectedHosts.count -ne 0) {
-                            Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Connected ESXi hosts: '$($connectedHosts.name -join ';')'."
-                            $notConnectedESXiHosts = $esxiDetails | Where-Object { $connectedHosts -notcontains $_ }
-                            Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Not connected ESXi hosts: '$($notConnectedESXiHosts.name -join ';')'."
+                            Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Connected ESXi hosts: '$($connectedHosts.name -join '; ')'."
+                            $notConnectedESXiHosts = $esxiDetails.fqdn | Where-Object { $connectedHosts.name -notContains $_ }
+                            Write-PowerManagementLogMessage -Type INFO -Message "[$cluster] Not connected ESXi hosts: '$($notConnectedESXiHosts -join '; ')'."
                         }
                         Start-Sleep -s $sleepTime
                         $counter += $sleepTime
