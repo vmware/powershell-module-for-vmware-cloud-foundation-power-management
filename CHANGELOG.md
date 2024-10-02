@@ -1,8 +1,8 @@
 # Release History
 
-## v1.4.1
+## v1.5.0
 
-> Release Date: Unreleased
+> Release Date: 2024-10-02
 
 Bugfix:
 

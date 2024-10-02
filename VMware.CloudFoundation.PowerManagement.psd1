@@ -11,7 +11,7 @@
     RootModule        = 'VMware.CloudFoundation.PowerManagement.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '1.4.1.1011'
+    ModuleVersion     = '1.5.0.1000'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -31,8 +31,8 @@
     # Description of the functionality provided by this module
     Description       = 'PowerShell Module for VMware Cloud Foundation Power Management'
 
-    # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion = '7.4.0'
+    # Minimum version of the PowerShell engine required by this module
+    PowerShellVersion = '7.2.0'
 
     # Name of the Windows PowerShell host required by this module
     # PowerShellHostName = ''
