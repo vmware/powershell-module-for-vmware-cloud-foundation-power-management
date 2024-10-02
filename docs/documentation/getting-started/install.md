@@ -46,8 +46,8 @@ Verify that your system has a [supported edition and version](./../index.md#powe
 
         Prerequisite for module install on Linux Machine
 
-        ```bash
-        --8<-- "./docs/snippets/pre-req-linux.sh"
+        ```powershell
+        --8<-- "./docs/snippets/pre-req-linux.ps1"
         ```
 
         From a system with an Internet connection, save the module dependencies from the PowerShell Gallery by running the following commands in the PowerShell console:
@@ -56,12 +56,17 @@ Verify that your system has a [supported edition and version](./../index.md#powe
         --8<-- "./docs/snippets/save-module-local-linux.ps1"
         ```
 
-        From the system with an Internet connection, copy the module dependencies to a target system by running the following commands in the PowerShell console:
+        From the system with an Internet connection, copy the `OfflineModules.tar.gz` archive to a target system's directory:
 
         ```bash
         --8<-- "./docs/snippets/copy-module-local-linux.sh"
         ```
 
+        On the target system, extract the archive uploaded in the previous step by running the following commands:
+
+        ```bash
+        --8<-- "./docs/snippets/extract-module-local-linux.sh"
+        ```
         On the target system, import the module dependencies by running the following commands in the PowerShell console:
 
         ```powershell

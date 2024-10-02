@@ -1,1 +1,1 @@
-scp -r /home/modules/* username@remote_host:/home/lab/.local/share/powershell/Modules/
+~/.local/share/powershell/Modules/

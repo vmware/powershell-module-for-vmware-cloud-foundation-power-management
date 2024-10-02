@@ -49,15 +49,18 @@ The following table lists the required PowerShell module dependencies for this m
 
 PowerShell Module                                    | Version   | Publisher    | Reference
 -----------------------------------------------------|-----------|--------------|---------------------------------------------------------------------------
-[VMware.PowerCLI][psgallery-module-powercli]         | >= 13.1.0 | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][developer-module-powercli]
-[PowerVCF][psgallery-module-powervcf]                | >= 2.4.0  | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][docs-module-powervcf]
-[PoshSSH][psgallery-module-poshssh]                  | >= 3.0.4  | Carlos Perez | :fontawesome-brands-github: &nbsp; [GitHub][github-module-poshssh]
+[VMware.PowerCLI][psgallery-module-powercli]         | >= 13.3.0 | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][developer-module-powercli]
+[PowerVCF][psgallery-module-powervcf]                | >= 2.4.1  | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][docs-module-powervcf]
+[PowerValidatedSolutions][psgallery-module-pvs]      | >= 2.11.0 | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][docs-module-pvs]
+[PoshSSH][psgallery-module-poshssh]                  | >= 3.0.8  | Carlos Perez | :fontawesome-brands-github: &nbsp; [GitHub][github-module-poshssh]
 
 [docs-module-powervcf]: https://vmware.github.io/powershell-module-for-vmware-cloud-foundation
 [docs-vmware-cloud-foundation]: https://docs.vmware.com/en/VMware-Cloud-Foundation/index.html
+[docs-module-pvs]: https://vmware.github.io/power-validated-solutions-for-cloud-foundation/
 [microsoft-powershell]: https://docs.microsoft.com/en-us/powershell
 [psgallery-module-powercli]: https://www.powershellgallery.com/packages/VMware.PowerCLI
 [psgallery-module-powervcf]: https://www.powershellgallery.com/packages/PowerVCF
+[psgallery-module-pvs]: https://www.powershellgallery.com/packages/PowerValidatedSolutions
 [psgallery-module-power-management]: https://www.powershellgallery.com/packages/VMware.CloudFoundation.PowerManagement
 [psgallery-module-poshssh]: https://www.powershellgallery.com/packages/Posh-SSH
 [developer-module-powercli]: https://developer.vmware.com/tool/vmware-powercli
