@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Returns the vSphere Distributed Resource Scheduler setting configured on the server for a cluster.
+Returns the vSphere Distributed Resource Scheduler (DRS) setting configured on the vCenter for a specified cluster.
 
 ## Syntax
 
@@ -12,23 +12,23 @@ Get-DrsAutomationLevel [-server] <String> [-user] <String> [-pass] <String> [-cl
 
 ## Description
 
-The `Get-DrsAutomationLevel` cmdlet returns the vSphere Distributed Resource Scheduler setting configured on the server for a given cluster.
+The `Get-DrsAutomationLevel` cmdlet returns the vSphere Distributed Resource Scheduler (DRS) setting configured on the vCenter for a specified cluster.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Get-DrsAutomationLevel -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -cluster sfo-m01-cl01
+Get-DrsAutomationLevel -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name]
 ```
 
-This example connects to the management vcenter server and returns the drs settings configured on the management cluster.
+This example connects to the vCenter and returns the DRS settings configured for a specified cluster.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -44,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
