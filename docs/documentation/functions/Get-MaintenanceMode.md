@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Returns the maintenance mode status on an ESXi host.
+Returns the maintenance mode status of a specified ESX host.
 
 ## Syntax
 
@@ -12,23 +12,23 @@ Get-MaintenanceMode [-server] <String> [-user] <String> [-pass] <String> [<Commo
 
 ## Description
 
-The `Get-MaintenanceMode` cmdlet returns the maintenance mode status on an ESXi host.
+The `Get-MaintenanceMode` cmdlet returns the maintenance mode status of a specified ESX host.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Get-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1!
+Get-MaintenanceMode -server [esx_fqdn] -user [admin_username] -pass [admin_password]
 ```
 
-This example returns the ESXi host maintenance mode status.
+This example returns the ESX host maintenance mode status.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the ESXi host.
+The FQDN of the ESX host.
 
 ```yaml
 Type: String
@@ -44,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to ESXi host.
+The username to authenticate to the ESX host.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to ESXi host.
+The password to authenticate to the ESX host.
 
 ```yaml
 Type: String

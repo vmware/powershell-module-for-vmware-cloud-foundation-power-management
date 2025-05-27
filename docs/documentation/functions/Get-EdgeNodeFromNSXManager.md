@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Returns list of edge nodes virtual machines names from NSX Manager.
+Returns a list of NSX Edge nodes from NSX.
 
 ## Syntax
 
@@ -12,25 +12,25 @@ Get-EdgeNodeFromNSXManager [-server] <String> [-user] <String> [-pass] <String> 
 
 ## Description
 
-The `Get-EdgeNodeFromNSXManager` used to read edge node virtual machine names from NSX manager.
+The `Get-EdgeNodeFromNSXManager` cmdlet returns a list of NSX Edge nodes from NSX.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Get-EdgeNodeFromNSXManager -server $server -user $user -pass $pass
+Get-EdgeNodeFromNSXManager -server [nsx_fqdn] -user [admin_username] -pass [admin_password]
 ```
 
-This example returns list of edge nodes virtual machines name.
+This example returns a list of NSX Edge nodes from NSX.
 
 ### Example 2
 
 ```powershell
-Get-EdgeNodeFromNSXManager -server $server -user $user -pass $pass -VCfqdn $VCfqdn
+Get-EdgeNodeFromNSXManager -server [nsx_fqdn] -user [admin_username] -pass [admin_password] -VCfqdn [vcenter_fqdn]
 ```
 
-This example returns list of edge nodes virtual machines name from a given virtual center only.
+This example returns a list of NSX Edge nodes from a specified vCenter.
 
 ## Parameters
 
@@ -52,7 +52,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to NSX Manager.
+The username to authenticate to the NSX Manager.
 
 ```yaml
 Type: String
@@ -68,7 +68,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to NSX Manager.
+The password to authenticate to the NSX Manager.
 
 ```yaml
 Type: String
@@ -84,7 +84,7 @@ Accept wildcard characters: False
 
 ### -VCfqdn
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String

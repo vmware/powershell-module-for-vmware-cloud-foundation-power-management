@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Returns a list of virtual machines that reside on a vSAN HCI Mesh datastore hosted in a cluster.
+Returns a list of virtual machines that reside on a specified vSAN datastore.
 
 ## Syntax
 
@@ -12,23 +12,23 @@ Get-poweronVMsOnRemoteDS [-server] <String> [-user] <String> [-pass] <String> [-
 
 ## Description
 
-The `Get-poweronVMsOnRemoteDS` cmdlet returns a list of virtual machines that reside on a vSAN HCI Mesh datastore hosted in a specified cluster.
+The `Get-poweronVMsOnRemoteDS` cmdlet returns a list of virtual machines that reside on a specified vSAN datastore in a specified cluster.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Get-poweronVMsOnRemoteDS -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -clustertocheck sfo-m01-cl01
+Get-poweronVMsOnRemoteDS -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -clustertocheck [cluster_name]
 ```
 
-This example returns the list of virtual machines that reside on a vSAN HCI Mesh datastore hosted in cluster sfo-m01-cl01.
+This example returns a list of virtual machines that reside on a specified vSAN datastore hosted in a specified cluster.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -44,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -76,7 +76,7 @@ Accept wildcard characters: False
 
 ### -clustertocheck
 
-The name of the remote cluster on which virtual machines are hosted.
+The name of the remote cluster.
 
 ```yaml
 Type: String

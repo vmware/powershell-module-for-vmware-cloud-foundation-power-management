@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Returns the list of compute managers connected to a specified NSX Manager.
+Returns the list of all NSX Compute Managers connected to NSX.
 
 ## Syntax
 
@@ -12,17 +12,17 @@ Get-NSXTComputeManagers [-server] <String> [-user] <String> [-pass] <String> [<C
 
 ## Description
 
-The `Get-NSXTComputeManagers` cmdlet returns the list of compute managers connected to a specified NSX Manager.
+The `Get-NSXTComputeManagers` cmdlet returns the list of all NSX Compute Managers connected to NSX.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Get-NSXTComputeManagers -server $server -user $user -pass $pass
+Get-NSXTComputeManagers -server [nsx_fqdn] -user [admin_username] -pass [admin_password]
 ```
 
-This example returns the list of compute managers mapped to NSX Manager $server.
+This example returns the list of all NSX Compute Managers connected to NSX.
 
 ## Parameters
 
