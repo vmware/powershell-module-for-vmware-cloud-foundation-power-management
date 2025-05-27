@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Returns the status of the service on a vCenter Server instance.
+Returns the status of a specified service on a vCenter instance.
 
 ## Syntax
 
@@ -12,31 +12,31 @@ Get-VamiServiceStatus [-server] <String> [-user] <String> [-pass] <String> [-nol
 
 ## Description
 
-The `Get-VamiServiceStatus` cmdlet returns the current status of the service on a given vCenter Server. The status can be STARTED/STOPPED.
+The `Get-VamiServiceStatus` cmdlet returns the status of a specified service on a vCenter instance. The status returns either STARTED/STOPPED.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -service wcp
+Get-VAMIServiceStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -service [service_name]
 ```
 
-This example connects to a vCenter Server instance and returns the wcp service status.
+This example connects to the specified vCenter instance and returns the status of the specified service.
 
 ### Example 2
 
 ```powershell
-Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user <administrator@vsphere.local>  -pass VMw@re1! -service wcp -nolog
+Get-VAMIServiceStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -service [service_name] -nolog
 ```
 
-This example connects to a vCenter Server instance and returns the wcp service status without log messages in the output.
+This example connects to the specified vCenter instance and returns the status of the specified service without log messages in the output.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -52,7 +52,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -68,7 +68,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -100,8 +100,8 @@ Accept wildcard characters: False
 
 ### -service
 
-The name of the service.
-The values can be one amongst ("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp").
+The name of the service to check status for.
+The values can be one of the following ("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp").
 
 ```yaml
 Type: String
