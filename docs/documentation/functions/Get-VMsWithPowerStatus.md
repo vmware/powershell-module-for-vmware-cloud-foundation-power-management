@@ -12,47 +12,47 @@ Get-VMsWithPowerStatus [-server] <String> [-user] <String> [-pass] <String> [-po
 
 ## Description
 
-The `Get-VMsWithPowerStatus` cmdlet returns a list of virtual machines that are in a specified power state on a specified vCenter Server or ESXi host.
+The `Get-VMsWithPowerStatus` cmdlet returns a list of virtual machines that are in a specified power state on a specified vCenter or ESX host.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Get-VMsWithPowerStatus -server sfo01-m01-esx01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon"
+Get-VMsWithPowerStatus -server [esx_fqdn] -user [admin_username] -pass [admin_password] -powerstate [power_state]
 ```
 
-This example connects to an ESXi host and returns the list of powered-on virtual machines.
+This example connects to the specified ESX host and returns the list of all powered on virtual machines.
 
 ### Example 2
 
 ```powershell
-Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user <administrator@vsphere.local> -pass VMw@re1! -powerstate "poweredon" -pattern "sfo-wsa01" -exactmatch
+Get-VMsWithPowerStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -powerstate [power_state] -pattern [vm_name_pattern] -exactmatch
 ```
 
-This example connects to a vCenter Server instance and returns a powered-on VM with name sfo-wsa01.
+This example connects to a vCenter instance and returns a powered on VM with a specified name.
 
 ### Example 3
 
 ```powershell
-Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user <administrator@vsphere.local> -pass VMw@re1! -powerstate "poweredon" -pattern "vcls"
+Get-VMsWithPowerStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -powerstate [power_state] -pattern [vm_name_pattern]
 ```
 
-This example connects to a vCenter Server instance and returns the list of powered-on vCLS virtual machines.
+This example connects to a vCenter instance and returns all powered on virtual machines matching the pattern.
 
 ### Example 4
 
 ```powershell
-Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user <administrator@vsphere.local> -pass VMw@re1! -powerstate "poweredon" -pattern "vcls" -silence
+Get-VMsWithPowerStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -powerstate [power_state] -pattern [vm_name_pattern] -silence
 ```
 
-This example connects to a vCenter Server instance and returns the list of powered-on vCLS virtual machines without log messages in the output.
+This example connects to a vCenter instance and returns all powered on virtual machines matching the pattern and suppressing log messages in the output.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -68,7 +68,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -84,7 +84,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -100,8 +100,8 @@ Accept wildcard characters: False
 
 ### -powerstate
 
-The powerstate of the virtual machines.
-The values can be one amongst ("poweredon","poweredoff").
+The power state of the virtual machines.
+The values can be one of the following ("poweredon","poweredoff").
 
 ```yaml
 Type: String
@@ -149,7 +149,7 @@ Accept wildcard characters: False
 
 ### -silence
 
-The switch to supress selected log messages.
+The switch to supress log messages.
 
 ```yaml
 Type: SwitchParameter

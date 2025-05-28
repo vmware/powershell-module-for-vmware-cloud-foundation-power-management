@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Returns the SSH status on an ESXi host.
+Returns the SSH status on an ESX host.
 
 ## Syntax
 
@@ -12,23 +12,23 @@ Get-SSHEnabledStatus [-server] <String> [-user] <String> [-pass] <String> [<Comm
 
 ## Description
 
-The `Get-SSHEnabledStatus` cmdlet creates a new SSH session to the given host to see if SSH is enabled. It returns true if SSH enabled.
+The `Get-SSHEnabledStatus` cmdlet creates a new SSH session to a specified ESX host to see if SSH is enabled and returns true if SSH is enabled.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Get-SSHEnabledStatus -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1!
+Get-SSHEnabledStatus -server [esx_fqdn] -user [admin_username] -pass [admin_password]
 ```
 
-This example checks if SSH is enabled on the given host.
+This example checks if SSH is enabled on the specified ESX host.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the ESXi host.
+The FQDN of the ESX host.
 
 ```yaml
 Type: String
@@ -44,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to ESXi host.
+The username to authenticate to the ESX host.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to ESXi host.
+The password to authenticate to the ESX host.
 
 ```yaml
 Type: String

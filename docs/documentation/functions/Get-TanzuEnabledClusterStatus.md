@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Returns the Tanzu status of a cluster.
+Returns the Tanzu status of a specified cluster.
 
 ## Syntax
 
@@ -12,23 +12,23 @@ Get-TanzuEnabledClusterStatus [-server] <String> [-user] <String> [-pass] <Strin
 
 ## Description
 
-The `Get-TanzuEnabledClusterStatus` checks if the given Cluster is Tanzu enabled.
+The `Get-TanzuEnabledClusterStatus` checks if a specified cluster has Tanzu enabled.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Get-TanzuEnabledClusterStatus -server $server -user $user -pass $pass -cluster $cluster
+Get-TanzuEnabledClusterStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name]
 ```
 
-This example returns True if the given cluster is Tanzu enabled else false.
+This example returns status (True/False) if the specified cluster has Tanzu enabled.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -44,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String

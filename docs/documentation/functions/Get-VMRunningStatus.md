@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Returns the running status of a virtual machine.
+Returns the status of virtual machines with a specified pattern in the VM name.
 
 ## Syntax
 
@@ -12,23 +12,23 @@ Get-VMRunningStatus [-server] <String> [-user] <String> [-pass] <String> [-patte
 
 ## Description
 
-The `Get-VMRunningStatus` cmdlet returns the running status of the given nodes matching the pattern on an ESXi host.
+The `Get-VMRunningStatus` cmdlet returns the status of virtual machines with a specified pattern in the VM name on a specified ESX host.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Get-VMRunningStatus -server sfo-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -pattern "^vCLS*"
+Get-VMRunningStatus -server [esx_fqdn] -user [admin_username] -pass [admin_password] -pattern [vm_name_pattern]
 ```
 
-This example connects to an ESXi host and searches for all virtual machines matching the pattern and gets their running status.
+This example connects to an ESX host and searches for all virtual machines matching the pattern and gets their running status.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the ESXi host.
+The FQDN of the ESX host.
 
 ```yaml
 Type: String
@@ -44,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to ESXi host.
+The username to authenticate to ESX host.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to ESXi host.
+The password to authenticate to ESX host.
 
 ```yaml
 Type: String
@@ -76,7 +76,7 @@ Accept wildcard characters: False
 
 ### -pattern
 
-The pattern to match set of virtual machines.
+The pattern to match a set of virtual machines.
 
 ```yaml
 Type: String
@@ -93,7 +93,7 @@ Accept wildcard characters: False
 ### -Status
 
 The state of the virtual machine to be tested against.
-The value can be one amongst ("Running", "NotRunning").
+The value can be one of the following ("Running", "NotRunning").
 The default value is "Running".
 
 ```yaml
