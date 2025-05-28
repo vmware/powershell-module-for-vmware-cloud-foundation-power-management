@@ -1,4 +1,5 @@
-# Copyright 2023-2024 Broadcom. All Rights Reserved.
+# © Broadcom. All Rights Reserved.
+# The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-2
 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
@@ -6,39 +7,37 @@
 # COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-### Note
-# This PowerShell module should be considered entirely experimental. It is still in development & not tested beyond
-# lab scenarios. It is recommended you don't use it for any production environment without testing extensively!
+# Enable communication with self-signed certificates when using Powershell Core. If you require all communications
+# to be secure and do not wish to allow communication with self-signed certificates, remove lines 20-40 before
+# importing the module.
 
-# Enable communication with self-signed certificates when using Powershell Core if you require all communications to be secure
-# and do not wish to allow communication with self-signed certificates remove lines 16-40 before importing the module.
-
-# Enable self-signed certificates
-if ($PSEdition -EQ 'Core') {
+if ($PSEdition -eq 'Core') {
     $PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck", $true)
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12;
+    Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false | Out-Null
 }
 
-if ($PSEdition -EQ 'Desktop') {
-    # Enable communication with self signed certs when using Windows Powershell
-    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+if ($PSEdition -eq 'Desktop') {
+    # Allow communication with self-signed certificates when using Windows PowerShell
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12;
+    Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false | Out-Null
 
-    if (-Not ([System.Management.Automation.PSTypeName]'TrustAllCertificatePolicy').Type) {
+    if ("TrustAllCertificatePolicy" -as [type]) {} else {
         Add-Type @"
-    using System.Net;
+	using System.Net;
     using System.Security.Cryptography.X509Certificates;
     public class TrustAllCertificatePolicy : ICertificatePolicy {
         public TrustAllCertificatePolicy() {}
-        public bool CheckValidationResult(
+		public bool CheckValidationResult(
             ServicePoint sPoint, X509Certificate certificate,
             WebRequest wRequest, int certificateProblem) {
             return true;
         }
-    }
+	}
 "@
         [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertificatePolicy
     }
 }
-# End of "Enable self-signed certificates" section
 
 ##########################################################################
 #Region     Non Exported Functions                                  ######
