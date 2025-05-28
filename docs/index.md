@@ -4,7 +4,7 @@
 
 # PowerShell Module for VMware Cloud Foundation Power Management
 
-`VMware.CloudFoundation.PowerManagement` is a PowerShell module that supports the ability to automate the shut down and start up of the [VMware Cloud Foundatiоn][docs-vmware-cloud-foundation]  management domain or VI workload domains using aPowerShell script.
+`VMware.CloudFoundation.PowerManagement` is a PowerShell module that supports the ability to automate the shut down and start up of the VMware Cloud Foundatiоn]management domain or workload domains using aPowerShell script.
 
 [:material-powershell: &nbsp; PowerShell Gallery][psgallery-module-power-management]{ .md-button .md-button--primary }
 
@@ -16,6 +16,7 @@ The following table lists the supported platforms for this module.
 
 Platform                                                     | vSAN ReadyNodes                     | Dell VxRail
 -------------------------------------------------------------|-------------------------------------|------------------------------------
+:fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.2 | :fontawesome-solid-check:{ .green } | :fontawesome-solid-x:{ .red }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.1 | :fontawesome-solid-check:{ .green } | :fontawesome-solid-x:{ .red }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 5.0 | :fontawesome-solid-check:{ .green } | :fontawesome-solid-check:{ .green }
 :fontawesome-solid-cloud: &nbsp; VMware Cloud Foundation 4.5 | :fontawesome-solid-check:{ .green } | :fontawesome-solid-x:{ .red }
@@ -25,15 +26,6 @@ Platform                                                     | vSAN ReadyNodes  
 !!! note
 
     VMware Cloud Foundation on Dell VxRail cluster shutdown API cannot be used when the managed VMware vCenter Server instance is running on VxRail. See [vxrail-cluster-shutdown](the Dell VxRail documentation).
-
-### Operating Systems
-
-The following table lists the supported operating systems for this module.
-
-Operating System                                                       | Version
------------------------------------------------------------------------|-----------
-:fontawesome-brands-windows: &nbsp; Microsoft Windows Server           | 2019, 2022
-:fontawesome-brands-windows: &nbsp; Microsoft Windows                  | 10, 11
 
 ### PowerShell
 
@@ -51,11 +43,10 @@ PowerShell Module                                    | Version   | Publisher    
 -----------------------------------------------------|-----------|--------------|---------------------------------------------------------------------------
 [VMware.PowerCLI][psgallery-module-powercli]         | >= 13.3.0 | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][developer-module-powercli]
 [PowerVCF][psgallery-module-powervcf]                | >= 2.4.1  | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][docs-module-powervcf]
-[PowerValidatedSolutions][psgallery-module-pvs]      | >= 2.11.0 | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][docs-module-pvs]
+[PowerValidatedSolutions][psgallery-module-pvs]      | >= 2.12.1 | Broadcom     | :fontawesome-solid-book: &nbsp; [Documentation][docs-module-pvs]
 [PoshSSH][psgallery-module-poshssh]                  | >= 3.0.8  | Carlos Perez | :fontawesome-brands-github: &nbsp; [GitHub][github-module-poshssh]
 
 [docs-module-powervcf]: https://vmware.github.io/powershell-module-for-vmware-cloud-foundation
-[docs-vmware-cloud-foundation]: https://docs.vmware.com/en/VMware-Cloud-Foundation/index.html
 [docs-module-pvs]: https://vmware.github.io/power-validated-solutions-for-cloud-foundation/
 [microsoft-powershell]: https://docs.microsoft.com/en-us/powershell
 [psgallery-module-powercli]: https://www.powershellgallery.com/packages/VMware.PowerCLI
@@ -63,6 +54,6 @@ PowerShell Module                                    | Version   | Publisher    
 [psgallery-module-pvs]: https://www.powershellgallery.com/packages/PowerValidatedSolutions
 [psgallery-module-power-management]: https://www.powershellgallery.com/packages/VMware.CloudFoundation.PowerManagement
 [psgallery-module-poshssh]: https://www.powershellgallery.com/packages/Posh-SSH
-[developer-module-powercli]: https://developer.vmware.com/tool/vmware-powercli
+[developer-module-powercli]: https://developer.broadcom.com/powercli
 [github-module-poshssh]: https://github.com/darkoperator/Posh-SSH
 [vxrail-cluster-shutdown]: https://www.dell.com/support/manuals/en-us/vxrail-appliance-series/vxrail-8.x_admin_guide/shut-down-a-vxrail-cluster?guid=guid-da69fd52-38b2-465e-b8d9-45191b016679&lang=en-us
