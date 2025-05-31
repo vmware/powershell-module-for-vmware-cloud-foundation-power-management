@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Sets maintenance mode on an ESXi host.
+Sets maintenance mode on an ESX host.
 
 ## Syntax
 
@@ -12,31 +12,23 @@ Set-MaintenanceMode [-server] <String> [-user] <String> [-pass] <String> [-state
 
 ## Description
 
-The `Set-MaintenanceMode` cmdlet enables or disables maintenance mode on an ESXi host.
+The `Set-MaintenanceMode` cmdlet enables or disables maintenance mode on an ESX host.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state ENABLE
+Set-MaintenanceMode -server [esx_fqdn] -user [admin_username] -pass [admin_password] -state [maintenance_mode_state]
 ```
 
-This example places an ESXi host in maintenance mode.
-
-### Example 2
-
-```powershell
-Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state DISABLE
-```
-
-This example takes an ESXi host out of maintenance mode.
+This example places an ESX host in the specified maintenance mode state.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the ESXi host.
+The FQDN of the ESX host.
 
 ```yaml
 Type: String
@@ -52,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to ESXi host.
+The username to authenticate to ESX host.
 
 ```yaml
 Type: String
@@ -68,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to ESXi host.
+The password to authenticate to ESX host.
 
 ```yaml
 Type: String
@@ -84,8 +76,8 @@ Accept wildcard characters: False
 
 ### -state
 
-The state of the maintenance mode to be set on ESXi host.
-Allowed states are "ENABLE" or "DISABLE".
+The state of the maintenance mode to be set on ESX host.
+The value can be one of the following ("ENABLE" or "DISABLE").
 
 ```yaml
 Type: String

@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Invoke shut down command on a VxRail Cluster
+Invoke the shutdown command on a VxRail Cluster.
 
 ## Syntax
 
@@ -13,16 +13,17 @@ Invoke-VxrailClusterShutdown [-server] <String> [-user] <String> [-pass] <String
 ## Description
 
 The `Invoke-VxrailClusterShutdown` cmdlet powers off a VxRail cluster.
-The cmdlet will perform a dry run test prior to initiate a shutdown command on a VxRail cluster.
+The cmdlet will perform a dry run test prior to initiating a shutdown command on a VxRail cluster.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Invoke-VxrailClusterShutdown -server sfo-w01-vxrm.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1!
+Invoke-VxrailClusterShutdown -server [vxrail_manager_fqdn] -user [admin_username] -pass [admin_password]
 ```
-This example powers off a Vxrail Cluster cluster which the VxRail server sfo-w01-vxrm.sfo.rainpole.io controls. 
+
+This example powers off a Vxrail cluster which the VxRail Manager controls.
 
 ## Parameters
 
@@ -44,7 +45,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to SSO service in which the VxRail is registered to.
+The username to authenticate to the SSO service in which the VxRail is registered to.
 
 ```yaml
 Type: String
@@ -60,7 +61,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to SSO service in which the VxRail is registered to.
+The password for the admin username to authenticate to the SSO service in which the VxRail is registered to.
 
 ```yaml
 Type: String

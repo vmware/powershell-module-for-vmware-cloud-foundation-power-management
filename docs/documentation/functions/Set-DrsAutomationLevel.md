@@ -19,16 +19,16 @@ The `Set-DrsAutomationLevel` cmdlet sets the automation level of the cluster bas
 ### Example 1
 
 ```powershell
-Set-DrsAutomationLevel -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -level PartiallyAutomated
+Set-DrsAutomationLevel -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -level [drs_level]
 ```
 
-This example sets the vSphere Distributed Resource Scheduler Automation level for the sfo-m01-cl01 cluster to Partially Automated.
+This example sets the vSphere Distributed Resource Scheduler Automation level for the specified cluster to the specified DRS level.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -44,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -93,7 +93,7 @@ Accept wildcard characters: False
 ### -level
 
 The vSphere Distributed Resource Scheduler automation level to be set.
-The value can be one amongst ("FullyAutomated", "Manual", "PartiallyAutomated", "Disabled").
+The value can be one of the following ("FullyAutomated", "Manual", "PartiallyAutomated", "Disabled").
 
 ```yaml
 Type: String

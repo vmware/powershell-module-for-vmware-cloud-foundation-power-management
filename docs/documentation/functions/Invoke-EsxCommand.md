@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Runs a provided command on an ESXi host.
+Runs a specified command on an ESX host.
 
 ## Syntax
 
@@ -12,23 +12,25 @@ Invoke-EsxCommand [-server] <String> [-user] <String> [-pass] <String> [-cmd] <S
 
 ## Description
 
-The `Invoke-EsxCommand` cmdlet runs a command on an ESXi host.
+The `Invoke-EsxCommand` cmdlet runs a specified command on an ESX host.
 
-If expected is not passed, then #exitstatus of 0 is considered as success.
+If the expected flag is not passed into the command, then the exit status of 0 is considered as success.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Invoke-EsxCommand -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
+Invoke-EsxCommand -server [esx_fqdn] -user [admin_username] -pass [admin_password] -expected [expected_output] -cmd [esx_command]
 ```
+
+This example connects to an ESX host and runs a specified command and provides a specified output, to check against.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the ESXi host.
+The FQDN of the ESX host.
 
 ```yaml
 Type: String
@@ -44,7 +46,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to ESXi host.
+The username to authenticate to ESX host.
 
 ```yaml
 Type: String
@@ -60,7 +62,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to ESXi host.
+The password to authenticate to ESX host.
 
 ```yaml
 Type: String
@@ -76,7 +78,7 @@ Accept wildcard characters: False
 
 ### -cmd
 
-The command to be exectued on the ESXi host.
+The command to be exectued on the ESX host.
 
 ```yaml
 Type: String
@@ -92,7 +94,7 @@ Accept wildcard characters: False
 
 ### -expected
 
-The expected output to be compared against output returned from the command execution.
+The expected output to be compared against the output returned from the command execution.
 
 ```yaml
 Type: String
