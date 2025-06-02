@@ -19,24 +19,16 @@ The `Set-Retreatmode` cmdlet enables or disables retreat mode for the vSphere Cl
 ### Example 1
 
 ```powershell
-Set-Retreatmode -server $server -user $user -pass $pass -cluster $cluster -mode enable
+Set-Retreatmode -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -mode [retreat_mode]
 ```
 
-This example places the vSphere Cluster virtual machines (vCLS) in the retreat mode.
-
-### Example 2
-
-```powershell
-Set-Retreatmode -server $server -user $user -pass $pass -cluster $cluster -mode disable
-```
-
-This example takes places the vSphere Cluster Services (vCLS) virtual machines out of retreat mode.
+This example places the vSphere Cluster virtual machines (vCLS) in the specified retreat mode in a specified cluster.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -52,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -68,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -101,7 +93,7 @@ Accept wildcard characters: False
 ### -mode
 
 The name of the retreat mode.
-The value is one amongst ("enable", "disable").
+The value can be one of the following ("enable", "disable").
 
 ```yaml
 Type: String

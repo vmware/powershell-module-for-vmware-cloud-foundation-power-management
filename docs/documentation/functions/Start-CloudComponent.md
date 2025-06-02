@@ -2,49 +2,51 @@
 
 ## Synopsis
 
-Starts up a node or nodes in a vCenter Server inventory.
+Starts up a node or nodes in a vCenter inventory.
 
 ## Syntax
 
 ### Node
 
 ```powershell
-Start-CloudComponent -server <String> -user <String> -pass <String> -timeout <Int32> -nodes <String[]> [<CommonParameters>]
+Start-CloudComponent [-server] <String> [-user] <String> [-pass] <String> [-timeout] <Int32> [-nodes] <String[]> [<CommonParameters>]
 ```
 
 ### Pattern
 
 ```powershell
-Start-CloudComponent -server <String> -user <String> -pass <String> -timeout <Int32> -pattern <String[]> [<CommonParameters>]
+Start-CloudComponent [-server] <String> [-user] <String> [-pass] <String> [-timeout] <Int32> [-pattern] <String[]> [<CommonParameters>]
 ```
 
 ## Description
 
-The `Start-CloudComponent` cmdlet starts up a node or nodes in a vCenter Server inventory.
+The `Start-CloudComponent` cmdlet starts up a node or nodes in a vCenter inventory.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Start-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
+Start-CloudComponent -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -timeout [timeout_seconds] -nodes [node_name, node_name]
 ```
 
-This example connects to a vCenter Server and starts up the nodes sfo-m01-en01 and sfo-m01-en02.
+This example connects to a vCenter and starts up the specified nodes after waiting the specified amount of seconds
+for the cloud component to reach the desired state.
 
 ### Example 2
 
 ```powershell
-Start-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
+Start-CloudComponent -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -timeout [timeout_seconds] -pattern [cloud_component_pattern]
 ```
 
-This example connects to an ESXi Host and starts up the nodes that match the pattern vCLS.*.
+This example connects to a vCenter and starts up the specified nodes which match the specified pattern after waiting
+the specified amount of seconds for the cloud component to reach the desired state.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -60,7 +62,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -76,7 +78,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String

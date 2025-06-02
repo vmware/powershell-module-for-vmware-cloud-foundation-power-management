@@ -2,49 +2,51 @@
 
 ## Synopsis
 
-Shuts down a node or nodes in a vCenter Server inventory.
+Shuts down a node or nodes in a vCenter inventory.
 
 ## Syntax
 
 ### Node
 
 ```powershell
-Stop-CloudComponent -server <String> -user <String> -pass <String> -timeout <Int32> [-noWait] -nodes <String[]> [<CommonParameters>]
+Stop-CloudComponent [-server] <String> [-user] <String> [-pass] <String> [-timeout] <Int32> [-noWait] [-nodes] <String[]> [<CommonParameters>]
 ```
 
 ### Pattern
 
 ```powershell
-Stop-CloudComponent -server <String> -user <String> -pass <String> -timeout <Int32> [-noWait] -pattern <String[]> [<CommonParameters>]
+Stop-CloudComponent [-server] <String> [-user] <String> [-pass] <String> [-timeout] <Int32> [-noWait] [-pattern] <String[]> [<CommonParameters>]
 ```
 
 ## Description
 
-The `Stop-CloudComponent` cmdlet shuts down a node or nodes in a vCenter Server inventory.
+The `Stop-CloudComponent` cmdlet shuts down a node or nodes in a vCenter inventory.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
+Stop-CloudComponent -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -timeout [timeout_seconds] -nodes [node_name, node_name]
 ```
 
-This example connects to a vCenter Server and shuts down the nodes sfo-m01-en01 and sfo-m01-en02.
+This example connects to a vCenter and shuts down the specified nodes after waiting the specified amount of seconds
+for the cloud component to reach the desired state.
 
 ### Example 2
 
 ```powershell
-Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
+Stop-CloudComponent -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -timeout [timeout_seconds] -pattern [cloud_component_pattern]
 ```
 
-This example connects to an ESXi Host and shuts down the nodes that match the pattern vCLS.*.
+This example connects to a vCenter and shuts down the specified nodes which match the specified pattern after waiting
+the specified amount of seconds for the cloud component to reach the desired state.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -60,7 +62,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -76,7 +78,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
