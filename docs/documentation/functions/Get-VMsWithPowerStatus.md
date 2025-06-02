@@ -101,7 +101,7 @@ Accept wildcard characters: False
 ### -powerstate
 
 The power state of the virtual machines.
-The values can be one of the following ("poweredon","poweredoff").
+The value can be one of the following ("poweredon","poweredoff").
 
 ```yaml
 Type: String

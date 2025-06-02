@@ -19,24 +19,24 @@ The `Get-VMToClusterMapping` cmdlet returns a list of all virtual machines that 
 ### Example 1
 
 ```powershell
-Get-VMToClusterMapping -server $server -user $user -pass $pass -cluster $cluster -folder "VCLS"
+Get-VMToClusterMapping -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -folder [folder_name]
 ```
 
-This example returns all virtual machines in folder VCLS on a cluster $cluster.
+This example returns all virtual machines in a specified folder on a specified cluster.
 
 ### Example 2
 
 ```powershell
-Get-VMToClusterMapping -server $server -user $user -pass $pass -cluster $cluster -folder "VCLS" -powerstate "poweredon"
+Get-VMToClusterMapping -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -folder [folder_name] -powerstate [power_state]
 ```
 
-This example returns only the powered-on virtual machines in folder VCLS on a cluster $cluster.
+This example returns only the virtual machines in a specified folder on a specified cluster for a specified power state.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -52,7 +52,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -68,7 +68,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -133,7 +133,7 @@ Accept wildcard characters: False
 ### -powerstate
 
 The powerstate of the virtual machines.
-The values can be one amongst ("poweredon","poweredoff").
+The value can be one of the following ("poweredon","poweredoff").
 
 ```yaml
 Type: String
