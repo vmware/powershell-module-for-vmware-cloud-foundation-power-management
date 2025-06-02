@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Starts, stops, or restarts a service on a vCenter Server instance.
+Starts, stops, or restarts a service on a vCenter instance.
 
 ## Syntax
 
@@ -12,29 +12,29 @@ Set-VamiServiceStatus [-server] <String> [-user] <String> [-pass] <String> [-sta
 
 ## Description
 
-The `Set-VamiServiceStatus` cmdlet starts, stops, or restarts a specified management appliance service on a specified vCenter Server instance.
+The `Set-VamiServiceStatus` cmdlet starts, stops, or restarts a specified management appliance service on a specified vCenter instance.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Set-VamiServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -service wcp -state "start"
+Set-VamiServiceStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -service [service_name] -state [service_state]
 ```
 
-This example connects to a vCenter Server instance and starts the wcp service.
+This example connects to a vCenter instance and puts the specified service in a specified service state.
 
 ``` powershell
-Set-VamiServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user <administrator@vsphere.local>  -pass VMw@re1! -service wcp -nolog -state "restart"
+Set-VamiServiceStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -service [service_name] -state [service_state] -nolog
 ```
 
-This example connects to a vCenter Server instance and restarts the wcp service without log messages in the output.
+This example connects to a vCenter instance and puts the specified service in a specified service state without log messages in the output.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -50,7 +50,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -66,7 +66,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -83,7 +83,7 @@ Accept wildcard characters: False
 ### -state
 
 The state of the servcie.
-The values can be one amongst ("start", "stop", "restart").
+The value can be one of the following ("start", "stop", "restart").
 
 ```yaml
 Type: String

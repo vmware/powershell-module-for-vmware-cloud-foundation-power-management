@@ -2,49 +2,49 @@
 
 ## Synopsis
 
-Sets vSphere High Availability to enabled or disabled for a cluster.
+Sets vSphere High Availability to enabled or disabled for a specified cluster.
 
 ## Syntax
 
 ### enable
 
 ```powershell
-Set-VsphereHA -server <String> -user <String> -pass <String> -cluster <String> [-enableHA] [<CommonParameters>]
+Set-VsphereHA [-server] <String> [-user] <String> [-pass] <String> [-cluster] <String> [-enableHA] [<CommonParameters>]
 ```
 
 ### disable
 
 ```powershell
-Set-VsphereHA -server <String> -user <String> -pass <String> -cluster <String> [-disableHA] [<CommonParameters>]
+Set-VsphereHA [-server] <String> [-user] <String> [-pass] <String> [-cluster] <String> [-disableHA] [<CommonParameters>]
 ```
 
 ## Description
 
-The `Set-VsphereHA` cmdlet sets vSphere High Availability to enabled or disabled for a cluster.
+The `Set-VsphereHA` cmdlet sets vSphere High Availability to enabled or disabled for a specified cluster.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Set-VsphereHA -server $server -user $user -pass $pass -cluster $cluster -enable
+Set-VsphereHA -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -enableHA
 ```
 
-This example sets vSphere High Availability to enabled/active.
+This example connects to a vCenter instance and sets the specified cluster in to a enabled/active vSphere High Availability state.
 
 ### Example 2
 
 ```powershell
-Set-VsphereHA -server $server -user $user -pass $pass -cluster $cluster -disable
+Set-VsphereHA -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -disableHA
 ```
 
-This example sets vSphere High Availability to disabled/stopped.
+This example connects to a vCenter instance and sets the specified cluster in to a disabled/stopped vSphere High Availability state.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -76,7 +76,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String

@@ -19,24 +19,16 @@ The `Set-VsanClusterPowerStatus` cmdlet sets the power status of a vSAN cluster.
 ### Example 1
 
 ```powershell
-Set-VsanClusterPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -PowerStatus clusterPoweredOff
+Set-VsanClusterPowerStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -PowerStatus [power_status]
 ```
 
-This example powers off cluster sfo-m01-cl01.
-
-### Example 2
-
-```powershell
-Set-VsanClusterPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user <administrator@vsphere.local>  -Pass VMw@re1! -cluster sfo-m01-cl01 -PowerStatus clusterPoweredOn
-```
-
-This example powers on cluster sfo-m01-cl01.
+This example connects to a vCenter instance and puts the specified cluster in a specified power status.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -52,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -68,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -117,7 +109,7 @@ Accept wildcard characters: False
 ### -PowerStatus
 
 The power state to be set for a given vSAN cluster.
-The value can be one amongst ("clusterPoweredOff", "clusterPoweredOn").
+The value can be one of the following ("clusterPoweredOff", "clusterPoweredOn").
 
 ```yaml
 Type: String
