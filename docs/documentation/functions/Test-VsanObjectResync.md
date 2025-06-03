@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Test the vSAN object resync status for a cluster.
+Test the vSAN object resync status for a specified cluster.
 
 ## Syntax
 
@@ -12,23 +12,23 @@ Test-VsanObjectResync [-server] <String> [-user] <String> [-pass] <String> [-clu
 
 ## Description
 
-The `Test-VsanObjectResync` cmdlet returns the vSAN object resync status for a cluster.
+The `Test-VsanObjectResync` cmdlet returns the vSAN object resync status for a specified cluster.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Test-VsanObjectResync -cluster sfo-m01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
+Test-VsanObjectResync -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster sfo-m01-cl01
 ```
 
-This example connects to a vCenter Server and checks the status of object syncing for the vSAN cluster.
+This example connects to a vCenter and checks the status of object syncing for a specified vSAN cluster.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -44,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -76,7 +76,7 @@ Accept wildcard characters: False
 
 ### -cluster
 
-The name of the vSAN cluster on which object resynchronization status has to be checked.
+The name of the cluster.
 
 ```yaml
 Type: String

@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Test if ESXi hosts in a cluster are in lockdown mode.
+Test if ESX hosts in a cluster are in lockdown mode.
 
 ## Syntax
 
@@ -12,23 +12,23 @@ Test-LockdownMode [-server] <String> [-user] <String> [-pass] <String> [-cluster
 
 ## Description
 
-The `Test-LockdownMode` cmdlet tests if ESXi hosts in a cluster are in lockdown mode. The cmdlet returns an error if an ESXi host in the cluster is in lockdown mode.
+The `Test-LockdownMode` cmdlet tests if ESX hosts in a specified cluster are in lockdown mode.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Test-LockdownMode -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01
+Test-LockdownMode -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name]
 ```
 
-This example checks if some of the ESXi hosts in the cluster sfo-m01-cl01 is in lockdown mode.
+This example checks if any of the ESX hosts in the specified cluster are in lockdown mode.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -44,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -76,7 +76,7 @@ Accept wildcard characters: False
 
 ### -cluster
 
-The name of the cluster to be checked for locked down ESXi hosts if any.
+The name of the cluster.
 
 ```yaml
 Type: String
