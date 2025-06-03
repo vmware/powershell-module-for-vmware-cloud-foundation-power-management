@@ -19,10 +19,10 @@ The `Wait-ForStableNsxtClusterStatus` cmdlet returns the cluster status of an NS
 ### Example 1
 
 ```powershell
-Wait-ForStableNsxtClusterStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re1!VMw@re1!
+Wait-ForStableNsxtClusterStatus -server [nsx_manager_fqdn] -user [admin_username] -pass [admin_password]
 ```
 
-This example gets the cluster status of the sfo-m01-nsx01.sfo.rainpole.io NSX Management Cluster.
+This example gets the cluster status of the NSX Cluster.
 
 ## Parameters
 

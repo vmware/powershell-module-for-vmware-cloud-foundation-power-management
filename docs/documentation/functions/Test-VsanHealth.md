@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Tests the vSAN health of a cluster.
+Tests the vSAN health of a for a specified cluster.
 
 ## Syntax
 
@@ -12,23 +12,23 @@ Test-VsanHealth [-server] <String> [-user] <String> [-pass] <String> [-cluster] 
 
 ## Description
 
-The `Test-VsanHealth` cmdlet returns the vSAN health of a cluster.
+The `Test-VsanHealth` cmdlet returns the vSAN health of a specified cluster.
 
 ## Examples
 
 ### Example 1
 
 ```powershell
-Test-VsanHealth -cluster sfo-m01-cl01 -server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re1!
+Test-VsanHealth -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name]
 ```
 
-This example connects to a vCenter Server and checks the state of the vSAN cluster health.
+This example connects to a vCenter and checks the state of the vSAN cluster health for a specified cluster.
 
 ## Parameters
 
 ### -server
 
-The FQDN of the vCenter Server.
+The FQDN of the vCenter.
 
 ```yaml
 Type: String
@@ -44,7 +44,7 @@ Accept wildcard characters: False
 
 ### -user
 
-The username to authenticate to vCenter Server.
+The username to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 
 ### -pass
 
-The password to authenticate to vCenter Server.
+The password to authenticate to vCenter.
 
 ```yaml
 Type: String
@@ -76,7 +76,7 @@ Accept wildcard characters: False
 
 ### -cluster
 
-The name of the vSAN cluster on which health has to be checked.
+The name of the cluster.
 
 ```yaml
 Type: String
