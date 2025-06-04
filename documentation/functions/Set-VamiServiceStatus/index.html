@@ -1983,23 +1983,23 @@
 
 <h1 id="set-vamiservicestatus">Set-VamiServiceStatus<a class="headerlink" href="#set-vamiservicestatus" title="Permanent link">&para;</a></h1>
 <h2 id="synopsis">Synopsis<a class="headerlink" href="#synopsis" title="Permanent link">&para;</a></h2>
-<p>Starts, stops, or restarts a service on a vCenter Server instance.</p>
+<p>Starts, stops, or restarts a service on a vCenter instance.</p>
 <h2 id="syntax">Syntax<a class="headerlink" href="#syntax" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="nb">Set-VamiServiceStatus</span> <span class="p">[</span><span class="n">-server</span><span class="p">]</span> <span class="p">&lt;</span><span class="n">String</span><span class="p">&gt;</span> <span class="p">[</span><span class="n">-user</span><span class="p">]</span> <span class="p">&lt;</span><span class="n">String</span><span class="p">&gt;</span> <span class="p">[</span><span class="n">-pass</span><span class="p">]</span> <span class="p">&lt;</span><span class="n">String</span><span class="p">&gt;</span> <span class="p">[</span><span class="n">-state</span><span class="p">]</span> <span class="p">&lt;</span><span class="n">String</span><span class="p">&gt;</span> <span class="p">[</span><span class="n">-nolog</span><span class="p">]</span> <span class="p">[</span><span class="n">-service</span><span class="p">]</span> <span class="p">&lt;</span><span class="n">String</span><span class="p">&gt;</span> <span class="p">[&lt;</span><span class="n">CommonParameters</span><span class="p">&gt;]</span>
 </code></pre></div>
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p>The <code>Set-VamiServiceStatus</code> cmdlet starts, stops, or restarts a specified management appliance service on a specified vCenter Server instance.</p>
+<p>The <code>Set-VamiServiceStatus</code> cmdlet starts, stops, or restarts a specified management appliance service on a specified vCenter instance.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <h3 id="example-1">Example 1<a class="headerlink" href="#example-1" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="nb">Set-VamiServiceStatus</span> <span class="n">-server</span> <span class="n">sfo-m01-vc01</span><span class="p">.</span><span class="n">sfo</span><span class="p">.</span><span class="n">rainpole</span><span class="p">.</span><span class="n">io</span> <span class="n">-user</span> <span class="n">administrator</span><span class="nv">@vsphere</span><span class="p">.</span><span class="n">local</span> <span class="n">-pass</span> <span class="n">VMw</span><span class="nv">@re1</span><span class="p">!</span> <span class="n">-service</span> <span class="n">wcp</span> <span class="n">-state</span> <span class="s2">&quot;start&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="nb">Set-VamiServiceStatus</span> <span class="n">-server</span> <span class="no">[vcenter_fqdn]</span> <span class="n">-user</span> <span class="no">[admin_username]</span> <span class="n">-pass</span> <span class="no">[admin_password]</span> <span class="n">-service</span> <span class="no">[service_name]</span> <span class="n">-state</span> <span class="no">[service_state]</span>
 </code></pre></div>
-<p>This example connects to a vCenter Server instance and starts the wcp service.</p>
-<div class="highlight"><pre><span></span><code><span class="nb">Set-VamiServiceStatus</span> <span class="n">-server</span> <span class="n">sfo-m01-vc01</span><span class="p">.</span><span class="n">sfo</span><span class="p">.</span><span class="n">rainpole</span><span class="p">.</span><span class="n">io</span> <span class="n">-user</span> <span class="p">&lt;</span><span class="n">administrator</span><span class="nv">@vsphere</span><span class="p">.</span><span class="n">local</span><span class="p">&gt;</span>  <span class="n">-pass</span> <span class="n">VMw</span><span class="nv">@re1</span><span class="p">!</span> <span class="n">-service</span> <span class="n">wcp</span> <span class="n">-nolog</span> <span class="n">-state</span> <span class="s2">&quot;restart&quot;</span>
+<p>This example connects to a vCenter instance and puts the specified service in a specified service state.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">Set-VamiServiceStatus</span> <span class="n">-server</span> <span class="no">[vcenter_fqdn]</span> <span class="n">-user</span> <span class="no">[admin_username]</span> <span class="n">-pass</span> <span class="no">[admin_password]</span> <span class="n">-service</span> <span class="no">[service_name]</span> <span class="n">-state</span> <span class="no">[service_state]</span> <span class="n">-nolog</span>
 </code></pre></div>
-<p>This example connects to a vCenter Server instance and restarts the wcp service without log messages in the output.</p>
+<p>This example connects to a vCenter instance and puts the specified service in a specified service state without log messages in the output.</p>
 <h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h2>
 <h3 id="-server">-server<a class="headerlink" href="#-server" title="Permanent link">&para;</a></h3>
-<p>The FQDN of the vCenter Server.</p>
+<p>The FQDN of the vCenter.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">String</span>
 <span class="nt">Parameter Sets</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">(All)</span>
 <span class="nt">Aliases</span><span class="p">:</span>
@@ -2011,7 +2011,7 @@
 <span class="nt">Accept wildcard characters</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 </code></pre></div>
 <h3 id="-user">-user<a class="headerlink" href="#-user" title="Permanent link">&para;</a></h3>
-<p>The username to authenticate to vCenter Server.</p>
+<p>The username to authenticate to vCenter.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">String</span>
 <span class="nt">Parameter Sets</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">(All)</span>
 <span class="nt">Aliases</span><span class="p">:</span>
@@ -2023,7 +2023,7 @@
 <span class="nt">Accept wildcard characters</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 </code></pre></div>
 <h3 id="-pass">-pass<a class="headerlink" href="#-pass" title="Permanent link">&para;</a></h3>
-<p>The password to authenticate to vCenter Server.</p>
+<p>The password to authenticate to vCenter.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">String</span>
 <span class="nt">Parameter Sets</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">(All)</span>
 <span class="nt">Aliases</span><span class="p">:</span>
@@ -2035,8 +2035,8 @@
 <span class="nt">Accept wildcard characters</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 </code></pre></div>
 <h3 id="-state">-state<a class="headerlink" href="#-state" title="Permanent link">&para;</a></h3>
-<p>The state of the servcie.
-The values can be one amongst ("start", "stop", "restart").</p>
+<p>The state of the service.
+The value can be one of the following ("start", "stop", "restart").</p>
 <div class="highlight"><pre><span></span><code><span class="nt">Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">String</span>
 <span class="nt">Parameter Sets</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">(All)</span>
 <span class="nt">Aliases</span><span class="p">:</span>
@@ -2094,7 +2094,7 @@ The values can be one amongst ("analytics", "applmgmt", "certificateauthority", 
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="June 24, 2023 01:10:35 UTC"><span class="timeago" datetime="2023-06-24T01:10:35+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 24, 2023 01:10:35 UTC">2023-06-24</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="June 4, 2025 18:55:52 UTC"><span class="timeago" datetime="2025-06-04T18:55:52+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 4, 2025 18:55:52 UTC">2025-06-04</span>
   </span>
 
     
@@ -2172,7 +2172,7 @@ The values can be one amongst ("analytics", "applmgmt", "certificateauthority", 
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2005-2024 Broadcom. All Rights Reserved.<br/>
+      Copyright &copy; 2005-2025 Broadcom. All Rights Reserved.<br/>
 The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.<br/><br/>
 
     </div>
