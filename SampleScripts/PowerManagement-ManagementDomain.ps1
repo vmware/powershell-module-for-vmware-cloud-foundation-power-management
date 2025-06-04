@@ -455,13 +455,9 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             }
             $nsxtManagerVIP | Add-Member -Type NoteProperty -Name adminPassword -Value $nsxmgrPass
             $nsxtNodesFQDN = $nsxtCluster.nodes.fqdn
-            $nsxtManagerVIP | Add-Member -Type NoteProperty -Name adminPassword -Value $nsxmgrPass
-            $nsxtNodesFQDN = $nsxtCluster.nodes.fqdn
             $nsxtNodes = @()
             foreach ($node in $nsxtNodesFQDN) {
-            foreach ($node in $nsxtNodesFQDN) {
                 [Array]$nsxtNodes += $node.Split(".")[0]
-                [Array]$vcfVMs += $node.Split(".")[0]
                 [Array]$vcfVMs += $node.Split(".")[0]
             }
             $var["NsxtManager"] = @{}
@@ -471,7 +467,6 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
             $var["NsxtManager"]["password"] = $nsxtManagerPassEncrypted
 
             # Gather NSX-T Edge Node Details
-            $nsxtManagerPowerOnVMs = 0
             $nsxtManagerPowerOnVMs = 0
             foreach ($nsxtManager in $nsxtNodes) {
                 $state = Get-VMsWithPowerStatus -powerstate "poweredon" -server $vcServer.fqdn -user $vcUser -pass $vcPass -pattern $nsxtManager -exactMatch -silence
@@ -739,12 +734,9 @@ if ($PsBoundParameters.ContainsKey("shutdown") -or $PsBoundParameters.ContainsKe
                                             foreach ($segment in $nsx_segments) {
                                                 $segmentName = $segment.display_name
                                                 $cloudVMs = Get-VM | Get-NetworkAdapter | Where-Object { $_.NetworkName -eq $segmentName } | Select-Object Parent
-                                                $cloudVMs = Get-VM | Get-NetworkAdapter | Where-Object { $_.NetworkName -eq $segmentName } | Select-Object Parent
                                             }
                                             $vmList = $cloudVMs.Parent
-                                            $vmList = $cloudVMs.Parent
                                             $stopExecuted = $false
-                                            foreach ($vm in $vmList) {
                                             foreach ($vm in $vmList) {
                                                 $vmName = $vm.Name
                                                 $powerState = $vm.PowerState
