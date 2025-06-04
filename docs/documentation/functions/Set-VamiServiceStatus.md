@@ -82,7 +82,7 @@ Accept wildcard characters: False
 
 ### -state
 
-The state of the servcie.
+The state of the service.
 The value can be one of the following ("start", "stop", "restart").
 
 ```yaml
