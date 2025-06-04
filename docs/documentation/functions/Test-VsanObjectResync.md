@@ -19,7 +19,7 @@ The `Test-VsanObjectResync` cmdlet returns the vSAN object resync status for a s
 ### Example 1
 
 ```powershell
-Test-VsanObjectResync -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster sfo-m01-cl01
+Test-VsanObjectResync -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name]
 ```
 
 This example connects to a vCenter and checks the status of object syncing for a specified vSAN cluster.

@@ -60,27 +60,29 @@ Function Get-Password {
 Function Stop-CloudComponent {
     <#
         .SYNOPSIS
-        Shutdown node(s) in a vCenter Server inventory
+        Shuts down a node or nodes in a vCenter inventory.
 
         .DESCRIPTION
-        The Stop-CloudComponent cmdlet shutdowns the given node(s) in a vCenter Server inventory
+        The Stop-CloudComponent cmdlet shuts down a node or nodes in a vCenter inventory.
 
         .EXAMPLE
-        Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
-        This example connects to a vCenter Server and shuts down the nodes sfo-m01-en01 and sfo-m01-en02
+        Stop-CloudComponent -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -timeout [timeout_seconds] -nodes [node_name, node_name]
+        This example connects to a vCenter and shuts down the specified nodes after waiting the specified amount of seconds
+        for the cloud component to reach the desired state.
 
         .EXAMPLE
-        Stop-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
-        This example connects to an ESXi Host and shuts down the nodes that match the pattern vCLS.*
+        Stop-CloudComponent -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -timeout [timeout_seconds] -pattern [cloud_component_pattern]
+        This example connects to a vCenter and shuts down the specified nodes which match the specified pattern after waiting
+        the specified amount of seconds for the cloud component to reach the desired state.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER timeout
         The timeout in seconds to wait for the cloud component to reach the desired connection state.
@@ -210,27 +212,29 @@ Export-ModuleMember -Function Stop-CloudComponent
 Function Start-CloudComponent {
     <#
         .SYNOPSIS
-        Startup node(s) in a vCenter Server inventory
+        Starts up a node or nodes in a vCenter inventory.
 
         .DESCRIPTION
-        The Start-CloudComponent cmdlet starts up the given node(s) in a vCenter Server inventory
+        The Start-CloudComponent cmdlet starts up a node or nodes in a vCenter inventory.
 
         .EXAMPLE
-        Start-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user adminstrator@vsphere.local -pass VMw@re1! -timeout 20 -nodes "sfo-m01-en01", "sfo-m01-en02"
-        This example connects to a vCenter Server and starts up the nodes sfo-m01-en01 and sfo-m01-en02
+        Start-CloudComponent -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -timeout [timeout_seconds] -nodes [node_name, node_name]
+        This example connects to a vCenter and starts up the specified nodes after waiting the specified amount of seconds
+        for the cloud component to reach the desired state.
 
         .EXAMPLE
-        Start-CloudComponent -server sfo-m01-vc01.sfo.rainpole.io -user root -pass VMw@re1! -timeout 20 pattern "^vCLS.*"
-        This example connects to an ESXi Host and starts up the nodes that match the pattern vCLS.*
+        Start-CloudComponent -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -timeout [timeout_seconds] -pattern [cloud_component_pattern]
+        This example connects to a vCenter and starts up the specified nodes which match the specified pattern after waiting
+        the specified amount of seconds for the cloud component to reach the desired state.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER timeout
         The timeout in seconds to wait for the cloud component to reach the desired connection state.
@@ -351,30 +355,27 @@ Export-ModuleMember -Function Start-CloudComponent
 Function Set-MaintenanceMode {
     <#
         .SYNOPSIS
-        Enable or disable maintenance mode on an ESXi host.
+        Sets maintenance mode on an ESX host.
 
         .DESCRIPTION
-        The Set-MaintenanceMode cmdlet enables or disables maintenance mode on an ESXi host.
+        The Set-MaintenanceMode cmdlet enables or disables maintenance mode on an ESX host.
 
         .EXAMPLE
-        Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state ENABLE
-        This example places an ESXi host in maintenance mode.
-
-        .EXAMPLE
-        Set-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -state DISABLE
-        This example takes an ESXi host out of maintenance mode.
+        Set-MaintenanceMode -server [esx_fqdn] -user [admin_username] -pass [admin_password] -state [maintenance_mode_state]
+        This example places an ESX host in the specified maintenance mode state.
 
         .PARAMETER server
-        The FQDN of the ESXi host.
+        The FQDN of the ESX host.
 
         .PARAMETER user
-        The username to authenticate to ESXi host.
+        The username to authenticate to ESX host.
 
         .PARAMETER pass
-        The password to authenticate to ESXi host.
+        The password to authenticate to ESX host.
 
         .PARAMETER state
-        The state of the maintenance mode to be set on ESXi host. Allowed states are "ENABLE" or "DISABLE".
+        The state of the maintenance mode to be set on ESX host.
+        The value can be one of the following ("ENABLE" or "DISABLE").
     #>
 
     Param (
@@ -450,23 +451,23 @@ Export-ModuleMember -Function Set-MaintenanceMode
 Function Get-MaintenanceMode {
     <#
         .SYNOPSIS
-        Get maintenance mode status on an ESXi host.
+        Returns the maintenance mode status of a specified ESX host.
 
         .DESCRIPTION
-        The Get-MaintenanceMode cmdlet gets the maintenance mode status on an ESXi host.
+        The Get-MaintenanceMode cmdlet returns the maintenance mode status of a specified ESX host.
 
         .EXAMPLE
-        Get-MaintenanceMode -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1!
-        This example returns the ESXi host maintenance mode status.
+        Get-MaintenanceMode -server [esx_fqdn] -user [admin_username] -pass [admin_password]
+        This example returns the ESX host maintenance mode status.
 
         .PARAMETER server
-        The FQDN of the ESXi host.
+        The FQDN of the ESX host.
 
         .PARAMETER user
-        The username to authenticate to ESXi host.
+        The username to authenticate to ESX host.
 
         .PARAMETER pass
-        The password to authenticate to ESXi host.
+        The password to authenticate to ESX host.
     #>
 
     Param (
@@ -508,29 +509,30 @@ Export-ModuleMember -Function Get-MaintenanceMode
 Function Set-DrsAutomationLevel {
     <#
         .SYNOPSIS
-        Set the DRS automation level
+        Sets the vSphere Distributed Resource Scheduler automation level.
 
         .DESCRIPTION
-        The Set-DrsAutomationLevel cmdlet sets the automation level of the cluster based on the setting provided
+        The Set-DrsAutomationLevel cmdlet sets the automation level of the cluster based on the setting provided.
 
         .EXAMPLE
-        Set-DrsAutomationLevel -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -level PartiallyAutomated
-        Thi examples sets the DRS Automation level for the sfo-m01-cl01 cluster to Partially Automated
+        Set-DrsAutomationLevel -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -level [drs_level]
+        This example sets the vSphere Distributed Resource Scheduler Automation level for the specified cluster to the specified DRS level.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER cluster
-        The name of the cluster on which the DRS automation level settings are to be applied.
+        The name of the cluster.
 
         .PARAMETER level
-        The DRS automation level to be set. The value can be one amongst ("FullyAutomated", "Manual", "PartiallyAutomated", "Disabled").
+        The vSphere Distributed Resource Scheduler automation level to be set.
+        The value can be one of the following ("FullyAutomated", "Manual", "PartiallyAutomated", "Disabled").
     #>
 
     Param (
@@ -587,35 +589,33 @@ Export-ModuleMember -Function Set-DrsAutomationLevel
 Function Set-VsanClusterPowerStatus {
     <#
         .SYNOPSIS
-        PowerOff or PowerOn the vSAN Cluster
+        Set the power status of a vSAN cluster.
 
         .DESCRIPTION
-        The Set-VsanClusterPowerStatus cmdlet either powers off or powers on a vSAN cluster
+        The Set-VsanClusterPowerStatus cmdlet sets the power status of a vSAN cluster.
 
         .EXAMPLE
-        Set-VsanClusterPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -PowerStatus clusterPoweredOff
-        This example powers off cluster sfo-m01-cl01
-
-        Set-VsanClusterPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01 -PowerStatus clusterPoweredOn
-        This example powers on cluster sfo-m01-cl01
+        Set-VsanClusterPowerStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -PowerStatus [power_status]
+        This example connects to a vCenter instance and puts the specified cluster in a specified power status.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER clustername
-        The name of the vSAN cluster on which the power settings are to be applied.
+        The name of the cluster.
 
         .PARAMETER mgmt
         The switch used to ignore power settings if management domain information is passed.
 
         .PARAMETER PowerStatus
-        The power state to be set for a given vSAN cluster. The value can be one amongst ("clusterPoweredOff", "clusterPoweredOn").
+        The power state to be set for a given vSAN cluster.
+        The value can be one of the following ("clusterPoweredOff", "clusterPoweredOn").
     #>
 
     Param (
@@ -702,15 +702,24 @@ Export-ModuleMember -Function Set-VsanClusterPowerStatus
 Function Invoke-VxrailClusterShutdown {
     <#
         .SYNOPSIS
-        Invoke the shut down command on a VxRail cluster.
+        Invoke the shutdown command on a VxRail Cluster.
 
         .DESCRIPTION
-        The cmdlet will perform a dry run test prior to initiate a shutdown command on a VxRail cluster.
+        The Invoke-VxrailClusterShutdown cmdlet powers off a VxRail cluster.
+        The cmdlet will perform a dry run test prior to initiating a shutdown command on a VxRail cluster.
 
         .EXAMPLE
-        Invoke-VxrailClusterShutdown -server sfo-w01-vxrm.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
-        This example powers off a VxRail cluster cluster which is managed by the VxRail Manager sfo-w01-vxrm.sfo.rainpole.io controls.
+        Invoke-VxrailClusterShutdown -server [vxrail_manager_fqdn] -user [admin_username] -pass [admin_password]
+        This example powers off a Vxrail cluster which the VxRail Manager controls.
 
+        .PARAMETER server
+        The FQDN of the VxRail Manager.
+
+        .PARAMETER user
+        The username to authenticate to the SSO service in which the VxRail is registered to.
+
+        .PARAMETER pass
+        The password for the admin username to authenticate to the SSO service in which the VxRail is registered to.
     #>
 
     Param (
@@ -795,26 +804,26 @@ Export-ModuleMember -Function Invoke-VxrailClusterShutdown
 Function Get-poweronVMsOnRemoteDS {
     <#
         .SYNOPSIS
-        Get a list of VMs that reside on a vSAN HCI Mesh datastore hosted in a specified cluster
+        Returns a list of virtual machines that reside on a specified vSAN datastore.
 
         .DESCRIPTION
-        The Get-poweronVMsOnRemoteDS cmdlet returns a list of VMs that reside on a vSAN HCI Mesh datastore hosted in a specified cluster
+        The Get-poweronVMsOnRemoteDS cmdlet returns a list of virtual machines that reside on a specified vSAN datastore in a specified cluster.
 
         .EXAMPLE
-        Get-poweronVMsOnRemoteDS -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -clustertocheck sfo-m01-cl01
-        This example returns the list of VMs that reside on a vSAN HCI Mesh datastore hosted in cluster sfo-m01-cl01.
+        Get-poweronVMsOnRemoteDS -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -clustertocheck [cluster_name]
+        This example returns a list of virtual machines that reside on a specified vSAN datastore hosted in a specified cluster.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER clusterToCheck
-        The name of the remote cluster on which virtual machines are hosted.
+        The name of the remote cluster.
     #>
 
     Param (
@@ -878,26 +887,26 @@ Export-ModuleMember -Function Get-poweronVMsOnRemoteDS
 Function Test-LockdownMode {
     <#
         .SYNOPSIS
-        Check if some of the ESXi hosts in the specified cluster is in lockdown mode.
+        Test if ESX hosts in a cluster are in lockdown mode.
 
         .DESCRIPTION
-        The Test-LockdownMode cmdlet returns an error if an ESXi host in the cluster is in lockdown mode.
+        The Test-LockdownMode cmdlet tests if ESX hosts in a specified cluster are in lockdown mode.
 
         .EXAMPLE
-        Test-LockdownMode -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -Pass VMw@re1! -cluster sfo-m01-cl01
-        This example checks if some of the ESXi hosts in the cluster sfo-m01-cl01 is in lockdown mode.
+        Test-LockdownMode -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name]
+        This example checks if any of the ESX hosts in the specified cluster are in lockdown mode.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER cluster
-        The name of the cluster to be checked for locked down ESXi hosts if any.
+        The name of the cluster.
     #>
 
     Param (
@@ -968,29 +977,31 @@ Export-ModuleMember -Function Test-LockdownMode
 Function Get-VMRunningStatus {
     <#
         .SYNOPSIS
-        Gets the running state of a virtual machine
+        Returns the status of virtual machines with a specified pattern in the VM name.
 
         .DESCRIPTION
-        The Get-VMRunningStatus cmdlet gets the running status of the given nodes matching the pattern on an ESXi host
+        The Get-VMRunningStatus cmdlet returns the status of virtual machines with a specified pattern in the VM name on a specified ESX host.
 
         .EXAMPLE
-        Get-VMRunningStatus -server sfo-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -pattern "^vCLS*"
-        This example connects to an ESXi host and searches for all virtual machines matching the pattern and gets their running status
+        Get-VMRunningStatus -server [esx_fqdn] -user [admin_username] -pass [admin_password] -pattern [vm_name_pattern]
+        This example connects to an ESX host and searches for all virtual machines matching the pattern and gets their running status.
 
         .PARAMETER server
-        The FQDN of the ESXi host.
+        The FQDN of the ESX host.
 
         .PARAMETER user
-        The username to authenticate to ESXi host.
+        The username to authenticate to ESX host.
 
         .PARAMETER pass
-        The password to authenticate to ESXi host.
+        The password to authenticate to ESX host.
 
         .PARAMETER pattern
         The pattern to match set of virtual machines.
 
         .PARAMETER Status
-        The state of the virtual machine to be tested against. The value can be one amongst ("Running", "NotRunning"). The default value is "Running".
+        The state of the virtual machine to be tested against.
+        The value can be one of the following ("Running", "NotRunning").
+        The default value is "Running".
     #>
 
     Param (
@@ -1048,29 +1059,28 @@ Export-ModuleMember -Function Get-VMRunningStatus
 Function Invoke-EsxCommand {
     <#
         .SYNOPSIS
-        Run a given command on an ESXi host
+        Runs a specified command on an ESX host.
 
         .DESCRIPTION
-        The Invoke-EsxCommand cmdlet runs a given command on a given ESXi host. If expected is
-        not passed, then #exitstatus of 0 is considered as success
+        The `Invoke-EsxCommand` cmdlet runs a specified command on an ESX host.
 
         .EXAMPLE
-        Invoke-EsxCommand -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1! -expected "Value of IgnoreClusterMemberListUpdates is 1" -cmd "esxcfg-advcfg -s 0 /VSAN/IgnoreClusterMemberListUpdates"
+        Invoke-EsxCommand -server [esx_fqdn] -user [admin_username] -pass [admin_password] -expected [expected_output] -cmd [esx_command]
 
         .PARAMETER server
-        The FQDN of the ESXi host.
+        The FQDN of the ESX host.
 
         .PARAMETER user
-        The username to authenticate to ESXi host.
+        The username to authenticate to ESX host.
 
         .PARAMETER pass
-        The password to authenticate to ESXi host.
+        The password to authenticate to ESX host.
 
         .PARAMETER cmd
-        The command to be exectued on the ESXi host.
+        The command to be exectued on the ESX host.
 
         .PARAMETER expected
-        The expected output to be compared against output returned from the command execution.
+        The expected output to be compared against the output returned from the command execution.
         #>
 
     Param (
@@ -1118,23 +1128,23 @@ Export-ModuleMember -Function Invoke-EsxCommand
 Function Get-SSHEnabledStatus {
     <#
         .SYNOPSIS
-        Check if SSH is enabled on the given host
+        Returns the SSH status on an ESX host.
 
         .DESCRIPTION
-        The Get-SSHEnabledStatus cmdlet creates a new SSH session to the given host to see if SSH is enabled. It returns true if SSH enabled.
+        The Get-SSHEnabledStatus cmdlet creates a new SSH session to a specified ESX host to see if SSH is enabled and returns true if SSH is enabled.
 
         .EXAMPLE
-        Get-SSHEnabledStatus -server sfo01-w01-esx01.sfo.rainpole.io -user root -pass VMw@re1!
-        In the above example, it tries to ssh to ESXi host and if success, returns true.
+        Get-SSHEnabledStatus -server [esx_fqdn] -user [admin_username] -pass [admin_password]
+        This example checks if SSH is enabled on the specified ESX host.
 
         .PARAMETER server
-        The FQDN of the ESXi host.
+        The FQDN of the ESX host.
 
         .PARAMETER user
-        The username to authenticate to ESXi host.
+        The username to authenticate to ESX host.
 
         .PARAMETER pass
-        The password to authenticate to ESXi host.
+        The password to authenticate to ESX host.
     #>
 
     Param (
@@ -1175,26 +1185,26 @@ Export-ModuleMember -Function Get-SSHEnabledStatus
 Function Test-VsanHealth {
     <#
         .SYNOPSIS
-        Check the vSAN cluster health
+        Tests the vSAN health of a for a specified cluster.
 
         .DESCRIPTION
-        The Test-VsanHealth cmdlet checks the state of the vSAN cluster health
+        The Test-VsanHealth cmdlet returns the vSAN health of a specified cluster.
 
         .EXAMPLE
-        Test-VsanHealth -cluster sfo-m01-cl01 -server sfo-m01-vc01 -user administrator@vsphere.local -pass VMw@re1!
-        This example connects to a vCenter Server and checks the state of the vSAN cluster health.
+        Test-VsanHealth -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name]
+        This example connects to a vCenter and checks the state of the vSAN cluster health for a specified cluster.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER cluster
-        The name of the vSAN cluster on which health has to be checked.
+        The name of the cluster.
     #>
 
     Param (
@@ -1286,26 +1296,26 @@ Export-ModuleMember -Function Test-VsanHealth
 Function Test-VsanObjectResync {
     <#
         .SYNOPSIS
-        Check object sync for vSAN cluster
+        Test the vSAN object resync status for a specified cluster.
 
         .DESCRIPTION
-        The Test-VsanObjectResync cmdlet checks for resyncing of objects on the vSAN cluster
+        The Test-VsanObjectResync cmdlet returns the vSAN object resync status for a specified cluster.
 
         .EXAMPLE
-        Test-VsanObjectResync -cluster sfo-m01-cl01 -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1!
-        This example connects to a vCenter Server and checks the status of object syncing for the vSAN cluster
+        Test-VsanObjectResync -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name]
+        This example connects to a vCenter and checks the status of object syncing for a specified vSAN cluster.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER cluster
-        The name of the vSAN cluster on which object resynchronization status has to be checked.
+        The name of the cluster.
     #>
 
     Param(
@@ -1355,36 +1365,39 @@ Export-ModuleMember -Function Test-VsanObjectResync
 Function Get-VMsWithPowerStatus {
     <#
         .SYNOPSIS
-        Get a list of virtual machines that are in a specified power state.
+        Returns a list of virtual machines that are in a specified power state.
 
         .DESCRIPTION
-        The Get-VMsWithPowerStatus cmdlet returns a list of virtual machines that are in a specified power state on a specified vCenter Server or ESXi host.
+        The Get-VMsWithPowerStatus cmdlet returns a list of virtual machines that are in a specified power state on a specified vCenter or ESX host.
 
         .EXAMPLE
-        Get-VMsWithPowerStatus -server sfo01-m01-esx01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon"
-        This example connects to an ESXi host and returns the list of powered-on virtual machines.
+        Get-VMsWithPowerStatus -server [esx_fqdn] -user [admin_username] -pass [admin_password] -powerstate [power_state]
+        This example connects to the specified ESX host and returns the list of all powered on virtual machines.
 
-        Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon" -pattern "sfo-wsa01" -exactmatch
-        This example connects to a vCenter Server instance and returns a powered-on VM with name sfo-wsa01.
+        .EXAMPLE
+        Get-VMsWithPowerStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -powerstate [power_state] -pattern [vm_name_pattern] -exactmatch
+        This example connects to a vCenter instance and returns a powered on VM with a specified name.
 
-        Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon" -pattern "vcls"
-        This example connects to a vCenter Server instance and returns the list of powered-on vCLS virtual machines.
+        .EXAMPLE
+        Get-VMsWithPowerStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -powerstate [power_state] -pattern [vm_name_pattern]
+        This example connects to a vCenter instance and returns all powered on virtual machines matching the pattern.
 
-        Get-VMsWithPowerStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -powerstate "poweredon" -pattern "vcls" -silence
-        This example connects to a vCenter Server instance and returns the list of powered-on vCLS virtual machines
-        without log messages in the output.
+        .EXAMPLE
+        Get-VMsWithPowerStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -powerstate [power_state] -pattern [vm_name_pattern] -silence
+        This example connects to a vCenter instance and returns all powered on virtual machines matching the pattern and suppressing log messages in the output.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER powerstate
-        The powerstate of the virtual machines. The values can be one amongst ("poweredon","poweredoff").
+        The power state of the virtual machines.
+        The value can be one of the following ("poweredon","poweredoff").
 
         .PARAMETER pattern
         The pattern to match virtual machine names.
@@ -1454,32 +1467,35 @@ Export-ModuleMember -Function Get-VMsWithPowerStatus
 Function Get-VamiServiceStatus {
     <#
         .SYNOPSIS
-        Get the status of the service on a given vCenter Server
+        Returns the status of a specified service on a vCenter instance.
 
         .DESCRIPTION
-        The Get-VamiServiceStatus cmdlet gets the current status of the service on a given vCenter Server. The status can be STARTED/STOPPED
+        The Get-VamiServiceStatus cmdlet returns the status of a specified service on a vCenter instance. The status returns either STARTED/STOPPED.
+
 
         .EXAMPLE
-        Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -service wcp
-        This example connects to a vCenter Server instance and returns the wcp service status.
+        Get-VAMIServiceStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -service [service_name]
+        This example connects to the specified vCenter instance and returns the status of the specified service.
 
-        Get-VAMIServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -nolog
-        This example connects to a vCenter Server instance and returns the wcp service status without log messages in the output.
+        .EXAMPLE
+        Get-VAMIServiceStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -service [service_name] -nolog
+        This example connects to the specified vCenter instance and returns the status of the specified service without log messages in the output.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER nolog
         The switch to supress selected log messages.
 
         .PARAMETER service
-        The name of the service. The values can be one amongst ("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp").
+        The name of the service to check status for.
+        The value can be one of the following ("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp").
     #>
 
     Param (
@@ -1542,36 +1558,38 @@ Export-ModuleMember -Function Get-VAMIServiceStatus
 Function Set-VamiServiceStatus {
     <#
         .SYNOPSIS
-        Start/Stop/Restart a specified management appliance service on a specified vCenter Server instance.
+        Starts, stops, or restarts a service on a vCenter instance.
 
         .DESCRIPTION
-        The Set-VamiServiceStatus cmdlet starts/stops/restarts a specified management appliance service on a specified vCenter Server instance.
+        The Set-VamiServiceStatus cmdlet starts, stops, or restarts a specified management appliance service on a specified vCenter instance.
 
         .EXAMPLE
-        Set-VamiServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -service wcp -state "start"
-        This example connects to a vCenter Server instance and starts the wcp service.
+        Set-VamiServiceStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -service [service_name] -state [service_state]
+        This example connects to a vCenter instance and puts the specified service in a specified service state.
 
-        Set-VamiServiceStatus -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local  -pass VMw@re1! -service wcp -nolog -state "restart"
-        This example connects to a vCenter Server instance and restarts the wcp service without log messages in the output.
+        .EXAMPLE
+        Set-VamiServiceStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -service [service_name] -state [service_state] -nolog
+        This example connects to a vCenter instance and puts the specified service in a specified service state without log messages in the output.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER state
-        The state of the servcie. The values can be one amongst ("start", "stop", "restart").
+        The state of the service.
+        The value can be one of the following ("start", "stop", "restart").
 
         .PARAMETER nolog
         The switch to supress selected log messages.
 
         .PARAMETER service
-        The name of the service. The values can be one amongst ("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp").
-
+        The name of the service.
+        The values can be one amongst ("analytics", "applmgmt", "certificateauthority", "certificatemanagement", "cis-license", "content-library", "eam", "envoy", "hvc", "imagebuilder", "infraprofile", "lookupsvc", "netdumper", "observability-vapi", "perfcharts", "pschealth", "rbd", "rhttpproxy", "sca", "sps", "statsmonitor", "sts", "topologysvc", "trustmanagement", "updatemgr", "vapi-endpoint", "vcha", "vlcm", "vmcam", "vmonapi", "vmware-postgres-archiver", "vmware-vpostgres", "vpxd", "vpxd-svcs", "vsan-health", "vsm", "vsphere-ui", "vstats", "vtsdb", "wcp").
     #>
 
     Param (
@@ -1665,26 +1683,27 @@ Export-ModuleMember -Function Set-VamiServiceStatus
 Function Set-VsphereHA {
     <#
         .SYNOPSIS
-        Set vSphere High Availability
+        Sets vSphere High Availability to enabled or disabled for a specified cluster.
 
         .DESCRIPTION
         Set vSphere High Availability to enabled or disabled
 
         .EXAMPLE
-        Set-VsphereHA -server $server -user $user -pass $pass -cluster $cluster -enable
-        This example sets vSphere High Availability to enabled/active
+        The Set-VsphereHA cmdlet sets vSphere High Availability to enabled or disabled for a specified cluster.
+        This example connects to a vCenter instance and sets the specified cluster in to a enabled/active vSphere High Availability state.
 
-        Set-VsphereHA -server $server -user $user -pass $pass -cluster $cluster -disable
-        This example sets vSphere High Availability to disabled/stopped
+        .EXAMPLE
+        Set-VsphereHA -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -disableHA
+        This example connects to a vCenter instance and sets the specified cluster in to a disabled/stopped vSphere High Availability state.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER cluster
         The name of the cluster.
@@ -1807,23 +1826,23 @@ Export-ModuleMember -Function Set-VsphereHA
 Function Get-DrsAutomationLevel {
     <#
         .SYNOPSIS
-        Get the DRS setting configured on the server for a given cluster
+        Returns the vSphere Distributed Resource Scheduler (DRS) setting configured on the vCenter for a specified cluster.
 
         .DESCRIPTION
-        Get-DrsAutomationLevel method returns the DRS setting configured on the server for a given cluster
+        The Get-DrsAutomationLevel cmdlet returns the vSphere Distributed Resource Scheduler (DRS) setting configured on the vCenter for a specified cluster.
 
         .EXAMPLE
-        Get-DrsAutomationLevel -server sfo-m01-vc01.sfo.rainpole.io -user administrator@vsphere.local -pass VMw@re1! -cluster sfo-m01-cl01
-        This example connects to the management vcenter server and returns the drs settings configured on the management cluster
+        Get-DrsAutomationLevel -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name]
+        This example connects to the vCenter and returns the DRS settings configured for a specified cluster.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER cluster
         The name of the cluster.
@@ -1876,33 +1895,30 @@ Export-ModuleMember -Function Get-DrsAutomationLevel
 Function Set-Retreatmode {
     <#
         .SYNOPSIS
-        Enable/Disable retreat mode for vSphere Cluster
+        Sets retreat mode for vSphere Cluster Services (vCLS) virtual machines on a cluster.
 
         .DESCRIPTION
-        The Set-Retreatmode cmdlet enables or disables retreat mode for the vSphere Cluster virtual machines
+        The Set-Retreatmode cmdlet enables or disables retreat mode for the vSphere Cluster Services (vCLS) virtual machines.
 
         .EXAMPLE
-        Set-Retreatmode -server $server -user $user -pass $pass -cluster $cluster -mode enable
-        This example places the vSphere Cluster virtual machines (vCLS) in the retreat mode
-
-        .EXAMPLE
-        Set-Retreatmode -server $server -user $user -pass $pass -cluster $cluster -mode disable
-        This example takes places the vSphere Cluster virtual machines (vCLS) out of retreat mode
+        Set-Retreatmode -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -mode [retreat_mode]
+        This example places the vSphere Cluster virtual machines (vCLS) in the specified retreat mode in a specified cluster.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER cluster
         The name of the cluster.
 
         .PARAMETER mode
-        The name of the retreat mode. The value is one amongst ("enable", "disable").
+        The name of the retreat mode.
+        The value can be one of the following ("enable", "disable").
     #>
 
     Param(
@@ -1967,26 +1983,27 @@ Export-ModuleMember -Function Set-Retreatmode
 Function Get-VMToClusterMapping {
     <#
         .SYNOPSIS
-        Get a list of all virtual Machines that are running in a specified cluster.
+        Returns a list of all virtual machines that are running on a cluster.
 
         .DESCRIPTION
         The Get-VMToClusterMapping cmdlet returns a list of all virtual machines that are running on a specified cluster.
 
         .EXAMPLE
-        Get-VMToClusterMapping -server $server -user $user -pass $pass -cluster $cluster -folder "VCLS"
-        This example returns all virtual machines in folder VCLS on a cluster $cluster.
+        Get-VMToClusterMapping -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -folder [folder_name]
+        This example returns all virtual machines in a specified folder on a specified cluster.
 
-        Get-VMToClusterMapping -server $server -user $user -pass $pass -cluster $cluster -folder "VCLS" -powerstate "poweredon"
-        This example returns only the powered-on virtual machines in folder VCLS on a cluster $cluster.
+        .EXAMPLE
+        Get-VMToClusterMapping -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name] -folder [folder_name] -powerstate [power_state]
+        This example returns only the virtual machines in a specified folder on a specified cluster for a specified power state.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER cluster
         The name of the cluster.
@@ -1998,8 +2015,8 @@ Function Get-VMToClusterMapping {
         The switch to supress selected log messages.
 
         .PARAMETER powerstate
-        The powerstate of the virtual machines. The values can be one amongst ("poweredon","poweredoff").
-
+        The powerstate of the virtual machines.
+        The value can be one of the following ("poweredon","poweredoff").
     #>
 
     Param(
@@ -2056,14 +2073,14 @@ Export-ModuleMember -Function Get-VMToClusterMapping
 Function Wait-ForStableNsxtClusterStatus {
     <#
         .SYNOPSIS
-        Fetch cluster status of NSX Manager
+        Returns the cluster status of an NSX Manager after a restart.
 
         .DESCRIPTION
-        The Wait-ForStableNsxtClusterStatus cmdlet fetches the cluster status of NSX manager after a restart
+        The `Wait-ForStableNsxtClusterStatus` cmdlet returns the cluster status of an NSX manager after a restart.
 
         .EXAMPLE
-        Wait-ForStableNsxtClusterStatus -server sfo-m01-nsx01.sfo.rainpole.io -user admin -pass VMw@re1!VMw@re1!
-        This example gets the cluster status of the sfo-m01-nsx01.sfo.rainpole.io NSX Management Cluster
+        Wait-ForStableNsxtClusterStatus -server [nsx_manager_fqdn] -user [admin_username] -pass [admin_password]
+        This example gets the cluster status of the NSX Cluster.
 
         .PARAMETER server
         The FQDN of the NSX Manager.
@@ -2141,18 +2158,18 @@ Export-ModuleMember -Function Wait-ForStableNsxtClusterStatus
 Function Get-EdgeNodeFromNSXManager {
     <#
         .SYNOPSIS
-        This method reads edge node virtual machine names from NSX manager
+        Returns a list of NSX Edge nodes from NSX.
 
         .DESCRIPTION
-        The Get-EdgeNodeFromNSXManager used to read edge node virtual machine names from NSX manager
+        The Get-EdgeNodeFromNSXManager cmdlet returns a list of NSX Edge nodes from NSX.
 
         .EXAMPLE
-        Get-EdgeNodeFromNSXManager -server $server -user $user -pass $pass
-        This example returns list of edge nodes virtual machines name
+        Get-EdgeNodeFromNSXManager -server [nsx_fqdn] -user [admin_username] -pass [admin_password]
+        This example returns a list of NSX Edge nodes from NSX.
 
         .EXAMPLE
-        Get-EdgeNodeFromNSXManager -server $server -user $user -pass $pass -VCfqdn $VCfqdn
-        This example returns list of edge nodes virtual machines name from a given virtual center only
+        Get-EdgeNodeFromNSXManager -server [nsx_fqdn] -user [admin_username] -pass [admin_password] -VCfqdn [vcenter_fqdn]
+        This example returns a list of NSX Edge nodes from a specified vCenter.
 
         .PARAMETER server
         The FQDN of the NSX Manager.
@@ -2164,7 +2181,7 @@ Function Get-EdgeNodeFromNSXManager {
         The password to authenticate to NSX Manager.
 
         .PARAMETER VCfqdn
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
     #>
 
     Param(
@@ -2224,14 +2241,14 @@ Export-ModuleMember -Function Get-EdgeNodeFromNSXManager
 Function Get-NSXTComputeManagers {
     <#
         .SYNOPSIS
-        Get the list of compute managers connected to a specified NSX Manager.
+        Returns the list of all NSX Compute Managers connected to NSX.
 
         .DESCRIPTION
-        The Get-NSXTComputeManagers cmdlet returns the list of compute managers connected to a specified NSX Manager.
+        The Get-NSXTComputeManagers cmdlet returns the list of all NSX Compute Managers connected to NSX.
 
         .EXAMPLE
-        Get-NSXTComputeManagers -server $server -user $user -pass $pass
-        This example returns the list of compute managers mapped to NSX Manager $server.
+        Get-NSXTComputeManagers -server [nsx_fqdn] -user [admin_username] -pass [admin_password]
+        This example returns the list of all NSX Compute Managers connected to NSX.
 
         .PARAMETER server
         The FQDN of the NSX Manager.
@@ -2283,23 +2300,23 @@ Export-ModuleMember -Function Get-NSXTComputeManagers
 Function Get-TanzuEnabledClusterStatus {
     <#
         .SYNOPSIS
-        This method checks if the Cluster is Tanzu enabled
+        Returns the Tanzu status of a specified cluster.
 
         .DESCRIPTION
-        The Get-TanzuEnabledClusterStatus used to check if the given Cluster is Tanzu enabled
+        The Get-TanzuEnabledClusterStatus checks if a specified cluster has Tanzu enabled.
 
         .EXAMPLE
-        Get-TanzuEnabledClusterStatus -server $server -user $user -pass $pass -cluster $cluster
-        This example returns True if the given cluster is Tanzu enabled else false
+        Get-TanzuEnabledClusterStatus -server [vcenter_fqdn] -user [admin_username] -pass [admin_password] -cluster [cluster_name]
+        This example returns status (True/False) if the specified cluster has Tanzu enabled.
 
         .PARAMETER server
-        The FQDN of the vCenter Server.
+        The FQDN of the vCenter.
 
         .PARAMETER user
-        The username to authenticate to vCenter Server.
+        The username to authenticate to vCenter.
 
         .PARAMETER pass
-        The password to authenticate to vCenter Server.
+        The password to authenticate to vCenter.
 
         .PARAMETER cluster
         The name of the cluster.

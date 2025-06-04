@@ -76,7 +76,7 @@ Accept wildcard characters: False
 
 ### -clustername
 
-The name of the vSAN cluster on which the power settings are to be applied.
+The name of the cluster.
 
 ```yaml
 Type: String

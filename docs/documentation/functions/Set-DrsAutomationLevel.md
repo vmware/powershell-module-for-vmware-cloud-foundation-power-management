@@ -76,7 +76,7 @@ Accept wildcard characters: False
 
 ### -cluster
 
-The name of the cluster on which the vSphere Distributed Resource Scheduler automation level settings are to be applied.
+The name of the cluster.
 
 ```yaml
 Type: String
