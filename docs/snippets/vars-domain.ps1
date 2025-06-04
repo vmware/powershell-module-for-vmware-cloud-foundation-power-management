@@ -1,1 +1,1 @@
-$sddcDomain = "sfo-w01"
+$sddcDomain = "[workload_domain_name]"
