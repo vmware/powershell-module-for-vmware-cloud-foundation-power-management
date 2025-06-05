@@ -17,7 +17,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        fetch-depth: 0
+        with:
+          fetch-depth: 0
       - name: Check Version
         shell: pwsh
         if: startsWith(github.ref, 'refs/tags/v')
@@ -131,6 +132,9 @@ jobs:
   publish-docs:
     needs: create-release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.0.0
@@ -152,6 +156,8 @@ jobs:
   publish-module:
     needs: [create-release, publish-docs]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
