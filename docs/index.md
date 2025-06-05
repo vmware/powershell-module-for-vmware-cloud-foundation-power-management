@@ -25,7 +25,7 @@ Platform                                                     | vSAN ReadyNodes  
 
 !!! note
 
-    VMware Cloud Foundation on Dell VxRail cluster shutdown API cannot be used when the managed VMware vCenter Server instance is running on VxRail. See [vxrail-cluster-shutdown](the Dell VxRail documentation).
+    VMware Cloud Foundation on Dell VxRail cluster shutdown API cannot be used when the managed VMware vCenter Server instance is running on VxRail.
 
 ### PowerShell
 
