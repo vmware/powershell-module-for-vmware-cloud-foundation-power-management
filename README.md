@@ -18,9 +18,11 @@ domains using a PowerShell script.
 The scripts follow the order for manual shutdown and startup of VMware Cloud Foundation. You can complete the
 workflow manually at any point. You can also run the scripts multiple times.
 
+For details on specific VMware Cloud Foundation versions supported by this module, please refer to the [documentation][docs-module].
+
 ## Documentation
 
-For detailed instructions on using this module, refer to the [official documentation][docs-module].
+For detailed instructions on using this module, refer to the [documentation][docs-module].
 
 ## Contributing
 
