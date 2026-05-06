@@ -15,7 +15,7 @@
     ModuleVersion     = '1.6.0.1002'
 
     # Supported PSEditions
-    # CompatiblePSEditions = @()
+    CompatiblePSEditions  = @('Core')
 
     # ID used to uniquely identify this module
     GUID              = '2dfce98f-e82f-63bf-965d-47273dacc485'
@@ -27,7 +27,7 @@
     CompanyName       = 'Broadcom'
 
     # Copyright statement for this module
-    Copyright         = 'Copyright 2023-2025 Broadcom. All Rights Reserved.'
+    Copyright         = 'Copyright 2023-2026 Broadcom. All Rights Reserved.'
 
     # Description of the functionality provided by this module
     Description       = 'PowerShell Module for VMware Cloud Foundation Power Management'
@@ -74,13 +74,39 @@
     # NestedModules = @()
 
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-    FunctionsToExport = '*'
+    FunctionsToExport = @(
+        'Get-DrsAutomationLevel',
+        'Get-EdgeNodeFromNSXManager',
+        'Get-MaintenanceMode',
+        'Get-NSXTComputeManagers',
+        'Get-poweronVMsOnRemoteDS',
+        'Get-TanzuEnabledClusterStatus',
+        'Get-VamiServiceStatus',
+        'Get-VMRunningStatus',
+        'Get-VMsWithPowerStatus',
+        'Get-VMToClusterMapping',
+        'Invoke-VxrailClusterShutdown',
+        'New-LogFile',
+        'Set-DrsAutomationLevel',
+        'Set-MaintenanceMode',
+        'Set-Retreatmode',
+        'Set-VamiServiceStatus',
+        'Set-VsanClusterPowerStatus',
+        'Set-VsphereHA',
+        'Start-CloudComponent',
+        'Stop-CloudComponent',
+        'Test-LockdownMode',
+        'Test-VsanHealth',
+        'Test-VsanObjectResync',
+        'Wait-ForStableNsxtClusterStatus',
+        'Write-LogMessage'
+    )
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-    CmdletsToExport   = '*'
+    CmdletsToExport   = @()
 
     # Variables to export from this module
-    VariablesToExport = '*'
+    VariablesToExport = @()
 
     # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
     AliasesToExport   = @()
@@ -100,7 +126,7 @@
         PSData = @{
 
             # Tags applied to this module. These help with module discovery in online galleries.
-            Tags         = @('VMware', 'CloudFoundation', 'VMwareCloudFoundation')
+            Tags         = @('VMware', 'Broadcom', 'CloudFoundation', 'VCF', 'VMwareCloudFoundation', 'PowerManagement', 'vSphere', 'NSX', 'vSAN', 'SDDC')
 
             # A URL to the license for this module.
             LicenseUri   = 'https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/blob/main/LICENSE'
