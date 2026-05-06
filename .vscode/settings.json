@@ -42,7 +42,7 @@
   "powershell.codeFormatting.whitespaceBetweenParameters": true,
   "powershell.integratedConsole.suppressStartupBanner": true,
   "powershell.scriptAnalysis.enable": true,
-  "extensions.ignoreRecommendations": false,
+  "extensions.ignoreRecommendations": true,
   "cSpell.words": [
     "sddcm",
     "VCFIR",

@@ -33,7 +33,7 @@
     Description       = 'PowerShell Module for VMware Cloud Foundation Power Management'
 
     # Minimum version of the PowerShell engine required by this module
-    PowerShellVersion = '7.2.0'
+    PowerShellVersion = '7.4.0'
 
     # Name of the Windows PowerShell host required by this module
     # PowerShellHostName = ''
@@ -53,20 +53,8 @@
     # Modules that must be imported into the global environment prior to importing this module
     RequiredModules   = @(
         @{
-            ModuleName    = 'VMware.PowerCLI'
-            ModuleVersion = '13.3.0'
-        }
-        @{
-            ModuleName    = 'Posh-SSH'
-            ModuleVersion = '3.0.8'
-        }
-        @{
-            ModuleName    = 'PowerVCF'
-            ModuleVersion = '2.4.1'
-        }
-        @{
-            ModuleName    = 'PowerValidatedSolutions'
-            ModuleVersion = '2.12.1'
+            ModuleName    = "VCF.PowerCLI"
+            ModuleVersion = "9.0.0"
         }
     )
 

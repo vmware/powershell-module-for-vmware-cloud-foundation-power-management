@@ -1,5 +1,35 @@
 # Release History
 
+## Unreleased
+
+> Target: VCF 5.x and VCF 9.x. Requires PowerShell 7.4 or later. Support for VCF 4.x and Windows PowerShell (Desktop edition) has been dropped.
+
+Breaking Changes:
+
+- Dropped support for VMware Cloud Foundation 4.x. All version-gated code paths for VCF < 4.5 and VCF < 5.0 have been removed from the sample scripts.
+- Dropped support for Windows PowerShell (Desktop edition). The module now requires PowerShell 7.4 or later.
+- Removed `Invoke-EsxCommand` and `Get-SSHEnabledStatus` from the module. These functions were only called within the now-removed VCF 4.x code paths and required the `Posh-SSH` module.
+- `Write-PowerManagementLogMessage` and `Debug-CatchWriterForPowerManagement` are removed and replaced by `Write-LogMessage` and `New-LogFile` (see Refactor below).
+
+Refactor:
+
+- Replaced the `Posh-SSH`, `PowerVCF`, and `PowerValidatedSolutions` module dependencies with VCF PowerCLI 9 and direct REST calls.
+- Replaced `Test-EndpointConnection` (from `PowerValidatedSolutions`) with a private `Test-ManagementEndpoint` helper inlined in the module, eliminating the `PowerValidatedSolutions` dependency entirely.
+- Replaced `Connect-NsxTServer`/`Get-NSXtService` (from `VMware.VimAutomation.Nsxt`) in `Get-EdgeNodeFromNSXManager` and `Get-NSXTComputeManagers` with direct `Invoke-RestMethod` calls using Basic Auth. NSX version is detected at runtime: VCF 9 (NSX 9.0+) uses the Policy API path; VCF 5.x uses the v1 management-plane path.
+- Replaced `Connect-CisServer`/`Get-CisService` (from `VMware.VimAutomation.Cis.Core`) in `Get-VamiServiceStatus` and `Set-VamiServiceStatus` with direct `Invoke-RestMethod` calls against the vCenter REST API (`/api/vcenter/services/{name}`), which is the supported path for both VCF 5 and VCF 9.
+- Replaced `get-wmcluster` (from `VMware.VimAutomation.WorkloadManagement`) in `Get-TanzuEnabledClusterStatus` with a direct `Invoke-RestMethod` call against `/api/vcenter/namespace-management/clusters/{moref}`.
+- Added `Set-Retreatmode` guard: the function now detects vSphere 9.0+ and skips the vCLS retreat mode advanced-setting operation with a warning, as this setting is deprecated and unsupported in vSphere 9.0.
+- Sample scripts updated to use `ssoId`-scoped credential lookup unconditionally (previously gated behind VCF >= 5.0).
+- vSAN cluster shutdown and startup use the shutdown wizard (`Set-VsanClusterPowerStatus`) unconditionally in both sample scripts.
+
+Chore:
+
+- Updated `VMware.PowerCLI` minimum required version from `13.3.0` to `9.0.0`.
+- Bumped `PowerShellVersion` in the module manifest from `7.2.0` to `7.4.0`.
+- Removed `Posh-SSH`, `PowerVCF`, and `PowerValidatedSolutions` from `RequiredModules` in the module manifest.
+- Replaced `Write-PowerManagementLogMessage` and `Debug-CatchWriterForPowerManagement` with `Write-LogMessage` and `New-LogFile`, aligned with the standard logging pattern from the reference `VcfEdgeAtScale` module. The new logger uses `$Script:LogFile`, `$Script:ConfiguredLogLevel`, and a `Test-LogLevel` level hierarchy (DEBUG < INFO < WARNING < EXCEPTION < ERROR). Sample scripts now call `New-LogFile` at startup instead of `Start-SetupLogFile`.
+- Removed the Windows PowerShell (Desktop edition) self-signed certificate compatibility block from module initialization. `Test-ManagementEndpoint` now uses `Test-Connection -TcpPort` directly (PS 7 only).
+
 ## v1.6.0
 
 > Release Date: 2025-06-05
