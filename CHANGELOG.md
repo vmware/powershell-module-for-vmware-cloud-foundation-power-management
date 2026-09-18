@@ -19,21 +19,21 @@ Chore:
 
 Bugfix:
 
-- Added support to `PowerManagement-ManagmentDomain.ps1` and `PowerManagement-WorkloadDomain.ps1` for vSAN File Services to be excluded from customer virtual machines. [GH-95](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/95)
-- Added exit to Tanzu Code in `PowerManagement-WorkloadDomain.ps1`[GH-97](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/97)
-- Added support to `PowerManagement-ManagmentDomain.ps1` and `PowerManagement-WorkloadDomain.ps1` for testing ESXi host connection before SSH connection. [GH-98](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/98)
+- Added support to `PowerManagement-ManagementDomain.ps1` and `PowerManagement-WorkloadDomain.ps1` for vSAN File Services to be excluded from customer virtual machines. [GH-95](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/95)
+- Added exit to Tanzu Code in `PowerManagement-WorkloadDomain.ps1` [GH-97](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/97)
+- Added support to `PowerManagement-ManagementDomain.ps1` and `PowerManagement-WorkloadDomain.ps1` for testing ESXi host connection before SSH connection. [GH-98](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/98)
 - Fix for issue [#101](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/issues/101)[GH-106](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/106)
 - Fix for issue [#104](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/issues/104)[GH-106](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/106)
 
 Enhancement:
 
-- Added check to verify if workload domain vCenter Server instances are still powered on before starting the shutdown of the management domain to `PowerManagement-ManagmentDomain.ps1`. [GH-90](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/90)
+- Added check to verify if workload domain vCenter Server instances are still powered on before starting the shutdown of the management domain to `PowerManagement-ManagementDomain.ps1`. [GH-90](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/90)
 - Various improvements in workflows, log messages, file syntax. [GH-106](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/106) and [GH-107](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/107)
 
 Refactor:
 
 - Replaced the use of `Test-NetConnection` with `Test-EndpointConnection` from the PowerShell module dependency `PowerValidatedSolutions`. [GH-85](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/85)
-- Updated `PowerManagement-ManagmentDomain.ps1` to allow for FQDN or IP address of SDDC Manager. [GH-92](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/92)
+- Updated `PowerManagement-ManagementDomain.ps1` to allow for FQDN or IP address of SDDC Manager. [GH-92](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/92)
 - Removed obsolete and not used code in the sample scripts.
 - Apply common formatting for the files. [GH-107](https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/pull/107)
 

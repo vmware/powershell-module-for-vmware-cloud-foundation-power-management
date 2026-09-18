@@ -4,7 +4,7 @@
 
 # PowerShell Module for VMware Cloud Foundation Power Management
 
-`VMware.CloudFoundation.PowerManagement` is a PowerShell module that supports the ability to automate the shut down and start up of the VMware Cloud Foundatiоn]management domain or workload domains using aPowerShell script.
+`VMware.CloudFoundation.PowerManagement` is a PowerShell module that supports the ability to automate the shut down and start up of the VMware Cloud Foundation management domain or workload domains using a PowerShell script.
 
 [:material-powershell: &nbsp; PowerShell Gallery][psgallery-module-power-management]{ .md-button .md-button--primary }
 

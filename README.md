@@ -39,7 +39,7 @@ monitored by the maintainers and are prioritized based on criticality and commun
 
 Before filing an issue, please search the issues and use the reactions feature to add votes to
 matching issues. Please include as much information as you can. Details like these are incredibly
-useful in helping the us evaluate and prioritize any changes:
+useful in helping us evaluate and prioritize any changes:
 
 - A reproducible test case or series of steps.
 - Any modifications you've made relevant to the bug.

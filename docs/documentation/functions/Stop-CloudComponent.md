@@ -110,7 +110,7 @@ Accept wildcard characters: False
 
 ### -noWait
 
-To shudown the cloud component and not wait for desired connection state change.
+To shutdown the cloud component and not wait for desired connection state change.
 
 ```yaml
 Type: SwitchParameter

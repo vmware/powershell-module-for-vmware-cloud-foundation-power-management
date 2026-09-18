@@ -73,9 +73,9 @@ Verify that your system has a [supported edition and version](./../index.md#powe
         --8<-- "./docs/snippets/import-module-local-linux.ps1"
         ```
 
-Once installed, any cmdlets associated with `VMware.CloudFoundation.PowerManagement` and the its dependencies will be available for use.
+Once installed, any cmdlets associated with `VMware.CloudFoundation.PowerManagement` and its dependencies will be available for use.
 
-To view the cmdlets for available in the module, run the following command in the PowerShell console.
+To view the cmdlets available in the module, run the following command in the PowerShell console.
 
 ```powershell
 Get-Command -Module VMware.CloudFoundation.PowerManagement

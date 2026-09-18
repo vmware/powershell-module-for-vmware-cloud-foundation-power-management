@@ -149,7 +149,7 @@ Accept wildcard characters: False
 
 ### -silence
 
-The switch to supress log messages.
+The switch to suppress log messages.
 
 ```yaml
 Type: SwitchParameter

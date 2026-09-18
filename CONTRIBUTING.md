@@ -45,13 +45,13 @@ To open a pull request, please:
 3. Ensure local tests pass.
 4. Updated the documentation, if required.
 5. Sign-off and commit to your fork
-   [using a clear commit messages][git-commit]. Please use
+   [using clear commit messages][git-commit]. Please use
    [Conventional Commits][conventional-commits].
 6. Open a pull request, answering any default questions in the pull request.
 7. Pay attention to any automated failures reported in the pull request, and
    stay involved in the conversation.
 
-GitHub provides additional document on [forking a repository][gh-forks] and
+GitHub provides additional documentation on [forking a repository][gh-forks] and
 [creating a pull request][gh-pull-requests].
 
 ### Contributor Flow
@@ -149,8 +149,8 @@ on. If you have an idea you'd like to discuss,
 
 [dco]: https://probot.github.io/apps/dco/
 [conventional-commits]: https://conventionalcommits.org
-[gh-discussions]: hhttps://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/discussions
+[gh-discussions]: https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/discussions
 [gh-forks]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo
-[gh-issues]: hhttps://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/issues
+[gh-issues]: https://github.com/vmware/powershell-module-for-vmware-cloud-foundation-power-management/issues
 [gh-pull-requests]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
 [git-commit]: https://cbea.ms/git-commit
