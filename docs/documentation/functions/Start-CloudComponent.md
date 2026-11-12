@@ -126,7 +126,7 @@ Accept wildcard characters: False
 
 ### -pattern
 
-The cloud components matching the pattern in the SDDC Manager inventory to be startup.
+The cloud components matching the pattern in the SDDC Manager inventory to be started up.
 
 ```yaml
 Type: String[]

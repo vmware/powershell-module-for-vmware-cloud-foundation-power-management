@@ -99,7 +99,7 @@ Accept wildcard characters: False
 
 ### -nolog
 
-The switch to supress selected log messages.
+The switch to suppress selected log messages.
 
 ```yaml
 Type: SwitchParameter
